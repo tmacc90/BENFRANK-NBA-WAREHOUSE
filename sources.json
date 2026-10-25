@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "default_seasons": [
+    "2024-25",
+    "2025-26"
+  ],
+  "sources": [
+    {
+      "name": "nba_stats_schedule_master.parquet",
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-stats-data/5004766de1817d44fa051432e1f3be5db7501b22/nba_stats/nba_stats_schedule_master.parquet",
+      "provider": "NBA Stats via SportsDataverse mirror",
+      "kind": "schedule",
+      "commit": "5004766de1817d44fa051432e1f3be5db7501b22",
+      "sha256": "c8d4e03b0ae5d4af3e14e94bf75f1524a98e6dc5ee5a0347d8f251ea66e6fe78",
+      "size_bytes": 1644807
+    },
+    {
+      "name": "player_boxscores_2025.parquet",
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-stats-data/5004766de1817d44fa051432e1f3be5db7501b22/nba_stats/player_boxscores/parquet/player_boxscores_2025.parquet",
+      "provider": "NBA Stats via SportsDataverse mirror",
+      "kind": "nba_box",
+      "year": 2025,
+      "commit": "5004766de1817d44fa051432e1f3be5db7501b22",
+      "git_blob_sha": "f4039f9c172d8052dc250552c3a51aeedecde78a",
+      "sha256": "414480718d58be6eb88db2c642d3d6469ee3be6320eb3bec3631667c7ded966d",
+      "size_bytes": 640989
+    },
+    {
+      "name": "player_box_2025.csv",
+      "url": "https://github.com/sportsdataverse/sportsdataverse-data/releases/download/espn_nba_player_boxscores/player_box_2025.csv",
+      "provider": "ESPN via SportsDataverse archive",
+      "kind": "espn_box",
+      "year": 2025,
+      "sha256": "8e34c5b1b7629dda89483356b5ec40f76a0b534aa273a5ddd8d9ef23f3e0e4f7",
+      "asset_id": 530366330,
+      "updated_at": "2026-08-26T06:17:31Z",
+      "size_bytes": 17909380
+    },
+    {
+      "name": "player_boxscores_2026.parquet",
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-stats-data/5004766de1817d44fa051432e1f3be5db7501b22/nba_stats/player_boxscores/parquet/player_boxscores_2026.parquet",
+      "provider": "NBA Stats via SportsDataverse mirror",
+      "kind": "nba_box",
+      "year": 2026,
+      "commit": "5004766de1817d44fa051432e1f3be5db7501b22",
+      "git_blob_sha": "54f099ec2e2d70cb60be9e7f4b57fc8ebd99b429",
+      "sha256": "a0b280ebb0c955e501c0e6feab3f6d726bd9f1b7c2d13f5b5c0746049459132e",
+      "size_bytes": 644419
+    },
+    {
+      "name": "player_box_2026.csv",
+      "url": "https://github.com/sportsdataverse/sportsdataverse-data/releases/download/espn_nba_player_boxscores/player_box_2026.csv",
+      "provider": "ESPN via SportsDataverse archive",
+      "kind": "espn_box",
+      "year": 2026,
+      "sha256": "7a4868da67ae7f6ebfba23389e04220be2e3f69d2e56a3942c02aa56f1becc89",
+      "asset_id": 552052751,
+      "updated_at": "2026-09-09T05:17:39Z",
+      "size_bytes": 17729581
+    }
+  ]
+}
