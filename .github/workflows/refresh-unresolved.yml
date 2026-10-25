@@ -4,23 +4,30 @@ on:
   push:
     paths:
       - 'refresh_and_audit.py'
+      - 'v39_unresolved.json'
+      - 'tests/test_refresh.py'
       - '.github/workflows/refresh-unresolved.yml'
+permissions:
+  contents: read
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Test official capture guards
+        run: python -m unittest discover -s tests -p test_refresh.py -v
       - name: Fetch official NBA game evidence and audit
-        run: |
-          python refresh_and_audit.py --ledger v39_unresolved.json --out acquisition/official_refresh
+        run: >-
+          python -u refresh_and_audit.py --ledger v39_unresolved.json
+          --out acquisition/official_refresh --timeout 10 --attempts 2 --workers 4
       - name: Preserve receipts even on failure
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: benfrank-official-refresh-receipts
+          name: benfrank-official-refresh-receipts-${{ github.run_id }}
           path: acquisition/official_refresh/
-          if-no-files-found: warn
+          if-no-files-found: error
