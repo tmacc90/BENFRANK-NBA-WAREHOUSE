@@ -1,0 +1,71 @@
+name: BENFRANK public dataset staging
+on:
+  workflow_dispatch:
+    inputs:
+      data_url:
+        description: 'Direct permitted HTTPS URL to a CSV, JSON, or Parquet file (not a webpage)'
+        required: true
+      source:
+        description: 'Source label (nba_official, espn, etc.)'
+        required: true
+        default: 'nba_official'
+      mapping_json:
+        description: 'JSON object mapping canonical names to actual source column names'
+        required: true
+        default: '{}'
+permissions:
+  contents: read
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt
+      - run: python -m unittest discover -s tests -v
+      - name: Download provided source file
+        env:
+          DATA_URL: ${{ inputs.data_url }}
+        run: |
+          python - <<'PY'
+          import os,urllib.parse,urllib.request
+          url=os.environ['DATA_URL'];u=urllib.parse.urlsplit(url)
+          if u.scheme!='https' or not u.hostname or u.username or u.password:raise ValueError('HTTPS source URL required')
+          ext=os.path.splitext(u.path)[1].lower()
+          if ext not in ('.csv','.json','.parquet'):raise ValueError('File extension must be csv/json/parquet')
+          req=urllib.request.Request(url,headers={'User-Agent':'BENFRANK-acquisition/3.7'})
+          with urllib.request.urlopen(req,timeout=45) as r,open('source'+ext,'wb') as f:
+            if r.geturl().split(':',1)[0]!='https':raise ValueError('Non-HTTPS redirect')
+            size=0
+            while True:
+              chunk=r.read(1024*1024)
+              if not chunk:break
+              size+=len(chunk)
+              if size>250*1024*1024:raise ValueError('File too large')
+              f.write(chunk)
+          PY
+      - name: Stage and audit
+        env:
+          SOURCE: ${{ inputs.source }}
+          MAPPING_JSON: ${{ inputs.mapping_json }}
+        run: |
+          python - <<'PY'
+          import os,json,pathlib
+          mapping=json.loads(os.environ['MAPPING_JSON'])
+          if not isinstance(mapping,dict) or not all(isinstance(k,str) and isinstance(v,str) for k,v in mapping.items()):
+              raise ValueError('Column mapping must be a JSON object of string pairs')
+          pathlib.Path('column_map.json').write_text(json.dumps(mapping))
+          PY
+          python acquire_parquet.py source.* --source "$SOURCE" --mapping column_map.json --db nba_warehouse.sqlite --output import_receipt.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nba-staging-receipts
+          path: |
+            nba_warehouse.sqlite
+            import_receipt.json
+            column_map.json
+          if-no-files-found: error
