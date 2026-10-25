@@ -1,0 +1,26 @@
+name: BENFRANK official unresolved refresh
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'refresh_and_audit.py'
+      - '.github/workflows/refresh-unresolved.yml'
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Fetch official NBA game evidence and audit
+        run: |
+          python refresh_and_audit.py --ledger v39_unresolved.json --out acquisition/official_refresh
+      - name: Preserve receipts even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benfrank-official-refresh-receipts
+          path: acquisition/official_refresh/
+          if-no-files-found: warn
