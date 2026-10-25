@@ -1,4 +1,4 @@
-# BENFRANK NBA v3.7 — acquisition deployment repair
+# BENFRANK NBA v4.1 — official historical refresh
 
 The saved v3.7 framework and its original modules are preserved. The original release notes are in [docs/ORIGINAL_V37.md](docs/ORIGINAL_V37.md). This repair adds reproducible historical acquisition and record-level reconciliation; it does not complete the proposed possession simulator, independent AI, injury feeds, or model calibration.
 
@@ -33,6 +33,10 @@ No recurring schedule is added by this deployment repair. Workflows are source f
 
 All predictions retain NO_TICKET. The original engine implements 12 markets, 24 statistical windows, a game bootstrap, a statistical line-blind formula, a minute-level proxy, and a sensitivity grid. These are not the complete 68-market framework, an independent AI system, or possession-level Digital Twon. No production simulation, probability calibration, walk-forward certification, current-season acquisition, live injury/lineup integration, or betting edge is claimed by this import.
 
-## Execution status
+## v4.1 execution status
+
+The v4.1 local refresh recovered all 51 targets from the preserved v3.9 baseline, producing 52,957 actual player-game rows with zero baseline rows changed or removed. See [V41_REFRESH_README.md](V41_REFRESH_README.md) for the source checks, retained CDN discrepancies, commands, failures and distinction between local reconciliation and GitHub capture. Prediction certification remains NO_TICKET.
+
+## Earlier v3.7 execution status
 
 A local baseline executed 33 tests and imported 52,737 cross-checked regular-season player-games across 2,460 games. Direct NBA Stats verification passed for all imported rows, while 220 official player-game records remained absent. The historical coverage gate therefore failed with exit 2. These are local baseline results, not evidence that GitHub Actions has passed. Inspect this repository’s Actions runs and downloaded artifacts for remote execution evidence.

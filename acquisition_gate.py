@@ -18,8 +18,9 @@ def audit(db, player, seasons, min_games):
             provenance=[dict(x) for x in conn.execute("SELECT * FROM provenance WHERE lower(player)=lower(?) OR player='*' ORDER BY rowid DESC LIMIT 12",(player,))]
         identity_missing=sum(counts.values())
         if 'game_verifications' in tables:
+            relation='verified_history' if conn.execute("SELECT 1 FROM sqlite_master WHERE type='view' AND name='verified_history'").fetchone() else 'game_verifications'
             placeholders=','.join('?' for _ in seasons)
-            identity_missing=conn.execute('''SELECT COUNT(*) FROM games g LEFT JOIN game_verifications v
+            identity_missing=conn.execute(f'''SELECT COUNT(*) FROM games g LEFT JOIN {relation} v
               USING(player,date,team) WHERE lower(g.player)=lower(?) AND g.season IN ('''+placeholders+''')
               AND v.player IS NULL''',(player,*seasons)).fetchone()[0]
         good=min_games>0 and bool(seasons) and all(v>=min_games for v in counts.values()) and invalid==0 and duplicate_dates==0 and bool(provenance) and identity_missing==0

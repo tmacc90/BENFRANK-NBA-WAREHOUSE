@@ -277,31 +277,38 @@ def reconcile(c, nba_rows, espn_rows, schedule_rows, year, nba_meta, espn_meta):
             'status':'PASS' if not errors and imported>0 and expected==seen_games else 'PARTIAL_OR_FAIL'}
 
 
+def verification_relation(c):
+    """Keep official CDN receipts distinct from the original ESPN verification."""
+    return 'verified_history' if c.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='view' AND name='verified_history'").fetchone() else 'game_verifications'
+
+
 def inspect_database(db):
     c = connect(db)
     migrate(c)
-    unverified = c.execute('''SELECT COUNT(*) FROM games g LEFT JOIN game_verifications v
+    verifications = verification_relation(c)
+    unverified = c.execute(f'''SELECT COUNT(*) FROM games g LEFT JOIN {verifications} v
       USING(player,date,team) WHERE v.player IS NULL''').fetchone()[0]
-    rows = [dict(r) for r in c.execute('''SELECT g.*,v.nba_game_id,v.nba_player_id,v.espn_game_id,
-      v.official_file_sha256,v.espn_file_sha256 FROM games g JOIN game_verifications v
+    rows = [dict(r) for r in c.execute(f'''SELECT g.*,v.nba_game_id,v.nba_player_id,v.espn_game_id,
+      v.official_file_sha256,v.espn_file_sha256 FROM games g JOIN {verifications} v
       USING(player,date,team) ORDER BY g.date,g.player''')]
     invalid = []
     for r in rows:
         for k in ('minutes',*STATS):
             if r[k] is None or not math.isfinite(r[k]) or r[k]<0: invalid.append({'row':r,'field':k})
     disagreement = 0
-    for r in c.execute('SELECT g.*,v.canonical_json FROM games g JOIN game_verifications v USING(player,date,team)'):
+    for r in c.execute(f'SELECT g.*,v.canonical_json FROM games g JOIN {verifications} v USING(player,date,team)'):
         original = json.loads(r['canonical_json'])
         if any(r[k]!=original[k] for k in FIELDS): disagreement += 1
     season_counts = [dict(r) for r in c.execute('''SELECT season,COUNT(*) player_games,
       COUNT(DISTINCT player) players,MIN(date) first_date,MAX(date) last_date
       FROM games GROUP BY season''')]
-    game_counts = c.execute('SELECT COUNT(DISTINCT nba_game_id) FROM game_verifications').fetchone()[0]
+    game_counts = c.execute(f'SELECT COUNT(DISTINCT nba_game_id) FROM {verifications}').fetchone()[0]
     integrity = c.execute('PRAGMA integrity_check').fetchone()[0]
-    duplicates = c.execute('''SELECT COUNT(*) FROM (SELECT nba_game_id,nba_player_id,COUNT(*) n
-      FROM game_verifications GROUP BY nba_game_id,nba_player_id HAVING n>1)''').fetchone()[0]
-    representative = [dict(r) for r in c.execute('''SELECT g.*,v.nba_game_id,v.nba_player_id,v.espn_game_id
-      FROM games g JOIN game_verifications v USING(player,date,team)
+    duplicates = c.execute(f'''SELECT COUNT(*) FROM (SELECT nba_game_id,nba_player_id,COUNT(*) n
+      FROM {verifications} GROUP BY nba_game_id,nba_player_id HAVING n>1)''').fetchone()[0]
+    representative = [dict(r) for r in c.execute(f'''SELECT g.*,v.nba_game_id,v.nba_player_id,v.espn_game_id
+      FROM games g JOIN {verifications} v USING(player,date,team)
       WHERE g.player IN ('Giannis Antetokounmpo','Jayson Tatum','LeBron James')
       ORDER BY g.date DESC LIMIT 12''')]
     result = {'sqlite_integrity':integrity,'engine_rows':len(rows),'distinct_nba_games':game_counts,
@@ -311,7 +318,7 @@ def inspect_database(db):
               'source_files':c.execute('SELECT COUNT(*) FROM source_files').fetchone()[0],
               'representative_records':representative,
               'prediction_certification':'NOT_EXECUTED_NO_TICKET',
-              'direct_official_access':'NOT_ESTABLISHED_BY_MIRROR_IMPORT'}
+              'direct_official_access':'SEE_OFFICIAL_REFRESH_RECEIPTS' if verifications=='verified_history' else 'NOT_ESTABLISHED_BY_MIRROR_IMPORT'}
     result['integrity_status'] = 'PASS' if integrity=='ok' and not any((unverified,invalid,duplicates,disagreement)) and rows else 'FAIL'
     c.close()
     return result

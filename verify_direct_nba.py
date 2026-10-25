@@ -1,7 +1,7 @@
 """Audit saved records against direct official NBA league logs; not calibration."""
 import argparse, collections, hashlib, json, sqlite3
 from pathlib import Path
-from acquire_history import now, team_key, write_json, fetch_source, flag
+from acquire_history import now, team_key, write_json, fetch_source, flag, verification_relation
 FIELDS={'pts':'PTS','reb':'REB','ast':'AST','stl':'STL','blk':'BLK','tov':'TOV','fg3m':'FG3M'}
 def compare(row,direct,season,neutral_site=False):
  expected={k:direct[v] for k,v in FIELDS.items()}
@@ -35,7 +35,8 @@ def run(db,directory,seasons,use_cache=False):
    raw=path.read_bytes();digest=hashlib.sha256(raw).hexdigest();dataset=json.loads(raw)['resultSets'][0];direct=collections.defaultdict(list)
    for values in dataset['rowSet']:
     r=dict(zip(dataset['headers'],values));direct[(str(r['GAME_ID']),str(r['PLAYER_ID']))].append(r)
-   rows=c.execute('SELECT g.*,v.nba_game_id,v.nba_player_id FROM games g JOIN game_verifications v USING(player,date,team) WHERE g.season=?',(season,)).fetchall()
+   relation=verification_relation(c)
+   rows=c.execute(f'SELECT g.*,v.nba_game_id,v.nba_player_id FROM games g JOIN {relation} v USING(player,date,team) WHERE g.season=?',(season,)).fetchall()
    matches=0;failures=[];seen=set()
    for row in rows:
     key=(row['nba_game_id'],row['nba_player_id']);seen.add(key);options=direct.get(key,[])
