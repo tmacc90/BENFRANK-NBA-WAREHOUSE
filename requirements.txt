@@ -2,3 +2,4 @@ nba_api>=1.9,<2
 pandas>=2
 requests>=2
 pyarrow>=18,<27
+pdfplumber==0.11.9

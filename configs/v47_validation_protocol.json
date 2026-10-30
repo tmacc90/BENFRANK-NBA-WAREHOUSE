@@ -1,0 +1,20 @@
+{
+  "version": "BENFRANK_V47_PREDECLARED_VALIDATION_1",
+  "development_game_dates": ["2026-02-01", "2026-04-12"],
+  "new_test_game_dates": ["2026-10-20", "2026-10-28"],
+  "prior_test_results_become_development_only": true,
+  "new_test_outcomes_used_for_model_or_threshold_fitting": false,
+  "scope": {"platform": "PrizePicks", "market": "points", "line_min": 25, "line_max_exclusive": 30, "season_type": "regular"},
+  "cohort_policy": "FIRST_CAPTURE_THEN_LEXICOGRAPHIC_PLAYER_PER_GAME_NO_OUTCOME_FILTER_MAX_60_CHRONOLOGICAL_GAMES",
+  "minimum_actual_trials_per_exact_line": 25000,
+  "feature_policy": "PRIOR_GAMES_ONLY_WITH_CONSERVATIVE_TWO_CALENDAR_DAY_LAG_AND_ORIGINAL_PREGAME_INJURY_REPORT",
+  "rotation_policy": "EXPLICIT_OUT_ZERO_MINUTES_UNKNOWN_AVAILABILITY_RETAINS_UNCERTAINTY_AND_BLOCKS_FULL_CLEARANCE",
+  "uncertainty_policy": "FINITE_SAMPLE_SPLIT_CONFORMAL_CQR_90PCT_FIT_ON_DEVELOPMENT_ONLY",
+  "probability_policy": "ISOTONIC_WITH_FIXED_GLOBAL_SHRINKAGE_20_PSEUDO_OBSERVATIONS_FIT_ON_DEVELOPMENT_ONLY",
+  "point_bias_policy": "MEDIAN_DEVELOPMENT_RESIDUAL_LOCATION_CORRECTION_ONLY",
+  "evaluation": ["Brier", "log_loss", "90pct_interval_coverage", "Wilson_coverage_interval", "MAE", "paired_blind_MAE", "game_cluster_bootstrap"],
+  "missingness_policy": "PRESERVE_ALL_SOURCE_AND_FEATURE_EXCLUSIONS_AND_UNPLAYED_OR_PUSH_CASES",
+  "all_original_warehouse_and_research_files_immutable": true,
+  "automatic_full_promotion": false,
+  "full_release_scope": "Requires applicable inherited 66-stage evidence and qualified per-prop availability; this protocol is a model-repair validation, not a global certificate."
+}

@@ -1,5 +1,9 @@
 # BENFRANK NBA v4.1 — official historical refresh
 
+## Current additive model repair: v4.7
+
+The [v4.7 execution and validation notes](docs/V47_MODEL_REPAIR.md) document original-report availability, variable rotations, scoped uncertainty calibration, and batch integration. A separate 32-game period completed 800,000 actual game simulations after 1,775,000 development simulations. Calibrated nominal 90% intervals covered 30/32 outcomes; point MAE was 7.16 versus 7.79 for the blind model. This narrow retrospective result does not establish a betting edge or blanket FULL certification. Original warehouses, earlier results and all governing source/release requirements are preserved.
+
 ## Current additive certification recovery: v4.6
 
 The [v4.6 execution and reproduction notes](docs/V46_CERTIFICATION_RECOVERY.md) document re-audited complete selected-season history, free pinned public pregame line recovery, and measured baseline / actual-simulator research. These additions preserve original warehouses and retain explicit per-prop FULL certification gates.

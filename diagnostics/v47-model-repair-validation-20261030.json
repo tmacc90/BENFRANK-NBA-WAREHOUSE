@@ -1,0 +1,86 @@
+{
+  "availability_integration": "ORIGINAL_OFFICIAL_REPORTS_GAME_SCOPED_UNKNOWN_NOT_CLEARED",
+  "calibration_sha256_before_new_test": "58969ceee18480765f71039ae093130ad2095a220262106ed3cdebe8485b2630",
+  "certification": "NOT_CERTIFIED",
+  "components_repaired": true,
+  "current_ingestion_rejections": [
+    {
+      "date": "2026-10-23",
+      "player": "Pacome Dadiet",
+      "reason": "Missing numeric value"
+    }
+  ],
+  "development_trials": 1775000,
+  "minute_model": "VARIABLE_PLAYED_STATUS_AND_CONSERVED_TEAM_ROTATION_SCENARIOS",
+  "new_test_trials": 800000,
+  "original_warehouse_unchanged": true,
+  "source_hashes": {
+    "current_espn_csv": "ab8fc809d8f6691852d5d5e30befca62124d58a1e1c4aba8126244f8a3e6a53d",
+    "schedule": "c8d4e03b0ae5d4af3e14e94bf75f1524a98e6dc5ee5a0347d8f251ea66e6fe78",
+    "shooting_database": "f3d06bb6d72462bb28f820f33d47aa8d93a8db5a7205e6a87c6281bfa22df759",
+    "warehouse": "76bd45d13047e7e4b0bf7b26a1546c631e82ae81bdd221bb5781e3b76e33d64b"
+  },
+  "status": "AVAILABILITY_AND_UNCERTAINTY_REPAIRS_EXECUTED",
+  "ticket_authority": "NO_TICKET",
+  "uncertainty_model": "DEVELOPMENT_FIT_THEN_DISJOINT_CONFORMAL_SAMPLE_THEN_LATER_NEW_TEST",
+  "new_test_evaluation": {
+    "adjusted_brier_log_loss": {
+      "brier": 0.239499,
+      "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+      "directional_accuracy": 0.625,
+      "log_loss": 0.672018,
+      "n": 32,
+      "probability_ties_n": 0
+    },
+    "adjusted_coverage_90pct": 0.9375,
+    "adjusted_coverage_successes": 30,
+    "adjusted_mae": 7.156914499092465,
+    "baseline_brier_log_loss": {
+      "brier": 0.261079,
+      "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+      "directional_accuracy": 0.46875,
+      "log_loss": 0.724294,
+      "n": 32,
+      "probability_ties_n": 6
+    },
+    "blind_evaluated": 32,
+    "blind_mae": 7.78954375,
+    "brier_delta_vs_baseline": {
+      "games": 32,
+      "percentile_95pct": [
+        -0.07945671357194505,
+        0.029987089787688638
+      ],
+      "resamples": 1000,
+      "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+    },
+    "certification": "NOT_CERTIFIED",
+    "coverage_wilson_95pct": [
+      0.7985287685584542,
+      0.982689432968359
+    ],
+    "interpretation": "Fresh model test period, separate from inspected v4.6 games. Secondary current-game labels and uncertain material availability retain their explicit release limits.",
+    "new_test_games": 32,
+    "raw_brier_log_loss": {
+      "brier": 0.251114,
+      "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+      "directional_accuracy": 0.59375,
+      "log_loss": 0.702052,
+      "n": 32,
+      "probability_ties_n": 0
+    },
+    "raw_coverage_90pct": 0.90625,
+    "raw_mae": 7.283919559282252,
+    "source_tiers": {
+      "ESPN_SECONDARY_WITH_OFFICIAL_SCHEDULE_IDENTITY": 32
+    },
+    "status": "NEW_PERIOD_VALIDATION_EXECUTED",
+    "ticket_authority": "NO_TICKET",
+    "unknown_material_availability_cases": 32
+  },
+  "execution_code_commit": "b4af77ca7a200ab2aac0d30cf9046d6521f6fc5d",
+  "source_cohort_protocol": "configs/v47_validation_protocol.json",
+  "total_formal_validation_trials": 2575000,
+  "original_v46_results_rewritten": false,
+  "calibration_artifact": "models/v47_prizepicks_points_25_30_calibration.json"
+}

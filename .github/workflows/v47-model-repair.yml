@@ -1,0 +1,77 @@
+name: BENFRANK v4.7 rotation and uncertainty software validation
+on:
+  pull_request:
+    paths:
+      - 'benfrank_v47_*.py'
+      - 'benfrank_v44_twon.py'
+      - 'benfrank_v44_batch.py'
+      - 'benfrank_v44_governance.py'
+      - 'requirements.txt'
+      - 'models/v47_*.json'
+      - 'tests/test_v47_*.py'
+      - '.github/workflows/v47-model-repair.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  software-and-physical-execution:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Run temporal, source, calibration, void and rotation contracts
+        run: python -m unittest discover -s tests -v
+      - name: Check the frozen calibration artifact scope and disjoint samples
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('models/v47_prizepicks_points_25_30_calibration.json').read_text())
+          assert r['stratum']==['prizepicks','points','',25]
+          assert r['coverage']==0.9
+          assert not set(r['parameter_fit_games']) & set(r['conformal_calibration_games'])
+          assert len(r['development_game_ids'])==r['development_n']
+          assert len(r['conformal_calibration_games'])==r['conformal_calibration_n']
+          assert r['certification']=='NOT_CERTIFIED'
+          PY
+      - name: Build an explicitly synthetic software-only context
+        run: |
+          mkdir -p receipts
+          python - <<'PY'
+          import json,sys
+          from pathlib import Path
+          sys.path.insert(0,'tests')
+          from test_v47_model_repair import context_fixture
+          c=context_fixture()
+          c['rosters'][c['home']][-1]['availability_status']='Out'
+          c['rosters'][c['home']][-1]['probability_played']=0
+          Path('receipts/synthetic-context.json').write_text(json.dumps(c,indent=2))
+          PY
+      - name: Execute 25K actual games on the synthetic fixture only
+        run: |
+          python benfrank_v47_run.py --context receipts/synthetic-context.json --player 'BOS Player 0' --market points --line 26.5 --platform SYNTHETIC_FIXTURE --output receipts/synthetic-execution.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('receipts/synthetic-execution.json').read_text())
+          s=r['simulation']
+          assert s['trials_executed']==25000
+          assert sum(s[k] for k in ('over_count','under_count','push_count','void_count'))==25000
+          assert s['regulation_team_minutes']=={'BOS':240,'NYK':240}
+          assert s['out_players_eligible_for_substitution'] is False
+          assert r['ticket_authority']=='NO_TICKET'
+          assert r['certification']=='NOT_CERTIFIED'
+          print('25K software-fixture games executed. This job is not real-game calibration or FULL certification.')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benfrank-v47-software-execution-${{ github.run_id }}
+          path: receipts/
+          retention-days: 30
+          if-no-files-found: warn

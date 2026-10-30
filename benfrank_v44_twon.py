@@ -137,11 +137,33 @@ def market_value(s,market):
         return s["points"]+1.2*s["rebounds"]+1.5*s["assists"]+3*(s["steals"]+s["blocks"])-s["turnovers"]
     raise ValueError("Unsupported market "+str(market))
 
-def simulate_game(context,seed,precomputed=None):
-    home,away=validate(context) if precomputed is None else (context["home"],context["away"])
-    rng=random.Random(seed)
+def prepare_game(context,lineups=None):
+    """Cache context constants; no random draws or event probabilities change."""
+    home,away=validate(context)
+    lineups=lineups or {t:schedule(context["rosters"][t]) for t in (home,away)}
     rosters={t:{p["player"]:p for p in context["rosters"][t]} for t in (home,away)}
-    lineups=precomputed or {t:schedule(context["rosters"][t]) for t in (home,away)}
+    ordered={t:sorted(context["rosters"][t],key=lambda p:p["minutes_target"],reverse=True) for t in (home,away)}
+    return {"context_id":id(context),"lineups":lineups,"rosters":rosters,"ordered":ordered,
+            "profiles":{t:[tuple(rosters[t][name] for name in lineup) for lineup in lineups[t]] for t in (home,away)},
+            "turnover_chance":{t:min(0.35,sum(p["tov_per36"]*p["minutes_target"]/36 for p in context["rosters"][t])/context["pace_per_team"]) for t in (home,away)},
+            "steals_per_possession":{t:sum(p["stl_per36"]*p["minutes_target"]/36 for p in context["rosters"][t])/context["pace_per_team"] for t in (home,away)}}
+
+def apply_disqualification(player,roster,fouled_out,last_player_exception=False):
+    """NBA Rule 3-I: the final five remain eligible, with a team technical."""
+    eligible=sum(p['player'] not in fouled_out for p in roster)
+    if last_player_exception and eligible<=5:
+        return True
+    fouled_out.add(player)
+    return False
+
+def simulate_game(context,seed,precomputed=None,prepared=None,max_overtimes=2,max_shooting_sequences=2,last_player_exception=False):
+    prepared=prepared or prepare_game(context,precomputed)
+    if prepared["context_id"]!=id(context):
+        raise ValueError("Prepared game belongs to a different context")
+    home,away=context["home"],context["away"]
+    rng=random.Random(seed)
+    rosters=prepared["rosters"]
+    lineups=prepared["lineups"]
     stats=starter_game_stats(context)
     score={home:0,away:0}
     fouled_out=set()
@@ -149,16 +171,18 @@ def simulate_game(context,seed,precomputed=None):
     # Possession and playing time are explicitly conserved in regulation.
     total_possessions=2*round(context["pace_per_team"])
     observed_minutes=set()
+    shot_sequence_ceiling_hit=False
+    last_player_technicals={home:0,away:0}
 
     def players_on(team,minute,ot=False):
+        if not fouled_out and not ot:
+            return prepared["profiles"][team][min(minute,47)]
         # Foul-outs trigger a legal substitution without violating 5 players on court.
         planned=list(lineups[team][min(minute,47)]) if not ot else [
-            p["player"] for p in sorted(context["rosters"][team],
-                     key=lambda p:p["minutes_target"],reverse=True)[:5]]
+            p["player"] for p in prepared["ordered"][team][:5]]
         available=[p for p in planned if p not in fouled_out]
         if len(available)<5:
-            extras=[p["player"] for p in sorted(context["rosters"][team],
-                        key=lambda p:p["minutes_target"],reverse=True)
+            extras=[p["player"] for p in prepared["ordered"][team]
                     if p["player"] not in available and p["player"] not in fouled_out]
             available.extend(extras[:5-len(available)])
         if len(available)!=5:
@@ -166,16 +190,15 @@ def simulate_game(context,seed,precomputed=None):
         return [rosters[team][p] for p in available]
 
     def possession(off,defense,minute,ot=False):
+        nonlocal shot_sequence_ceiling_hit
         lineup_off=players_on(off,minute,ot)
         lineup_def=players_on(defense,minute,ot)
         # Historical expected team TOs divided by expected team possessions.
-        expected_tov=sum(p["tov_per36"]*p["minutes_target"]/36 for p in context["rosters"][off])
-        turnover_chance=min(0.35,expected_tov/context["pace_per_team"])
+        turnover_chance=prepared["turnover_chance"][off]
         if rng.random()<turnover_chance:
             ball=choose(rng,lineup_off,lambda p:p["tov_per36"])
             stats[ball["player"]]["turnovers"]+=1
-            def_steals=sum(p["stl_per36"]*p["minutes_target"]/36 for p in context["rosters"][defense])
-            conditional=min(0.95,(def_steals/context["pace_per_team"])/max(turnover_chance,0.01))
+            conditional=min(0.95,prepared["steals_per_possession"][defense]/max(turnover_chance,0.01))
             if rng.random()<conditional:
                 thief=choose(rng,lineup_def,lambda p:p["stl_per36"])
                 stats[thief["player"]]["steals"]+=1
@@ -183,7 +206,7 @@ def simulate_game(context,seed,precomputed=None):
         off_rates=context["team_rates"][off]
         def_rates=context["team_rates"][defense]
         # Maximum two shooting sequences with an offensive rebound continuation.
-        for shot_number in range(2):
+        for shot_number in range(max_shooting_sequences):
             shooter=choose(rng,lineup_off,lambda p:p["fg2a_per36"]+p["fg3a_per36"]+0.44*p["fta_per36"])
             shooter_name=shooter["player"]
             attempts=shooter["fg2a_per36"]+shooter["fg3a_per36"]
@@ -194,7 +217,13 @@ def simulate_game(context,seed,precomputed=None):
                 defender=choose(rng,lineup_def,lambda p:1)
                 stats[defender["player"]]["fouls"]+=1
                 if stats[defender["player"]]["fouls"]>=6:
-                    fouled_out.add(defender["player"])
+                    technical=apply_disqualification(defender['player'],context['rosters'][defense],fouled_out,last_player_exception)
+                    if technical:
+                        last_player_technicals[defense]+=1
+                        taker=max(lineup_off,key=lambda p:p['ft_pct'])
+                        if rng.random()<taker['ft_pct']:
+                            stats[taker['player']]['points']+=1
+                            score[off]+=1
                 for _ in range(points):
                     if rng.random()<shooter["ft_pct"]:
                         stats[shooter_name]["points"]+=1
@@ -218,7 +247,9 @@ def simulate_game(context,seed,precomputed=None):
             board_team=lineup_off if offensive_board else lineup_def
             boarder=choose(rng,board_team,lambda p:p["reb_per36"])
             stats[boarder["player"]]["rebounds"]+=1
-            if not offensive_board or shot_number==1:
+            if not offensive_board or shot_number==max_shooting_sequences-1:
+                if offensive_board and shot_number==max_shooting_sequences-1:
+                    shot_sequence_ceiling_hit=True
                 return
 
     def apply_minute(team,minute,ot=False):
@@ -243,7 +274,7 @@ def simulate_game(context,seed,precomputed=None):
         for team in (home,away):
             apply_minute(team,elapsed)
     overtime_periods=0
-    while score[home]==score[away] and overtime_periods<2:
+    while score[home]==score[away] and overtime_periods<max_overtimes:
         overtime_periods+=1
         for _ in range(5):
             for team in (home,away):
@@ -256,6 +287,10 @@ def simulate_game(context,seed,precomputed=None):
     return {"score":score,"stats":stats,"regulation_team_minutes":regulation_minute_totals,
             "possession_count_regulation":total_possessions,
             "overtime_periods":overtime_periods,
+            "shot_sequence_ceiling_hit":shot_sequence_ceiling_hit,
+            "overtime_limit":max_overtimes,
+            "last_player_rule_technicals":last_player_technicals,
+            "score_tied_after_overtime_limit":score[home]==score[away],
             "score_tied_after_max_2OT":score[home]==score[away]}
 
 def trial_run(context,player,market,line,trials=25000,seed=42):
@@ -269,10 +304,11 @@ def trial_run(context,player,market,line,trials=25000,seed=42):
     if not isinstance(trials,int) or not 1<=trials<=50000:
         raise ValueError("Trials must be 1..50000")
     lineups={t:schedule(context["rosters"][t]) for t in (context["home"],context["away"])}
+    prepared=prepare_game(context,lineups)
     values=[]
     overtime=0
     for i in range(trials):
-        result=simulate_game(context,seed+i*7919,precomputed=lineups)
+        result=simulate_game(context,seed+i*7919,precomputed=lineups,prepared=prepared)
         values.append(market_value(result["stats"][player],market))
         overtime+=bool(result["overtime_periods"])
     over=sum(x>line for x in values)
