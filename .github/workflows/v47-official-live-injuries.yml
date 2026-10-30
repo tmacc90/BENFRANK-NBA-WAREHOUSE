@@ -1,5 +1,11 @@
 name: BENFRANK v4.7 official current NBA injury evidence
 on:
+  push:
+    branches: [benfrank-v47-live-official-injuries-20261030]
+    paths:
+      - 'benfrank_v47_live_official_injuries.py'
+      - 'tests/test_v47_live_official_injuries.py'
+      - '.github/workflows/v47-official-live-injuries.yml'
   pull_request:
     paths:
       - 'benfrank_v47_live_official_injuries.py'
