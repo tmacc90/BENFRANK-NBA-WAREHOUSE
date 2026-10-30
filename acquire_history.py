@@ -48,6 +48,12 @@ def name_key(name):
     return ''.join(ch for ch in value.casefold() if ch.isalnum() and not unicodedata.combining(ch))
 
 
+def name_token_signature(name):
+    """Order-insensitive exact name TOKENS, not a fuzzy or nickname match."""
+    tokens = tuple(name_key(x) for x in str(name).split())
+    return tuple(sorted(tokens)) if len(tokens) >= 2 and all(tokens) else ()
+
+
 def team_key(name):
     value = str(name).strip().upper()
     return TEAMS.get(value, value)
@@ -177,12 +183,14 @@ def reconcile(c, nba_rows, espn_rows, schedule_rows, year, nba_meta, espn_meta):
     errors = []
     excluded = collections.Counter()
     candidates = collections.defaultdict(list)
+    token_candidates = collections.defaultdict(list)
     staged_espn = []
     for i, raw in enumerate(espn_rows,1):
         try:
             row, why = normalize_espn(raw,year)
             if why: excluded[why] += 1; continue
             candidates[(row['date'],row['team'],name_key(row['player']))].append(row)
+            token_candidates[(row['date'],row['team'],name_token_signature(row['player']))].append(row)
             staged_espn.append(row)
         except Exception as exc:
             errors.append({'source':'espn','row':i,'code':'INVALID_ROW','detail':str(exc)})
@@ -200,6 +208,7 @@ def reconcile(c, nba_rows, espn_rows, schedule_rows, year, nba_meta, espn_meta):
     official_counts = collections.Counter((str(r['game_id']),str(r['person_id'])) for r in nba_rows)
     imported = 0
     source_clock_carries_accepted = 0
+    source_token_order_matches_accepted = 0
     seen_games = set()
     official_dnp = 0
     official_eligible = 0
@@ -233,8 +242,23 @@ def reconcile(c, nba_rows, espn_rows, schedule_rows, year, nba_meta, espn_meta):
             if starter_counts[(game_id,raw['team_id'])] != 5: raise ValueError('Official starting five incomplete')
             obj.update({k:number(raw[v],True) for k,v in STATS.items()})
             matches = candidates.get((date,team,name_key(player)), [])
-            if len(matches) != 1: raise ValueError('ESPN_IDENTITY_MATCH_COUNT_'+str(len(matches)))
-            match = matches[0]
+            identity_method = 'NORMALIZED_NAME_EXACT'
+            if len(matches)==0:
+                # Two reliable sites can list the same given/family tokens in
+                # opposite order (e.g. Hansen Yang vs Yang Hansen). Only a
+                # SINGLE unique token permutation may be a candidate; stats,
+                # minutes, starter, opponent and scores must still all agree.
+                reordered = token_candidates.get((date,team,name_token_signature(player)),[])
+                if len(reordered)!=1 or not name_token_signature(player):
+                    raise ValueError('ESPN_IDENTITY_MATCH_COUNT_0')
+                match = reordered[0]
+                identity_method = 'UNIQUE_NAME_TOKEN_PERMUTATION'
+            elif len(matches)==1:
+                match = matches[0]
+            else:
+                raise ValueError('ESPN_IDENTITY_MATCH_COUNT_'+str(len(matches)))
+            if (match['date'],match['team'],name_key(match['player'])) in used_espn:
+                raise ValueError('ESPN_IDENTITY_ALREADY_CROSSCHECKED')
             conflicts = {k:{'nba':obj[k],'espn':match[k]} for k in ('opponent','home','starter',*STATS)
                          if obj[k] != match[k]}
             if abs(obj['minutes']-match['minutes']) > 1.0:
@@ -253,6 +277,7 @@ def reconcile(c, nba_rows, espn_rows, schedule_rows, year, nba_meta, espn_meta):
                 ':' in str(raw['minutes'])
                 and number(str(raw['minutes']).rsplit(':',1)[1]) == 60)
             detail = {'raw_source_minute_60_carry':is_source_clock_carry,
+                      'identity_method':identity_method,
                       'counting_stats':'EXACT','date_team_opponent_home':'EXACT',
                       'starter':'NBA_POSITION_CONFIRMED_BY_EXPLICIT_ESPN_FLAG',
                       'minutes_tolerance':1.0,'minutes_difference':abs(obj['minutes']-match['minutes']),
@@ -267,6 +292,7 @@ def reconcile(c, nba_rows, espn_rows, schedule_rows, year, nba_meta, espn_meta):
                       ('espn',match['player'],date,team))
             imported += 1; seen_games.add(game_id)
             source_clock_carries_accepted += int(is_source_clock_carry)
+            source_token_order_matches_accepted += int(identity_method=='UNIQUE_NAME_TOKEN_PERMUTATION')
             used_espn.add((match['date'],match['team'],name_key(match['player'])))
         except Exception as exc:
             errors.append({**identity,'code':'VERIFICATION_REJECTED','detail':str(exc)})
@@ -285,6 +311,7 @@ def reconcile(c, nba_rows, espn_rows, schedule_rows, year, nba_meta, espn_meta):
             'official_eligible_player_games':official_eligible,'official_dnp_excluded':official_dnp,
             'espn_regular_played_staged':staged['staged'],'crosschecked_player_games':imported,
             'engine_season_rows_after':counts,'approved_raw_source_minute_carries':source_clock_carries_accepted,
+            'approved_unique_reordered_name_matches':source_token_order_matches_accepted,
             'official_expected_final_regular_games':len(expected),
             'games_with_at_least_one_crosschecked_player':len(seen_games),
             'official_games_without_any_crosschecked_player':sorted(expected-seen_games),
