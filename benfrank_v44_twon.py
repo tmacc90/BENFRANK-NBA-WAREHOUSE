@@ -228,14 +228,20 @@ def simulate_game(context,seed,precomputed=None):
         if not ot:
             regulation_minute_totals[team]+=5
 
-    for minute in range(48):
-        for team in (home,away):
-            apply_minute(team,minute)
-    # Alternating possessions, which preserve each team's count at configured pace.
+    # Attribute playing time in chronological order so foul-out substitutions
+    # affect subsequent actual minutes, not just the possession lineup.
+    last_minute=-1
     for i in range(total_possessions):
         minute=min(47,int(48*i/total_possessions))
+        for elapsed in range(last_minute+1,minute+1):
+            for team in (home,away):
+                apply_minute(team,elapsed)
+        last_minute=minute
         off,defense=(home,away) if i%2==0 else (away,home)
         possession(off,defense,minute)
+    for elapsed in range(last_minute+1,48):
+        for team in (home,away):
+            apply_minute(team,elapsed)
     overtime_periods=0
     while score[home]==score[away] and overtime_periods<2:
         overtime_periods+=1
