@@ -117,8 +117,8 @@ def rows_from_summary(event_id, requested_date, expected_home, expected_away, su
 
 def fetch_staged(date, max_events=2, opener=None):
     dt.date.fromisoformat(date)
-    if not 1 <= max_events <= 10:
-        raise ValueError("max_events must be 1..10")
+    if not 1 <= max_events <= 20:
+        raise ValueError("max_events must be 1..20")
     now = dt.datetime.now(dt.timezone.utc).isoformat()
     receipt = {"date": date, "retrieved_at": now, "source": "ESPN_SECONDARY",
                "staged_rows": [], "events": [], "status": "NO_SOURCE",
