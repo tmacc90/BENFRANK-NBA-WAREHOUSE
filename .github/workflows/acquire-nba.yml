@@ -3,10 +3,16 @@ on:
   push:
     branches: [main]
     paths:
-      - '*.py'
+      - 'acquire_history.py'
+      - 'verify_direct_nba.py'
+      - 'reconcile_refresh.py'
+      - 'warehouse_v36.py'
+      - 'engine.py'
+      - 'upgrade.py'
       - 'requirements.txt'
       - 'sources.json'
-      - 'tests/**'
+      - 'tests/test_history.py'
+      - 'tests/test_v47_history_diagnostics.py'
       - '.github/workflows/acquire-nba.yml'
   workflow_dispatch:
     inputs:
