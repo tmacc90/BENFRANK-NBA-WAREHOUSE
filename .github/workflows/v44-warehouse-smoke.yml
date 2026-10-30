@@ -67,7 +67,7 @@ jobs:
               board=json.loads(board_text)
           if not isinstance(board,list) or not board:
               raise SystemExit("Board must be a nonempty JSON array")
-          Path("receipts/board.json").write_text(json.dumps(board,indent=2)+"\\n")
+          Path("receipts/board.json").write_text(json.dumps(board,indent=2))
           PY
       - name: Run isolated per-prop evidence checks and provisional existing model
         env:
