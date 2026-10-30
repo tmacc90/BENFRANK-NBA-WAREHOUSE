@@ -33,9 +33,9 @@ jobs:
         run: |
           mkdir -p receipts/current
           if [ -n "$GAME_DATE" ]; then
-            python espn_live_stage.py --date "$GAME_DATE" --max-events 20 --out-dir receipts/current
+            python espn_live_stage.py --date "$GAME_DATE" --max-events 20 --out-dir receipts/current --strict
           else
-            python espn_live_stage.py --max-events 20 --out-dir receipts/current
+            python espn_live_stage.py --max-events 20 --out-dir receipts/current --strict
           fi
       - name: Publish isolated staged SQLite and evidence receipts
         if: always()
