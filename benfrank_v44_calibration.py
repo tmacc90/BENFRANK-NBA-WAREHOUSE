@@ -172,6 +172,16 @@ def evaluate(conn, snapshots, min_train=MIN_TRAIN, min_test=MIN_TEST):
     # Strict forward split. No held-out outcome contributes to isotonic fit.
     split = max(min_train, int(len(rows)*0.6))
     split = min(split, len(rows) - min_test)
+    # A single game's many props may never be in BOTH calibration training
+    # and validation. Group by tipoff across the cutoff to prevent leakage.
+    first_holdout_tipoff = rows[split]["tipoff_utc"]
+    while split > 0 and rows[split-1]["tipoff_utc"] == first_holdout_tipoff:
+        split -= 1
+    if split < min_train or len(rows)-split < min_test:
+        result.update({"status": "INSUFFICIENT_DISTINCT_TIPOFF_GROUPS",
+                       "required_train": min_train, "required_holdout": min_test,
+                       "proposed_train": split, "proposed_holdout": len(rows)-split})
+        return result
     train, test = rows[:split], rows[split:]
     model = fit_isotonic([(r["p_over_raw"], r["over_result"]) for r in train])
     for r in test:
