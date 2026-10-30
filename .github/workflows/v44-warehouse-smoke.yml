@@ -1,0 +1,85 @@
+name: BENFRANK NBA v4.4 archived warehouse batch smoke
+on:
+  pull_request:
+    paths:
+      - 'benfrank_v44_batch.py'
+      - 'benfrank_v44_audit.py'
+      - '.github/workflows/v44-warehouse-smoke.yml'
+  workflow_dispatch:
+    inputs:
+      history_run_id:
+        description: 'GitHub Actions historical-import artifact run ID; must still be available'
+        required: false
+        default: '40177116577'
+        type: string
+      board_json:
+        description: 'JSON array containing one prop or more; blank runs safe demonstration'
+        required: false
+        type: string
+      trials:
+        description: 'Minute proxy trial count (not possession-level Twon)'
+        required: false
+        default: '25000'
+        type: string
+permissions:
+  contents: read
+  actions: read
+jobs:
+  archived-warehouse-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Retrieve previous real-data warehouse artifact, never use generated fixture
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ inputs.history_run_id || '40177116577' }}
+          name: benfrank-nba-history-${{ inputs.history_run_id || '40177116577' }}
+          github-token: ${{ github.token }}
+          path: warehouse_artifact
+      - name: Find real SQLite and write immutable board input
+        env:
+          BOARD_JSON: ${{ inputs.board_json }}
+        shell: bash
+        run: |
+          mkdir -p receipts
+          DB_PATH="$(find warehouse_artifact -type f -name 'nba_warehouse.sqlite' -print -quit)"
+          if [ -z "$DB_PATH" ]; then
+            echo "Historical warehouse artifact missing a SQLite database" >&2
+            exit 2
+          fi
+          echo "DB_PATH=$DB_PATH" >> "$GITHUB_ENV"
+          sha256sum "$DB_PATH" > receipts/source_database_sha256.txt
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          board_text=os.environ.get("BOARD_JSON","").strip()
+          if not board_text:
+              # Demonstration fixture is a prop INPUT ONLY; player games come from the retrieved archive.
+              board=[{"player":"Jalen Brunson","market":"points","line":24.5,
+                      "opponent":"BOS","game_date":"2026-10-29"}]
+          else:
+              board=json.loads(board_text)
+          if not isinstance(board,list) or not board:
+              raise SystemExit("Board must be a nonempty JSON array")
+          Path("receipts/board.json").write_text(json.dumps(board,indent=2))
+          PY
+      - name: Run isolated per-prop evidence checks and provisional existing model
+        env:
+          TRIALS: ${{ inputs.trials || '25000' }}
+        shell: bash
+        run: |
+          python benfrank_v44_batch.py --db "$DB_PATH" --board receipts/board.json --output receipts/v44_prop_results.json --trials "$TRIALS"
+      - name: Preserve receipts, not the original historical warehouse
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benfrank-v44-prop-smoke-${{ github.run_id }}
+          path: receipts/
+          if-no-files-found: warn
+          retention-days: 30
