@@ -13,6 +13,7 @@ import tempfile
 from pathlib import Path
 
 from benfrank_v44_audit import build_receipt
+from benfrank_v44_governance import governing_receipt
 from engine import MARKETS
 from production import report
 
@@ -130,6 +131,7 @@ def run_one(connection, prop, trials=25000, db_integrity=False):
     prediction = base.get("baseline_projection")
     direction = ("MORE" if prediction > prop["line"] else "LESS" if prediction < prop["line"] else "UNRESOLVED") if prediction is not None else "UNRESOLVED"
     margin = round(prediction - prop["line"], 3) if prediction is not None else None
+    governing = governing_receipt(prop, audit["stages"], direction, "NO_TICKET")
     return {"player": prop["player"], "market": prop["market"], "line": prop["line"],
             "opponent": prop["opponent"], "game_date": prop["game_date"],
             "direction": direction, "direction_status": "PROVISIONAL_NO_TICKET" if direction != "UNRESOLVED" else "NO_EVIDENCE",
@@ -141,7 +143,7 @@ def run_one(connection, prop, trials=25000, db_integrity=False):
             "stress_diagnostics": stress_diagnostics(base, prop["line"]),
             "official_coverage_certified": False, "possession_twon_certified": False,
             "independent_blind_ai_certified": False, "calibration_certified": False,
-            "ticket_authority": "NO_TICKET", "audit": audit}
+            "ticket_authority": "NO_TICKET", "audit": audit, "governing_66": governing}
 
 
 def run_board(db_path, props, trials=25000):
