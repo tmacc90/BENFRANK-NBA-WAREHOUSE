@@ -93,12 +93,7 @@ def governing_receipt(prop, technical_checks, direction, ticket_authority):
               "reason":"Full governing requirement is not yet substantiated",
               "next_fix":"Attach source-backed, timestamped execution evidence for this complete requirement"}
         # Only prove a full governing stage when its ENTIRE described behavior is verified.
-        if n==7 and checks.get("asof_timestamp",{}).get("status")=="PASS":
-            x=checks["asof_timestamp"]
-            item.update(status="PASS",source=x["source"],asof=x["asof"],
-                        reason="Timestamped pregame cutoff recorded; still validate third-party official source freshness",
-                        next_fix=None)
-        elif n==61 and direction in ("MORE","LESS"):
+        if n==61 and direction in ("MORE","LESS"):
             item.update(status="PASS",source="benfrank_v44_batch.py provisional direction rule",
                         asof=now,reason="Direction issued as PROVISIONAL_NO_TICKET; not predictive certification",
                         next_fix=None)
