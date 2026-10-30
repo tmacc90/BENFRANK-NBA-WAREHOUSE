@@ -1,5 +1,9 @@
 # BENFRANK NBA v4.1 — official historical refresh
 
+## Current additive certification recovery: v4.6
+
+The [v4.6 execution and reproduction notes](docs/V46_CERTIFICATION_RECOVERY.md) document re-audited complete selected-season history, free pinned public pregame line recovery, and measured baseline / actual-simulator research. These additions preserve original warehouses and retain explicit per-prop FULL certification gates.
+
 ## Current additive evidence repair: v4.5
 
 The v4.5 repair adds a read-only historical audit, a separate crosschecked shooting/starting-five database, original-source prop capture, separate-ledger readiness, and actual-simulator retrospective backtesting by platform/market/line band. It also audits real PBP Stats possessions and lineup aggregates while retaining source disagreements. The earlier warehouse and release history below are preserved.
@@ -46,3 +50,4 @@ The v4.1 local refresh recovered all 51 targets from the preserved v3.9 baseline
 ## Earlier v3.7 execution status
 
 A local baseline executed 33 tests and imported 52,737 cross-checked regular-season player-games across 2,460 games. Direct NBA Stats verification passed for all imported rows, while 220 official player-game records remained absent. The historical coverage gate therefore failed with exit 2. These are local baseline results, not evidence that GitHub Actions has passed. Inspect this repository’s Actions runs and downloaded artifacts for remote execution evidence.
+

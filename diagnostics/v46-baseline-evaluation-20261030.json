@@ -1,0 +1,1075 @@
+{
+  "certification": "NOT_CERTIFIED",
+  "eligible_outcomes": 12757,
+  "evaluated_strata": 26,
+  "evidence_tiers": {
+    "SECONDARY_PUBLIC_COLLECTOR_NOT_PLATFORM_ATTESTED": 13077
+  },
+  "global_holdout_cutoff_utc": "2026-03-17T01:30:00+00:00",
+  "input_selected_snapshots": 13077,
+  "model": "EMPIRICAL_PRIOR_20_GAME_BASELINE",
+  "promotion_policy_applied": false,
+  "rejection_reasons": {
+    "INSUFFICIENT_PRIOR_HISTORY": 15,
+    "PUSH_EXCLUDED_FROM_BINARY_SCORE": 305
+  },
+  "simulation_trials_executed": 0,
+  "simulator_calibrated": false,
+  "status": "EVALUATED_BASELINE_ONLY",
+  "ticket_authority": "NO_TICKET",
+  "unique_games": 498,
+  "warehouse_sha256": "76bd45d13047e7e4b0bf7b26a1546c631e82ae81bdd221bb5781e3b76e33d64b",
+  "warehouse_unchanged": true,
+  "warning": "Measured baseline results never calibrate the different 5-on-5 model. Public collector coverage and played-player selection can bias this sample.",
+  "holdout_predictions_in_evaluated_strata": 5141,
+  "strata_with_lower_brier": 19,
+  "strata_with_higher_brier": 7,
+  "stratum_metrics": [
+    {
+      "brier_delta": {
+        "games": 77,
+        "percentile_95pct": [
+          -0.013158441929696894,
+          0.022038881566983536
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.259051,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.5,
+        "log_loss": 0.711789,
+        "n": 104,
+        "probability_ties_n": 0
+      },
+      "holdout_games": 77,
+      "holdout_n": 104,
+      "line_band_low": 0,
+      "line_band_width": 2,
+      "market": "assists",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.254351,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.586538,
+        "log_loss": 0.703487,
+        "n": 104,
+        "probability_ties_n": 18
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 133,
+      "train_n": 191
+    },
+    {
+      "brier_delta": {
+        "games": 133,
+        "percentile_95pct": [
+          -0.025754703575184355,
+          0.006024597110278905
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.254649,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.521327,
+        "log_loss": 0.811635,
+        "n": 211,
+        "probability_ties_n": 9
+      },
+      "holdout_games": 133,
+      "holdout_n": 211,
+      "line_band_low": 2,
+      "line_band_width": 2,
+      "market": "assists",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.264353,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.473934,
+        "log_loss": 0.724315,
+        "n": 211,
+        "probability_ties_n": 35
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 183,
+      "train_n": 295
+    },
+    {
+      "brier_delta": {
+        "games": 143,
+        "percentile_95pct": [
+          -0.02322996965786988,
+          0.010487946331223925
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.257963,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.511811,
+        "log_loss": 0.800697,
+        "n": 254,
+        "probability_ties_n": 0
+      },
+      "holdout_games": 143,
+      "holdout_n": 254,
+      "line_band_low": 4,
+      "line_band_width": 2,
+      "market": "assists",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.264578,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.515748,
+        "log_loss": 0.729901,
+        "n": 254,
+        "probability_ties_n": 31
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 185,
+      "train_n": 316
+    },
+    {
+      "brier_delta": {
+        "games": 108,
+        "percentile_95pct": [
+          -0.03846413653298697,
+          -0.002923738318175271
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.244605,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.567164,
+        "log_loss": 0.682308,
+        "n": 134,
+        "probability_ties_n": 0
+      },
+      "holdout_games": 108,
+      "holdout_n": 134,
+      "line_band_low": 6,
+      "line_band_width": 2,
+      "market": "assists",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.26496,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.492537,
+        "log_loss": 0.729265,
+        "n": 134,
+        "probability_ties_n": 9
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 117,
+      "train_n": 145
+    },
+    {
+      "brier_delta": {
+        "games": 29,
+        "percentile_95pct": [
+          -0.032200713092667345,
+          0.019623582965841827
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.259745,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.5,
+        "log_loss": 0.713638,
+        "n": 30,
+        "probability_ties_n": 12
+      },
+      "holdout_games": 29,
+      "holdout_n": 30,
+      "line_band_low": 8,
+      "line_band_width": 2,
+      "market": "assists",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.266862,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.5,
+        "log_loss": 0.732945,
+        "n": 30,
+        "probability_ties_n": 2
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 41,
+      "train_n": 42
+    },
+    {
+      "holdout_games": 15,
+      "holdout_n": 15,
+      "line_band_low": 10,
+      "line_band_width": 2,
+      "market": "assists",
+      "platform": "prizepicks",
+      "status": "INSUFFICIENT_STRATUM_SAMPLE",
+      "train_games": 15,
+      "train_n": 15
+    },
+    {
+      "brier_delta": {
+        "games": 81,
+        "percentile_95pct": [
+          -0.010907899617995398,
+          0.005840373028702097
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.262912,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.513043,
+        "log_loss": 0.719413,
+        "n": 115,
+        "probability_ties_n": 0
+      },
+      "holdout_games": 81,
+      "holdout_n": 115,
+      "line_band_low": 0,
+      "line_band_width": 1,
+      "market": "blocks",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.265343,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.417391,
+        "log_loss": 0.725159,
+        "n": 115,
+        "probability_ties_n": 31
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 160,
+      "train_n": 235
+    },
+    {
+      "brier_delta": {
+        "games": 25,
+        "percentile_95pct": [
+          -0.014601654089256193,
+          0.09296785971496783
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.267654,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.518519,
+        "log_loss": 1.144908,
+        "n": 27,
+        "probability_ties_n": 0
+      },
+      "holdout_games": 25,
+      "holdout_n": 27,
+      "line_band_low": 1,
+      "line_band_width": 1,
+      "market": "blocks",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.233854,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.518519,
+        "log_loss": 0.659112,
+        "n": 27,
+        "probability_ties_n": 5
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 34,
+      "train_n": 36
+    },
+    {
+      "holdout_games": 1,
+      "holdout_n": 1,
+      "line_band_low": 2,
+      "line_band_width": 1,
+      "market": "blocks",
+      "platform": "prizepicks",
+      "status": "INSUFFICIENT_STRATUM_SAMPLE",
+      "train_games": 3,
+      "train_n": 3
+    },
+    {
+      "holdout_games": 2,
+      "holdout_n": 2,
+      "line_band_low": 3,
+      "line_band_width": 1,
+      "market": "blocks",
+      "platform": "prizepicks",
+      "status": "INSUFFICIENT_STRATUM_SAMPLE",
+      "train_games": 0,
+      "train_n": 0
+    },
+    {
+      "holdout_games": 12,
+      "holdout_n": 14,
+      "line_band_low": 0,
+      "line_band_width": 5,
+      "market": "points",
+      "platform": "prizepicks",
+      "status": "INSUFFICIENT_STRATUM_SAMPLE",
+      "train_games": 36,
+      "train_n": 40
+    },
+    {
+      "brier_delta": {
+        "games": 174,
+        "percentile_95pct": [
+          -0.022307943093191285,
+          -0.003379131300760585
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.249894,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.533049,
+        "log_loss": 0.716483,
+        "n": 469,
+        "probability_ties_n": 415
+      },
+      "holdout_games": 174,
+      "holdout_n": 469,
+      "line_band_low": 5,
+      "line_band_width": 5,
+      "market": "points",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.262541,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.518124,
+        "log_loss": 0.720395,
+        "n": 469,
+        "probability_ties_n": 71
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 264,
+      "train_n": 786
+    },
+    {
+      "brier_delta": {
+        "games": 207,
+        "percentile_95pct": [
+          -0.023589856678270606,
+          -0.006716991756688217
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.253309,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.50069,
+        "log_loss": 0.716017,
+        "n": 725,
+        "probability_ties_n": 0
+      },
+      "holdout_games": 207,
+      "holdout_n": 725,
+      "line_band_low": 10,
+      "line_band_width": 5,
+      "market": "points",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.268388,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.522759,
+        "log_loss": 0.737668,
+        "n": 725,
+        "probability_ties_n": 117
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 284,
+      "train_n": 1118
+    },
+    {
+      "brier_delta": {
+        "games": 201,
+        "percentile_95pct": [
+          -0.021675522063025705,
+          -0.001983517439347821
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.2496,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.491701,
+        "log_loss": 0.692305,
+        "n": 482,
+        "probability_ties_n": 0
+      },
+      "holdout_games": 201,
+      "holdout_n": 482,
+      "line_band_low": 15,
+      "line_band_width": 5,
+      "market": "points",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.261606,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.495851,
+        "log_loss": 0.720051,
+        "n": 482,
+        "probability_ties_n": 78
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 273,
+      "train_n": 738
+    },
+    {
+      "brier_delta": {
+        "games": 162,
+        "percentile_95pct": [
+          -0.023506037579650765,
+          -0.0027274571094029775
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.256078,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.472325,
+        "log_loss": 0.789008,
+        "n": 271,
+        "probability_ties_n": 0
+      },
+      "holdout_games": 162,
+      "holdout_n": 271,
+      "line_band_low": 20,
+      "line_band_width": 5,
+      "market": "points",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.268823,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.472325,
+        "log_loss": 0.737047,
+        "n": 271,
+        "probability_ties_n": 52
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 206,
+      "train_n": 296
+    },
+    {
+      "brier_delta": {
+        "games": 95,
+        "percentile_95pct": [
+          -0.009430382447887744,
+          0.02167769971365156
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.268161,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.457944,
+        "log_loss": 1.04829,
+        "n": 107,
+        "probability_ties_n": 0
+      },
+      "holdout_games": 95,
+      "holdout_n": 107,
+      "line_band_low": 25,
+      "line_band_width": 5,
+      "market": "points",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.262395,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.46729,
+        "log_loss": 0.723494,
+        "n": 107,
+        "probability_ties_n": 21
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 126,
+      "train_n": 154
+    },
+    {
+      "holdout_games": 12,
+      "holdout_n": 13,
+      "line_band_low": 30,
+      "line_band_width": 5,
+      "market": "points",
+      "platform": "prizepicks",
+      "status": "INSUFFICIENT_STRATUM_SAMPLE",
+      "train_games": 28,
+      "train_n": 29
+    },
+    {
+      "holdout_games": 3,
+      "holdout_n": 3,
+      "line_band_low": 0,
+      "line_band_width": 2,
+      "market": "rebounds",
+      "platform": "prizepicks",
+      "status": "INSUFFICIENT_STRATUM_SAMPLE",
+      "train_games": 15,
+      "train_n": 16
+    },
+    {
+      "brier_delta": {
+        "games": 138,
+        "percentile_95pct": [
+          -0.037613374997507006,
+          -0.007110053022922602
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.246488,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.577273,
+        "log_loss": 0.738842,
+        "n": 220,
+        "probability_ties_n": 4
+      },
+      "holdout_games": 138,
+      "holdout_n": 220,
+      "line_band_low": 2,
+      "line_band_width": 2,
+      "market": "rebounds",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.268697,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.481818,
+        "log_loss": 0.735053,
+        "n": 220,
+        "probability_ties_n": 35
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 205,
+      "train_n": 334
+    },
+    {
+      "brier_delta": {
+        "games": 182,
+        "percentile_95pct": [
+          -0.014367772711011414,
+          0.004519252381841528
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.251236,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.508621,
+        "log_loss": 0.695698,
+        "n": 580,
+        "probability_ties_n": 0
+      },
+      "holdout_games": 182,
+      "holdout_n": 580,
+      "line_band_low": 4,
+      "line_band_width": 2,
+      "market": "rebounds",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.255457,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.515517,
+        "log_loss": 0.705275,
+        "n": 580,
+        "probability_ties_n": 66
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 252,
+      "train_n": 656
+    },
+    {
+      "brier_delta": {
+        "games": 144,
+        "percentile_95pct": [
+          -0.02038359256091825,
+          0.007541640036982004
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.257736,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.542453,
+        "log_loss": 0.873263,
+        "n": 212,
+        "probability_ties_n": 0
+      },
+      "holdout_games": 144,
+      "holdout_n": 212,
+      "line_band_low": 6,
+      "line_band_width": 2,
+      "market": "rebounds",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.263592,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.542453,
+        "log_loss": 0.731984,
+        "n": 212,
+        "probability_ties_n": 23
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 183,
+      "train_n": 310
+    },
+    {
+      "brier_delta": {
+        "games": 99,
+        "percentile_95pct": [
+          -0.015852806395604213,
+          0.022219352699290193
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.260277,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.423358,
+        "log_loss": 0.801447,
+        "n": 137,
+        "probability_ties_n": 10
+      },
+      "holdout_games": 99,
+      "holdout_n": 137,
+      "line_band_low": 8,
+      "line_band_width": 2,
+      "market": "rebounds",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.257181,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.518248,
+        "log_loss": 0.715082,
+        "n": 137,
+        "probability_ties_n": 23
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 124,
+      "train_n": 155
+    },
+    {
+      "brier_delta": {
+        "games": 45,
+        "percentile_95pct": [
+          -0.00962499619417402,
+          0.03741831931201673
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.254048,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.625,
+        "log_loss": 0.703899,
+        "n": 48,
+        "probability_ties_n": 11
+      },
+      "holdout_games": 45,
+      "holdout_n": 48,
+      "line_band_low": 10,
+      "line_band_width": 2,
+      "market": "rebounds",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.239518,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.645833,
+        "log_loss": 0.671904,
+        "n": 48,
+        "probability_ties_n": 5
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 89,
+      "train_n": 95
+    },
+    {
+      "brier_delta": {
+        "games": 33,
+        "percentile_95pct": [
+          -0.05491918651341567,
+          0.04190902628381466
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.241597,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.647059,
+        "log_loss": 1.001046,
+        "n": 34,
+        "probability_ties_n": 2
+      },
+      "holdout_games": 33,
+      "holdout_n": 34,
+      "line_band_low": 12,
+      "line_band_width": 2,
+      "market": "rebounds",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.250299,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.617647,
+        "log_loss": 0.694535,
+        "n": 34,
+        "probability_ties_n": 4
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 31,
+      "train_n": 31
+    },
+    {
+      "holdout_games": 1,
+      "holdout_n": 1,
+      "line_band_low": 14,
+      "line_band_width": 2,
+      "market": "rebounds",
+      "platform": "prizepicks",
+      "status": "INSUFFICIENT_STRATUM_SAMPLE",
+      "train_games": 0,
+      "train_n": 0
+    },
+    {
+      "brier_delta": {
+        "games": 138,
+        "percentile_95pct": [
+          -0.015930412921696425,
+          0.00478559079766222
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.247215,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.544304,
+        "log_loss": 0.687476,
+        "n": 237,
+        "probability_ties_n": 0
+      },
+      "holdout_games": 138,
+      "holdout_n": 237,
+      "line_band_low": 0,
+      "line_band_width": 1,
+      "market": "steals",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.253252,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.510549,
+        "log_loss": 0.700059,
+        "n": 237,
+        "probability_ties_n": 52
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 198,
+      "train_n": 360
+    },
+    {
+      "brier_delta": {
+        "games": 51,
+        "percentile_95pct": [
+          -0.018322338009453928,
+          0.004631109870803977
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.24418,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.525424,
+        "log_loss": 0.675482,
+        "n": 59,
+        "probability_ties_n": 11
+      },
+      "holdout_games": 51,
+      "holdout_n": 59,
+      "line_band_low": 1,
+      "line_band_width": 1,
+      "market": "steals",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.251093,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.525424,
+        "log_loss": 0.695189,
+        "n": 59,
+        "probability_ties_n": 2
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 57,
+      "train_n": 65
+    },
+    {
+      "brier_delta": {
+        "games": 23,
+        "percentile_95pct": [
+          0.017811898350961204,
+          0.11684340969589728
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.268947,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.592593,
+        "log_loss": 1.161445,
+        "n": 27,
+        "probability_ties_n": 0
+      },
+      "holdout_games": 23,
+      "holdout_n": 27,
+      "line_band_low": 0,
+      "line_band_width": 1,
+      "market": "threes",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.211126,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.777778,
+        "log_loss": 0.613728,
+        "n": 27,
+        "probability_ties_n": 3
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 46,
+      "train_n": 50
+    },
+    {
+      "brier_delta": {
+        "games": 128,
+        "percentile_95pct": [
+          -0.019881277435808514,
+          0.004172084155922491
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.251352,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.47449,
+        "log_loss": 0.695876,
+        "n": 196,
+        "probability_ties_n": 0
+      },
+      "holdout_games": 128,
+      "holdout_n": 196,
+      "line_band_low": 1,
+      "line_band_width": 1,
+      "market": "threes",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.259224,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.530612,
+        "log_loss": 0.717663,
+        "n": 196,
+        "probability_ties_n": 27
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 169,
+      "train_n": 258
+    },
+    {
+      "brier_delta": {
+        "games": 71,
+        "percentile_95pct": [
+          -0.02919064140516956,
+          0.01694167416129132
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.267672,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.462366,
+        "log_loss": 0.851409,
+        "n": 93,
+        "probability_ties_n": 0
+      },
+      "holdout_games": 71,
+      "holdout_n": 93,
+      "line_band_low": 2,
+      "line_band_width": 1,
+      "market": "threes",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.274038,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.44086,
+        "log_loss": 0.743227,
+        "n": 93,
+        "probability_ties_n": 17
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 119,
+      "train_n": 157
+    },
+    {
+      "holdout_games": 10,
+      "holdout_n": 11,
+      "line_band_low": 3,
+      "line_band_width": 1,
+      "market": "threes",
+      "platform": "prizepicks",
+      "status": "INSUFFICIENT_STRATUM_SAMPLE",
+      "train_games": 31,
+      "train_n": 34
+    },
+    {
+      "brier_delta": {
+        "games": 51,
+        "percentile_95pct": [
+          -0.05286837437676639,
+          0.029316642559993056
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.240762,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.61194,
+        "log_loss": 0.67456,
+        "n": 67,
+        "probability_ties_n": 2
+      },
+      "holdout_games": 51,
+      "holdout_n": 67,
+      "line_band_low": 0,
+      "line_band_width": 1,
+      "market": "turnovers",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.250987,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.492537,
+        "log_loss": 0.696661,
+        "n": 67,
+        "probability_ties_n": 10
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 75,
+      "train_n": 91
+    },
+    {
+      "brier_delta": {
+        "games": 121,
+        "percentile_95pct": [
+          -0.013431949569048387,
+          0.014600553488742467
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.255231,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.541436,
+        "log_loss": 0.830059,
+        "n": 181,
+        "probability_ties_n": 0
+      },
+      "holdout_games": 121,
+      "holdout_n": 181,
+      "line_band_low": 1,
+      "line_band_width": 1,
+      "market": "turnovers",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.255103,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.535912,
+        "log_loss": 0.705005,
+        "n": 181,
+        "probability_ties_n": 25
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 177,
+      "train_n": 277
+    },
+    {
+      "brier_delta": {
+        "games": 100,
+        "percentile_95pct": [
+          -0.019475685194491305,
+          0.00993464503003654
+        ],
+        "resamples": 1000,
+        "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+      },
+      "calibrated_holdout": {
+        "brier": 0.253089,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.520661,
+        "log_loss": 0.699456,
+        "n": 121,
+        "probability_ties_n": 0
+      },
+      "holdout_games": 100,
+      "holdout_n": 121,
+      "line_band_low": 2,
+      "line_band_width": 1,
+      "market": "turnovers",
+      "platform": "prizepicks",
+      "raw_holdout": {
+        "brier": 0.258316,
+        "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+        "directional_accuracy": 0.528926,
+        "log_loss": 0.71171,
+        "n": 121,
+        "probability_ties_n": 17
+      },
+      "status": "EVALUATED_BASELINE_ONLY",
+      "train_games": 135,
+      "train_n": 179
+    },
+    {
+      "holdout_games": 12,
+      "holdout_n": 13,
+      "line_band_low": 3,
+      "line_band_width": 1,
+      "market": "turnovers",
+      "platform": "prizepicks",
+      "status": "INSUFFICIENT_STRATUM_SAMPLE",
+      "train_games": 32,
+      "train_n": 32
+    },
+    {
+      "holdout_games": 2,
+      "holdout_n": 2,
+      "line_band_low": 4,
+      "line_band_width": 1,
+      "market": "turnovers",
+      "platform": "prizepicks",
+      "status": "INSUFFICIENT_STRATUM_SAMPLE",
+      "train_games": 2,
+      "train_n": 2
+    }
+  ]
+}

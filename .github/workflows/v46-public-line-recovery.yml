@@ -1,0 +1,83 @@
+name: BENFRANK v4.6 public pregame line recovery and baseline audit
+on:
+  pull_request:
+    paths:
+      - 'benfrank_v46_*.py'
+      - 'configs/v46_public_capture_commits.json'
+      - 'tests/test_v46_*.py'
+      - '.github/workflows/v46-public-line-recovery.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  archived-line-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Test source, temporal, conservation and preservation contracts
+        run: python -m unittest discover -s tests -v
+      - name: Select latest preserved historical import, including partial imports
+        id: history
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const repo=context.repo;
+            const runs=(await github.rest.actions.listWorkflowRuns({...repo,
+              workflow_id:'acquire-nba.yml',branch:'main',status:'completed',per_page:20})).data.workflow_runs;
+            for(const run of runs){
+              const artifacts=(await github.rest.actions.listWorkflowRunArtifacts({...repo,run_id:run.id})).data.artifacts;
+              const artifact=artifacts.find(a=>!a.expired && a.name===`benfrank-nba-history-${run.id}`);
+              if(artifact){core.setOutput('run_id',String(run.id));core.setOutput('name',artifact.name);return;}
+            }
+            throw new Error('No retained history archive; this job never creates fake historical rows.');
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ steps.history.outputs.run_id }}
+          name: ${{ steps.history.outputs.name }}
+          github-token: ${{ github.token }}
+          path: private-data/v46-input
+      - name: Recover actual pinned public collector captures
+        run: |
+          python benfrank_v46_public_lines.py --commits configs/v46_public_capture_commits.json --warehouse private-data/v46-input/nba_warehouse.sqlite --out-dir private-data/v46-lines
+      - name: Measure historical baseline with grouped chronological holdout
+        run: |
+          python benfrank_v46_baseline.py --warehouse private-data/v46-input/nba_warehouse.sqlite --ledger private-data/v46-lines/snapshots.sqlite --evidence-root private-data/v46-lines --out-dir receipts/v46-baseline
+      - name: Preserve official injury PDFs issued before archived line captures
+        run: |
+          if ! command -v pdftotext >/dev/null; then
+            sudo apt-get -qq update
+            sudo apt-get -qq install -y poppler-utils
+          fi
+          python benfrank_v46_official_injuries.py --ledger private-data/v46-lines/snapshots.sqlite --out-dir receipts/v46-official-injuries
+      - name: Keep scope explicit
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
+              out.write('### v4.6 public archive research\n\n')
+              for name in ['private-data/v46-lines/recovery.json','receipts/v46-baseline/baseline.json','receipts/v46-official-injuries/official-injury-captures.json']:
+                  p=Path(name)
+                  if p.exists():
+                      r=json.loads(p.read_text())
+                      out.write(f"- {name}: {r['status']}\n")
+              out.write('\nPublic collector evidence remains secondary. This empirical baseline does not calibrate Twon or award FULL. Original warehouse is read-only.\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benfrank-v46-line-recovery-${{ github.run_id }}
+          path: |
+            private-data/v46-lines/
+            receipts/v46-baseline/
+            receipts/v46-official-injuries/
+          if-no-files-found: warn
+          retention-days: 30

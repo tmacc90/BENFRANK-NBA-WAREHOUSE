@@ -1,0 +1,10 @@
+{
+  "status": "PASS_SAVED_OFFICIAL_REPORT_HASH_AND_PREGAME_TIME_AUDIT",
+  "verified_documents": 64,
+  "audited_at": "2026-10-30T15:32:27.682200+00:00",
+  "auditor_source_sha256": "a99f9a75012f5f7c62da2f2bafa6ff04408a3e7849f27710a55be3b9551537a4",
+  "player_availability_inferred": false,
+  "rotation_forecasts_verified": false,
+  "certification": "NOT_CERTIFIED",
+  "ticket_authority": "NO_TICKET"
+}

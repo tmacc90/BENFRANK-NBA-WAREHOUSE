@@ -1,0 +1,114 @@
+{
+  "certification": "NOT_CERTIFIED",
+  "input_mode": "RETROSPECTIVE_PRIOR_HISTORY_RECONSTRUCTION",
+  "production_calibration": false,
+  "selection_manifest_sha256": "429eb4385c7094c967251ce0e179851d5f283eb8be1f17ccd8834d6bb90662f5",
+  "simulation_trials_executed": 1775000,
+  "status": "RECONSTRUCTED_RESEARCH_EVALUATED_UNCERTIFIED",
+  "ticket_authority": "NO_TICKET",
+  "warehouse_sha256": "76bd45d13047e7e4b0bf7b26a1546c631e82ae81bdd221bb5781e3b76e33d64b",
+  "warehouse_unchanged": true,
+  "warning": "Research cohort only. No historical injury/news attestation, production promotion policy, independent future test or all-market certification.",
+  "executed_exact_line_cases": 71,
+  "eligible_nonpush_predictions": 70,
+  "exclusion_reasons": {
+    "TARGET_ABSENT_FROM_PRIOR_ONLY_ROTATION_FORECAST": 5,
+    "INSUFFICIENT_CROSSCHECKED_PRIOR_SHOTS": 24,
+    "PUSH_EXCLUDED_FROM_BINARY_CALIBRATION_RECEIPT_RETAINED": 1
+  },
+  "evaluation": {
+    "certification": "NOT_CERTIFIED",
+    "eligible": 70,
+    "global_holdout_cutoff_utc": "2026-03-15T19:30:00+00:00",
+    "input_mode": "RETROSPECTIVE_PRIOR_HISTORY_RECONSTRUCTION",
+    "minimum_is_execution_only": true,
+    "model": "ACTUAL_SEQUENTIAL_5_ON_5_PROBABILITIES",
+    "promotion_policy_applied": false,
+    "status": "EVALUATED_UNCERTIFIED",
+    "ticket_authority": "NO_TICKET",
+    "unique_games": 70,
+    "strata": [
+      {
+        "blind_challenger": {
+          "evaluated": 28,
+          "mae": 5.485857142857143,
+          "validation": "DESCRIPTIVE_HOLDOUT_ONLY_NO_AUTOMATIC_PROMOTION"
+        },
+        "brier_delta_vs_baseline": {
+          "games": 28,
+          "percentile_95pct": [
+            -0.07815673030106259,
+            0.01095631589433294
+          ],
+          "resamples": 1000,
+          "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+        },
+        "brier_interval": {
+          "games": 28,
+          "percentile_95pct": [
+            0.22205357142857143,
+            0.2817857142857143
+          ],
+          "resamples": 1000,
+          "status": "DESCRIPTIVE_GAME_CLUSTER_BOOTSTRAP"
+        },
+        "calibrated_holdout": {
+          "brier": 0.252679,
+          "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+          "directional_accuracy": 0.464286,
+          "log_loss": 0.69202,
+          "n": 28,
+          "probability_ties_n": 4
+        },
+        "historical_baseline_holdout": {
+          "brier": 0.285367,
+          "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+          "directional_accuracy": 0.357143,
+          "log_loss": 0.768766,
+          "n": 28,
+          "probability_ties_n": 8
+        },
+        "holdout_games": 28,
+        "holdout_n": 28,
+        "line_band_low": 25,
+        "line_band_width": 5,
+        "market": "points",
+        "platform": "prizepicks",
+        "predictive_90pct_coverage": 0.7857142857142857,
+        "raw_holdout": {
+          "brier": 0.312824,
+          "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+          "directional_accuracy": 0.464286,
+          "log_loss": 0.862549,
+          "n": 28,
+          "probability_ties_n": 0
+        },
+        "reliability": [
+          {
+            "bin": 0,
+            "n": 1,
+            "observed": 0,
+            "predicted": 0.0
+          },
+          {
+            "bin": 4,
+            "n": 23,
+            "observed": 0.5217391304347826,
+            "predicted": 0.43043478260869567
+          },
+          {
+            "bin": 5,
+            "n": 4,
+            "observed": 0.25,
+            "predicted": 0.5
+          }
+        ],
+        "scoring_contract": "",
+        "simulator_mae": 7.040592857142856,
+        "status": "EVALUATED_UNCERTIFIED",
+        "train_games": 42,
+        "train_n": 42
+      }
+    ]
+  }
+}
