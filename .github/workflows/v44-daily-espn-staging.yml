@@ -1,0 +1,47 @@
+name: BENFRANK NBA v4.4 daily current-season secondary staging
+on:
+  schedule:
+    - cron: '15 15 * * *'
+  workflow_dispatch:
+    inputs:
+      game_date:
+        description: 'NBA scoreboard date YYYY-MM-DD; leave blank for yesterday UTC'
+        type: string
+        required: false
+  pull_request:
+    paths:
+      - 'espn_live_stage.py'
+      - 'tests/test_espn_live_stage.py'
+      - '.github/workflows/v44-daily-espn-staging.yml'
+permissions:
+  contents: read
+jobs:
+  daily-espn-stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate parser against offline contract tests
+        run: python -m unittest discover -s tests -p test_espn_live_stage.py -v
+      - name: Stage all completed regular-season NBA box scores from secondary source
+        env:
+          GAME_DATE: ${{ inputs.game_date }}
+        shell: bash
+        run: |
+          mkdir -p receipts/current
+          if [ -n "$GAME_DATE" ]; then
+            python espn_live_stage.py --date "$GAME_DATE" --max-events 20 --out-dir receipts/current
+          else
+            python espn_live_stage.py --max-events 20 --out-dir receipts/current
+          fi
+      - name: Publish isolated staged SQLite and evidence receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benfrank-nba-daily-staged-${{ github.run_id }}
+          path: receipts/current/
+          if-no-files-found: warn
+          retention-days: 30
