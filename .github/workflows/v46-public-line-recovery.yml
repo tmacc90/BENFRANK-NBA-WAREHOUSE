@@ -49,6 +49,13 @@ jobs:
       - name: Measure historical baseline with grouped chronological holdout
         run: |
           python benfrank_v46_baseline.py --warehouse private-data/v46-input/nba_warehouse.sqlite --ledger private-data/v46-lines/snapshots.sqlite --evidence-root private-data/v46-lines --out-dir receipts/v46-baseline
+      - name: Preserve official injury PDFs issued before archived line captures
+        run: |
+          if ! command -v pdftotext >/dev/null; then
+            sudo apt-get -qq update
+            sudo apt-get -qq install -y poppler-utils
+          fi
+          python benfrank_v46_official_injuries.py --ledger private-data/v46-lines/snapshots.sqlite --out-dir receipts/v46-official-injuries
       - name: Keep scope explicit
         if: always()
         run: |
@@ -57,7 +64,7 @@ jobs:
           from pathlib import Path
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
               out.write('### v4.6 public archive research\n\n')
-              for name in ['private-data/v46-lines/recovery.json','receipts/v46-baseline/baseline.json']:
+              for name in ['private-data/v46-lines/recovery.json','receipts/v46-baseline/baseline.json','receipts/v46-official-injuries/official-injury-captures.json']:
                   p=Path(name)
                   if p.exists():
                       r=json.loads(p.read_text())
@@ -71,5 +78,6 @@ jobs:
           path: |
             private-data/v46-lines/
             receipts/v46-baseline/
+            receipts/v46-official-injuries/
           if-no-files-found: warn
           retention-days: 30

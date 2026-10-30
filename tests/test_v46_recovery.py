@@ -16,6 +16,29 @@ from benfrank_v46_public_lines import normalize, source_url, capture_matches, SO
 from benfrank_v46_saved_history import audit_saved_history
 from benfrank_v46_baseline import evaluate_rows
 from benfrank_v46_reconstructed_replay import allocate_minutes, build_context
+from benfrank_v46_official_injuries import report_url, report_times, validate_header, collection_status
+
+
+class OfficialInjuryTimestampTests(unittest.TestCase):
+    def test_original_printed_time_matches_url_and_precedes_line(self):
+        self.assertEqual(validate_header('Injury Report: 02/01/26 06:00 AM',
+            '2026-02-01T11:00:00Z','2026-02-01T12:00:00Z'), '2026-02-01T11:00:00+00:00')
+
+    def test_newer_or_wrong_report_never_replaces_pregame_evidence(self):
+        with self.assertRaisesRegex(ValueError, 'DIFFERS_FROM_URL'):
+            validate_header('Injury Report: 02/01/26 07:00 AM','2026-02-01T11:00:00Z','2026-02-01T13:00:00Z')
+        with self.assertRaisesRegex(ValueError, 'NOT_AVAILABLE'):
+            validate_header('Injury Report: 02/01/26 06:00 AM','2026-02-01T11:00:00Z','2026-02-01T10:00:00Z')
+
+    def test_eastern_daylight_time_and_fixed_official_host(self):
+        times = report_times('2026-03-08T12:10:00Z')
+        self.assertEqual(report_url(times[0]),
+            'https://ak-static.cms.nba.com/referee/injury/Injury-Report_2026-03-08_07_45AM.pdf')
+
+    def test_empty_or_partial_archive_cannot_claim_complete_capture(self):
+        self.assertEqual(collection_status(10, 0), 'BLOCKED_NO_VERIFIED_OFFICIAL_REPORTS')
+        self.assertEqual(collection_status(10, 9), 'PARTIAL_OFFICIAL_PREGAME_DOCUMENTS')
+        self.assertEqual(collection_status(10, 10), 'PRESERVED_OFFICIAL_PREGAME_DOCUMENTS')
 
 
 class PublicArchiveTests(unittest.TestCase):
