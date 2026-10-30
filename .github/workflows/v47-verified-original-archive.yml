@@ -1,0 +1,81 @@
+name: BENFRANK v4.7 verified original archive offline validation
+on:
+  pull_request:
+    paths:
+      - 'benfrank_v47_verified_package.py'
+      - 'benfrank_v47_history_diagnostics.py'
+      - 'tests/test_v47_verified_package.py'
+      - 'tests/test_v47_history_diagnostics.py'
+      - '.github/workflows/v47-verified-original-archive.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-validator-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test archive-hash, completeness, tamper and safe-failure contracts
+        run: |
+          python -m unittest discover -s tests -p 'test_v47_verified_package.py' -v
+          python -m unittest discover -s tests -p 'test_v47_history_diagnostics.py' -v
+  privately-sourced-original-archive:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ARCHIVE_URL: ${{ secrets.BENFRANK_VERIFIED_ARCHIVE_URL }}
+      ARCHIVE_ZIP_SHA256: ${{ secrets.BENFRANK_VERIFIED_ARCHIVE_ZIP_SHA256 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Fetch original ZIP to private runner directory and pin hash
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib,os,pathlib,urllib.request
+          url=os.environ.get('ARCHIVE_URL','')
+          expected=os.environ.get('ARCHIVE_ZIP_SHA256','').strip().lower()
+          if not url.startswith('https://') or len(expected)!=64 or any(c not in '0123456789abcdef' for c in expected):
+              raise SystemExit('BLOCKED_MISSING_PRIVATE_ARCHIVE_URL_AND_SHA256_SECRETS')
+          p=pathlib.Path(os.environ['RUNNER_TEMP'])/'private-original-v41.zip'
+          request=urllib.request.Request(url,headers={'User-Agent':'BENFRANK-Private-Archive-Audit/1.0'})
+          h=hashlib.sha256(); size=0
+          with urllib.request.urlopen(request,timeout=60) as response,p.open('wb') as output:
+              if not response.geturl().startswith('https://'):
+                  raise SystemExit('NON_HTTPS_ARCHIVE_REDIRECT_REJECTED')
+              while chunk:=response.read(1024*1024):
+                  size+=len(chunk)
+                  if size>100_000_000:raise SystemExit('ARCHIVE_SIZE_LIMIT_EXCEEDED')
+                  h.update(chunk);output.write(chunk)
+          if h.hexdigest()!=expected:
+              p.unlink(missing_ok=True)
+              raise SystemExit('ORIGINAL_ARCHIVE_DOWNLOAD_HASH_MISMATCH')
+          print('Verified original ZIP content SHA256; private archive is not uploaded')
+          PY
+      - name: Re-audit saved NBA direct-source responses without live endpoint calls
+        shell: bash
+        run: |
+          mkdir -p receipts
+          python benfrank_v47_verified_package.py \
+            --archive "$RUNNER_TEMP/private-original-v41.zip" \
+            --expected-db-sha256 76bd45d13047e7e4b0bf7b26a1546c631e82ae81bdd221bb5781e3b76e33d64b \
+            --output receipts/verified_v41_source_recovery.json
+      - name: Do not persist original archive or raw game database
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/private-original-v41.zip"
+      - name: Preserve only source coverage audit receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benfrank-v47-original-source-audit-${{ github.run_id }}
+          path: receipts/verified_v41_source_recovery.json
+          retention-days: 30
+          if-no-files-found: warn
