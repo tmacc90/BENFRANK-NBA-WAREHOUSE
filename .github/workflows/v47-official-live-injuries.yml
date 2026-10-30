@@ -1,0 +1,58 @@
+name: BENFRANK v4.7 official current NBA injury evidence
+on:
+  push:
+    branches: [benfrank-v47-live-official-injuries-20261030]
+    paths:
+      - 'benfrank_v47_live_official_injuries.py'
+      - 'tests/test_v47_live_official_injuries.py'
+      - '.github/workflows/v47-official-live-injuries.yml'
+  pull_request:
+    paths:
+      - 'benfrank_v47_live_official_injuries.py'
+      - 'tests/test_v47_live_official_injuries.py'
+      - '.github/workflows/v47-official-live-injuries.yml'
+  schedule:
+    - cron: '20 1,15,20,23 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-contract-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt
+      - name: Prove no backdated or fake lineup clearance
+        run: python -m unittest discover -s tests -p test_v47_live_official_injuries.py -v
+  original-official-report:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt
+      - name: Ensure PDF-to-text official printed-time verification available
+        run: |
+          if ! command -v pdftotext >/dev/null; then
+            sudo apt-get -qq update
+            sudo apt-get -qq install -y poppler-utils
+          fi
+      - name: Capture original currently published injury PDF and preserve uncertainty
+        run: |
+          python benfrank_v47_live_official_injuries.py \
+            --output-dir receipts/official-live --require-report
+      - name: Preserve original public official document and parsed issues
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benfrank-v47-official-injury-${{ github.run_id }}
+          path: receipts/official-live/
+          if-no-files-found: warn
+          retention-days: 30
