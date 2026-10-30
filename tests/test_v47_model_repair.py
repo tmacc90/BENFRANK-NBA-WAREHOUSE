@@ -14,7 +14,9 @@ from benfrank_v47_availability import parse_pdf,observation,UNKNOWN
 from benfrank_v47_model import availability_probability,rotation_scenarios,trial_run
 from benfrank_v47_uncertainty import fit,apply,finite_quantile,wilson
 from benfrank_v47_board import cohort
-from benfrank_v47_run import run
+from benfrank_v47_run import run,save_receipt,validate_cutoff
+from benfrank_v44_batch import repaired_execution
+from benfrank_v44_governance import governing_receipt
 
 
 def context_fixture():
@@ -177,6 +179,66 @@ class OfficialPdfTableTests(unittest.TestCase):
 
 
 class CohortAndEntryPointTests(unittest.TestCase):
+    def test_batch_routes_only_the_matching_exact_snapshot(self):
+        c=context_fixture();c.update(input_mode='RECONSTRUCTED_ASOF_WITH_ORIGINAL_OFFICIAL_AVAILABILITY',
+            game_date='2026-10-29',snapshot_id='fixture-snapshot',platform='PrizePicks',
+            line_capture_utc='2026-10-29T12:00:00Z',tipoff_utc='2026-10-29T23:00:00Z',
+            official_report_time_utc='2026-10-29T11:45:00Z',max_feature_game_date='2026-10-27')
+        p={'player':c['rosters'][c['home']][0]['player'],'market':'points','line':26.5,
+           'opponent':c['away'],'game_date':c['game_date'],'snapshot_id':c['snapshot_id'],
+           'game_id':c['game_id'],'platform':c['platform'],'captured_at':c['line_capture_utc'],
+           'tipoff_utc':c['tipoff_utc'],'v47_context':c}
+        with patch('benfrank_v47_run.run',return_value={'status':'fixture-executed'}) as runner:
+            self.assertEqual(repaired_execution(p,25000)['status'],'fixture-executed')
+            self.assertEqual(runner.call_count,1)
+            self.assertEqual(runner.call_args.args[5]['development_n'],70)
+            with self.assertRaisesRegex(ValueError,'snapshot_id'):
+                repaired_execution({**p,'snapshot_id':'changed-line-snapshot'},25000)
+            with self.assertRaisesRegex(ValueError,'game_id'):
+                repaired_execution({**p,'game_id':'other-game'},25000)
+            self.assertEqual(runner.call_count,1)
+
+    def test_actual_execution_cannot_certify_another_line_or_invalid_counts(self):
+        p={'player':'Fixture','market':'points','line':26.5,'game_date':'2026-10-29','opponent':'NYK',
+           'platform':'PrizePicks','snapshot_id':'fixture','game_id':'fixture-game'}
+        r={'model':'BENFRANK_V47_AVAILABILITY_ROTATION_1','trials_executed':25000,
+           'over_count':12500,'under_count':12000,'push_count':0,'void_count':500,
+           'player':p['player'],'market':p['market'],'exact_line':26.5,'game_date':p['game_date'],
+           'platform':p['platform'],'snapshot_id':p['snapshot_id'],'game_id':p['game_id'],
+           'seed':42,'executed_at':'2026-10-30T10:00:00Z','regulation_team_minutes':{'BOS':240,'NYK':240},
+           **{k:'a'*64 for k in ('context_sha256','model_source_sha256','physics_source_sha256')}}
+        def status(prop,receipt):
+            return governing_receipt(prop,[],'OVER','NO_TICKET',receipt)['stages'][52]['status']
+        self.assertEqual(status(p,r),'PASS')
+        self.assertEqual(status({**p,'line':27.5},r),'BLOCKED')
+        self.assertEqual(status(p,{**r,'over_count':-1,'under_count':24501}),'BLOCKED')
+        self.assertEqual(governing_receipt(p,[],'OVER','NO_TICKET',r)['certification'],'NOT_CERTIFIED')
+
+    def test_rates_observed_after_exact_line_capture_are_rejected(self):
+        c=context_fixture();c.update(input_mode='RECONSTRUCTED_ASOF_WITH_ORIGINAL_OFFICIAL_AVAILABILITY',
+            line_capture_utc='2026-10-29T12:00:00Z',official_report_time_utc='2026-10-29T11:45:00Z',
+            game_date='2026-10-29',history_through_date='2026-10-27',max_feature_game_date='2026-10-27')
+        for roster in c['rosters'].values():
+            for p in roster:p['asof']='2026-10-27T23:59:59Z'
+        c['pace_asof']='2026-10-27T23:59:59Z'
+        for rates in c['team_rates'].values():rates['asof']='2026-10-27T23:59:59Z'
+        validate_cutoff(c)
+        c['rosters'][c['home']][0]['asof']='2026-10-29T12:01:00Z'
+        with self.assertRaisesRegex(ValueError,'AFTER_LINE_CAPTURE'):validate_cutoff(c)
+
+    def test_undefined_fantasy_weights_cannot_execute(self):
+        with self.assertRaisesRegex(ValueError,'FANTASY_SCORING_CONTRACT'):
+            run(context_fixture(),'BOS Player 0','fantasy_score',45.5,'PrizePicks')
+
+    def test_receipts_are_hashed_and_cannot_overwrite_a_prior_decision(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'receipt.json'
+            save_receipt(path,{'direction':'OVER','ticket_authority':'NO_TICKET'})
+            before=path.read_bytes()
+            self.assertEqual(len(json.loads(before)['receipt_sha256']),64)
+            with self.assertRaises(FileExistsError):save_receipt(path,{'direction':'UNDER'})
+            self.assertEqual(path.read_bytes(),before)
+
     def test_cohort_does_not_inspect_outcomes_and_selects_one_per_game(self):
         base={'game_id':'fixture','game_date':'2026-10-20','tipoff_utc':'2026-10-20T23:00:00Z','market':'points','line':26.5,'captured_at':'2026-10-20T12:00:00Z'}
         rows=[{**base,'snapshot_id':'b','player':'Zed Fixture','actual':999},
@@ -187,7 +249,7 @@ class CohortAndEntryPointTests(unittest.TestCase):
 
     def test_entrypoint_retains_no_ticket_for_void_distribution(self):
         with patch('benfrank_v47_run.trial_run',return_value={'p_over_raw':None}):
-            r=run({'game_id':'fixture'},'Fixture Player','points',26.5,'PrizePicks')
+            r=run({'game_id':'fixture','input_mode':'EXPLICIT_SYNTHETIC_TEST'},'Fixture Player','points',26.5,'PrizePicks')
         self.assertEqual(r['status'],'BLOCKED_NO_CONDITIONAL_PLAYED_DISTRIBUTION')
         self.assertEqual(r['ticket_authority'],'NO_TICKET')
 

@@ -82,7 +82,7 @@ GROUPS = ((1,10,"intake_and_truth"),(11,20,"player_DNA"),(21,30,"opponent_DNA"),
 def group_for(index):
     return next(g for start,end,g in GROUPS if start <= index <= end)
 
-def governing_receipt(prop, technical_checks, direction, ticket_authority):
+def governing_receipt(prop, technical_checks, direction, ticket_authority, execution_receipt=None):
     checks = {item["id"]: item for item in technical_checks}
     now = dt.datetime.now(dt.timezone.utc).isoformat()
     stages = []
@@ -93,7 +93,12 @@ def governing_receipt(prop, technical_checks, direction, ticket_authority):
               "reason":"Full governing requirement is not yet substantiated",
               "next_fix":"Attach source-backed, timestamped execution evidence for this complete requirement"}
         # Only prove a full governing stage when its ENTIRE described behavior is verified.
-        if n==61 and direction in ("MORE","LESS","OVER","UNDER"):
+        if n==53 and verified_execution(prop,execution_receipt):
+            item.update(status='PASS',source='benfrank_v47_model.py actual per-prop execution receipt',
+                        asof=execution_receipt['executed_at'],
+                        reason=f"Executed {execution_receipt['trials_executed']} complete sequential games at this exact line; source/model release gates remain separate",
+                        next_fix=None)
+        elif n==61 and direction in ("MORE","LESS","OVER","UNDER"):
             item.update(status="PASS",source="benfrank_v44_batch.py provisional direction rule",
                         asof=now,reason="Direction issued as PROVISIONAL_NO_TICKET; not predictive certification",
                         next_fix=None)
@@ -117,3 +122,19 @@ def governing_receipt(prop, technical_checks, direction, ticket_authority):
          "certification":"NOT_CERTIFIED", "ticket_authority":"NO_TICKET"}
     out["receipt_sha256"]=hashlib.sha256(json.dumps(out,sort_keys=True).encode()).hexdigest()
     return out
+
+
+def verified_execution(prop,r):
+    if not isinstance(r,dict):return False
+    try:
+        if prop.get('snapshot_id') and r.get('snapshot_id')!=prop['snapshot_id']:return False
+        if prop.get('game_id') and r.get('game_id')!=prop['game_id']:return False
+        if prop.get('platform') and str(r.get('platform','')).casefold()!=str(prop['platform']).casefold():return False
+        return (r.get('model')=='BENFRANK_V47_AVAILABILITY_ROTATION_1' and r['trials_executed']>=25000 and
+                all(type(r[k]) is int and r[k]>=0 for k in ('over_count','under_count','push_count','void_count')) and
+                sum(r[k] for k in ('over_count','under_count','push_count','void_count'))==r['trials_executed'] and
+                r['player']==prop['player'] and r['market']==prop['market'] and r['exact_line']==prop['line'] and
+                r['game_date']==prop['game_date'] and isinstance(r['seed'],int) and bool(r['executed_at']) and
+                len(r['regulation_team_minutes'])==2 and set(r['regulation_team_minutes'].values())=={240} and
+                all(isinstance(r[k],str) and len(r[k])==64 for k in ('context_sha256','model_source_sha256','physics_source_sha256')))
+    except (KeyError,TypeError,ValueError):return False

@@ -22,9 +22,35 @@ The uncertainty method follows split-conformal quantile calibration's finite-sam
 ## Run a prop with the repaired model
 
 ```bash
-python benfrank_v47_run.py --context /private/source-backed-context.json --player 'Full Player Name' --market points --line 26.5 --platform PrizePicks --calibration /private/frozen-calibration-model.json --output /private/new-prop-receipt.json
+python benfrank_v47_run.py --context /private/source-backed-context.json --player 'Full Player Name' --market points --line 26.5 --platform PrizePicks --calibration models/v47_prizepicks_points_25_30_calibration.json --output /private/new-prop-receipt.json
 ```
 
-Contexts must come from the source-backed builder and original dated reports, not a hand-authored claim that a player is healthy. The receipt records current execution time, source/context hashes, actual trial counts, conditional probabilities, void risk and separate release blockers. Historical reconstruction is never labeled a live pregame pick.
+Contexts must come from the source-backed builder and original dated reports, not a hand-authored claim that a player is healthy. The receipt records current execution time, source/context hashes, actual trial counts, conditional probabilities, void risk and separate release blockers. It is hashed and written exclusively to a new file; an earlier decision cannot be overwritten. Historical reconstruction is never labeled a live pregame pick. The checked-in calibration is byte-identical to the artifact frozen before October test execution: its 42 parameter-fit games and 28 conformal-calibration games are disjoint. It is a challenger artifact with explicit scope, not an automatic production certificate.
 
 The `v47-model-repair.yml` workflow runs regression contracts and 25K actual sequential games on an explicitly synthetic software fixture. Real NBA development and October validation have separate receipts. A successful fixture job never awards FULL. Scope remains the markets with executable adapters and the separately validated calibration strata; no missing adapter or 66-stage source requirement disappears.
+
+## Completed execution and measured results
+
+The frozen execution source is commit `b4af77ca7a200ab2aac0d30cf9046d6521f6fc5d`. All 71 development contexts and all 32 later test contexts executed without exclusion. Each completed 25,000 actual games: 1,775,000 development trials and 800,000 test trials, 2,575,000 total. One settled development push is excluded from binary calibration, leaving 42 parameter-fit games and 28 disjoint conformal games. The frozen calibration SHA256 is `58969ceee18480765f71039ae093130ad2095a220262106ed3cdebe8485b2630`; its coefficients were not revised using October outcomes.
+
+| October 20–28 test metric | Result |
+| --- | --- |
+| Independently dated test games | 32 |
+| Raw nominal 90% interval coverage | 29/32 (90.63%) |
+| Adjusted nominal 90% interval coverage | 30/32 (93.75%) |
+| Adjusted coverage Wilson 95% interval | 79.85%–98.27% |
+| Raw / adjusted mean absolute point error | 7.284 / 7.157 |
+| Separate-process blind model mean absolute error | 7.790 (32 paired cases) |
+| Raw / adjusted / baseline Brier score | 0.251114 / 0.239499 / 0.261079 |
+| Adjusted / baseline log loss | 0.672018 / 0.724294 |
+| Adjusted-minus-baseline Brier difference, game-cluster bootstrap 95% interval | -0.07946 to +0.02999 |
+
+The Brier difference interval includes zero: this sample does not establish a statistical edge. The study is limited to PrizePicks points lines from 25 through less than 30. All 32 test labels retain `ESPN_SECONDARY_WITH_OFFICIAL_SCHEDULE_IDENTITY` assurance; season totals do not independently verify individual box scores. All 32 also retain some material unknown availability at their original early report cutoff. The test was reconstructed after the games, not issued live. These results are separate from the older v4.6 28-game test and are not a paired before/after comparison with it. Earlier failed development stress execution is preserved separately and never pooled into the completed sample.
+
+The data-only evidence package preserves the source snapshots, original reports, frozen contexts, complete simulation counts, calibration, separate-process blind receipts and feature database. `diagnostics/v47-model-repair-validation-20261030.json` is the repository summary. The original complete warehouse SHA256 remains `76bd45d13047e7e4b0bf7b26a1546c631e82ae81bdd221bb5781e3b76e33d64b`.
+
+## Batch integration and remaining release evidence
+
+`benfrank_v44_batch.py` dispatches a prop containing a matching `v47_context` to the repaired runner and the checked-in frozen calibration. It validates exact snapshot, game/date, platform, capture/tipoff, source cutoff and opponent identity. The repaired probability direction and calibrated forecast become the primary output; the legacy baseline remains separately labeled. A real 25K batch proof analyzed its prop without error, retained NO TICKET, and substantiated governing stage G53 from the matching execution receipt. Context-less boards preserve their earlier provisional path. Batch and standalone CLI outputs are immutable hashed new files.
+
+FULL remains a per-prop decision. Required next evidence includes independently reconciled player-game outcomes and shooting/lineup sources; authoritative final pregame availability and starting/rotation confirmations; sufficient genuine pregame line history and later walk-forward evaluation for every proposed platform/market/line band; and complete applicable opponent, stress, blind-model, freshness and settlement requirements from the governing 66-stage contract. The current free mirror/ESPN route supplies usable secondary evidence during official endpoint failures, but cannot silently inherit official assurance. A signed, source-backed final receipt must substantiate the applicable requirements before any FULL/ticket promotion.

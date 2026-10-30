@@ -4,7 +4,10 @@ on:
     paths:
       - 'benfrank_v47_*.py'
       - 'benfrank_v44_twon.py'
+      - 'benfrank_v44_batch.py'
+      - 'benfrank_v44_governance.py'
       - 'requirements.txt'
+      - 'models/v47_*.json'
       - 'tests/test_v47_*.py'
       - '.github/workflows/v47-model-repair.yml'
   workflow_dispatch:
@@ -23,6 +26,19 @@ jobs:
       - run: python -m pip install -r requirements.txt
       - name: Run temporal, source, calibration, void and rotation contracts
         run: python -m unittest discover -s tests -v
+      - name: Check the frozen calibration artifact scope and disjoint samples
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('models/v47_prizepicks_points_25_30_calibration.json').read_text())
+          assert r['stratum']==['prizepicks','points','',25]
+          assert r['coverage']==0.9
+          assert not set(r['parameter_fit_games']) & set(r['conformal_calibration_games'])
+          assert len(r['development_game_ids'])==r['development_n']
+          assert len(r['conformal_calibration_games'])==r['conformal_calibration_n']
+          assert r['certification']=='NOT_CERTIFIED'
+          PY
       - name: Build an explicitly synthetic software-only context
         run: |
           mkdir -p receipts

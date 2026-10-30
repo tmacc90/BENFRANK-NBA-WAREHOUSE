@@ -5,14 +5,42 @@ are separate from the directional projection. No unvalidated FULL promotion.
 """
 import argparse
 import json
+import hashlib
 from pathlib import Path
 
 from benfrank_v45_evidence import write_json,digest
 from benfrank_v47_model import trial_run
 from benfrank_v47_uncertainty import apply as calibrated
+from benfrank_v44_calibration import instant
+
+
+def validate_cutoff(context):
+    mode=context.get('input_mode')
+    if mode=='EXPLICIT_SYNTHETIC_TEST':return
+    if mode!='RECONSTRUCTED_ASOF_WITH_ORIGINAL_OFFICIAL_AVAILABILITY':
+        raise ValueError('SOURCE_BACKED_V47_CONTEXT_REQUIRED')
+    capture=instant(context['line_capture_utc'])
+    if capture>=instant(context['tipoff_utc']):raise ValueError('LINE_CAPTURE_NOT_PREGAME')
+    if instant(context['official_report_time_utc'])>capture:raise ValueError('OFFICIAL_REPORT_AFTER_LINE_CAPTURE')
+    if not context['max_feature_game_date']<=context['history_through_date']<context['game_date']:
+        raise ValueError('TARGET_OR_FUTURE_GAME_IN_FORECAST_HISTORY')
+    stamps=[context['pace_asof']]+[r['asof'] for r in context['team_rates'].values()]
+    stamps += [p['asof'] for roster in context['rosters'].values() for p in roster]
+    if any(instant(stamp)>capture for stamp in stamps):raise ValueError('RATE_OR_ROSTER_SOURCE_AFTER_LINE_CAPTURE')
+
+
+def save_receipt(path,result):
+    path=Path(path)
+    path.parent.mkdir(parents=True,exist_ok=True)
+    frozen={**result,'receipt_sha256':hashlib.sha256(json.dumps(result,sort_keys=True,allow_nan=False).encode()).hexdigest()}
+    with path.open('x') as stream:
+        stream.write(json.dumps(frozen,sort_keys=True,indent=2,allow_nan=False)+'\n')
 
 
 def run(context,player,market,line,platform,calibration=None,trials=25000,seed=42):
+    validate_cutoff(context)
+    if market=='fantasy_score' and context.get('scoring_contract')!='PTS1_REB1.2_AST1.5_STL3_BLK3_TOV-1':
+        raise ValueError('EXPLICIT_MATCHING_FANTASY_SCORING_CONTRACT_REQUIRED')
     receipt=trial_run(context,player,market,line,trials,seed)
     result={'framework':'BENFRANK NBA v4.7 availability/uncertainty repair','simulation':receipt,
             'direction_status':'PROVISIONAL_UNTIL_APPLICABLE_RELEASE_GATES_PASS',
@@ -55,7 +83,7 @@ def main():
     result=run(context,a.player,a.market,a.line,a.platform,calibration,a.trials,a.seed)
     result['input_context_file_sha256']=digest(a.context)
     if a.calibration:result['calibration_file_sha256']=digest(a.calibration)
-    write_json(a.output,result)
+    save_receipt(a.output,result)
     print(json.dumps({k:v for k,v in result.items() if k not in ('simulation','forecast')},indent=2))
 
 
