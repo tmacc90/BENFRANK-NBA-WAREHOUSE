@@ -1,0 +1,44 @@
+name: BENFRANK NBA v4.4 source availability receipts
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'NBA schedule date YYYY-MM-DD (optional, default UTC today)'
+        required: false
+        type: string
+  pull_request:
+    paths:
+      - 'nba_live_probe.py'
+      - 'tests/test_nba_live_probe.py'
+      - '.github/workflows/v44-source-health.yml'
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run offline schema tests first
+        run: python -m unittest discover -s tests -p test_nba_live_probe.py -v
+      - name: Test official and secondary NBA schedule availability
+        env:
+          GAME_DATE: ${{ inputs.date }}
+        run: |
+          mkdir -p receipts
+          if [ -n "$GAME_DATE" ]; then
+            python nba_live_probe.py --date "$GAME_DATE" --output receipts/nba_source_status.json
+          else
+            python nba_live_probe.py --output receipts/nba_source_status.json
+          fi
+      - name: Preserve data-source receipt even if the provider blocks requests
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benfrank-v44-source-health-${{ github.run_id }}
+          path: receipts/
+          if-no-files-found: warn
+          retention-days: 30
