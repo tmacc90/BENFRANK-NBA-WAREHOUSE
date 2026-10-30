@@ -13,6 +13,7 @@ import urllib.request
 from pathlib import Path
 
 from warehouse_v36 import stage
+from benfrank_v44_shots import parse_attempts, stage_attempts
 from engine import connect
 
 SCOREBOARD = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates="
@@ -106,6 +107,12 @@ def rows_from_summary(event_id, requested_date, expected_home, expected_away, su
                            "source_game_id": str(event_id), "season_type": "regular"}
                     if row["minutes"] > 70:
                         raise ValueError("minutes above safe bounds")
+                    if all(key in mapping for key in ("FG","3PT","FT")):
+                        try:
+                            row.update(parse_attempts(getter("FG"),getter("3PT"),
+                                                      getter("FT"),getter("PTS")))
+                        except (TypeError,ValueError,IndexError) as shot_error:
+                            row["shot_attempt_error"]=str(shot_error)[:150]
                     output.append(row)
                 except (KeyError, IndexError, TypeError, ValueError):
                     # Malformed player rows are explicitly counted by caller; no invented defaults.
@@ -159,6 +166,9 @@ def fetch_staged(date, max_events=2, opener=None):
             detail, meta = fetch_json(SUMMARY + game_id, opener)
             entry["fetch"] = meta
             rows = rows_from_summary(game_id, date, home, away, detail)
+            for player_row in rows:
+                player_row["source_body_sha"] = meta["sha256"]
+                player_row["retrieved_at"] = meta["retrieved_at"]
             receipt["staged_rows"].extend(rows)
             entry["status"] = "PARSED_UNVERIFIED"
             entry["players"] = len(rows)
@@ -189,6 +199,7 @@ def main():
         connection = connect(db)
         staged = stage(connection, "espn", rows)
         data["sqlite_staging"] = staged
+        data["shot_attempt_staging"] = stage_attempts(connection, rows)
         connection.close()
     data["player_rows_sha256"] = hashlib.sha256(json.dumps(rows, sort_keys=True).encode()).hexdigest() if rows else None
     (out / "source_receipt.json").write_text(json.dumps(data, indent=2) + "\n")
