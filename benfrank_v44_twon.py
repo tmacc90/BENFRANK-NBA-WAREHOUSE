@@ -148,7 +148,15 @@ def prepare_game(context,lineups=None):
             "turnover_chance":{t:min(0.35,sum(p["tov_per36"]*p["minutes_target"]/36 for p in context["rosters"][t])/context["pace_per_team"]) for t in (home,away)},
             "steals_per_possession":{t:sum(p["stl_per36"]*p["minutes_target"]/36 for p in context["rosters"][t])/context["pace_per_team"] for t in (home,away)}}
 
-def simulate_game(context,seed,precomputed=None,prepared=None,max_overtimes=2,max_shooting_sequences=2):
+def apply_disqualification(player,roster,fouled_out,last_player_exception=False):
+    """NBA Rule 3-I: the final five remain eligible, with a team technical."""
+    eligible=sum(p['player'] not in fouled_out for p in roster)
+    if last_player_exception and eligible<=5:
+        return True
+    fouled_out.add(player)
+    return False
+
+def simulate_game(context,seed,precomputed=None,prepared=None,max_overtimes=2,max_shooting_sequences=2,last_player_exception=False):
     prepared=prepared or prepare_game(context,precomputed)
     if prepared["context_id"]!=id(context):
         raise ValueError("Prepared game belongs to a different context")
@@ -164,6 +172,7 @@ def simulate_game(context,seed,precomputed=None,prepared=None,max_overtimes=2,ma
     total_possessions=2*round(context["pace_per_team"])
     observed_minutes=set()
     shot_sequence_ceiling_hit=False
+    last_player_technicals={home:0,away:0}
 
     def players_on(team,minute,ot=False):
         if not fouled_out and not ot:
@@ -208,7 +217,13 @@ def simulate_game(context,seed,precomputed=None,prepared=None,max_overtimes=2,ma
                 defender=choose(rng,lineup_def,lambda p:1)
                 stats[defender["player"]]["fouls"]+=1
                 if stats[defender["player"]]["fouls"]>=6:
-                    fouled_out.add(defender["player"])
+                    technical=apply_disqualification(defender['player'],context['rosters'][defense],fouled_out,last_player_exception)
+                    if technical:
+                        last_player_technicals[defense]+=1
+                        taker=max(lineup_off,key=lambda p:p['ft_pct'])
+                        if rng.random()<taker['ft_pct']:
+                            stats[taker['player']]['points']+=1
+                            score[off]+=1
                 for _ in range(points):
                     if rng.random()<shooter["ft_pct"]:
                         stats[shooter_name]["points"]+=1
@@ -274,6 +289,7 @@ def simulate_game(context,seed,precomputed=None,prepared=None,max_overtimes=2,ma
             "overtime_periods":overtime_periods,
             "shot_sequence_ceiling_hit":shot_sequence_ceiling_hit,
             "overtime_limit":max_overtimes,
+            "last_player_rule_technicals":last_player_technicals,
             "score_tied_after_overtime_limit":score[home]==score[away],
             "score_tied_after_max_2OT":score[home]==score[away]}
 

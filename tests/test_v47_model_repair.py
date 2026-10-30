@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from test_v44_twon import fixture
-from benfrank_v44_twon import prepare_game,simulate_game
+from benfrank_v44_twon import prepare_game,simulate_game,apply_disqualification
 from benfrank_v47_availability import parse_pdf,observation,UNKNOWN
 from benfrank_v47_model import availability_probability,rotation_scenarios,trial_run
 from benfrank_v47_uncertainty import fit,apply,finite_quantile,wilson
@@ -35,6 +35,16 @@ def development_rows(n=50):
 
 
 class RotationRepairTests(unittest.TestCase):
+    def test_last_five_remain_eligible_with_technical_under_nba_rule_3(self):
+        roster=[{'player':'fixture-'+str(i)} for i in range(7)]
+        fouled={'fixture-0','fixture-1'}
+        self.assertTrue(apply_disqualification('fixture-2',roster,fouled,True))
+        self.assertNotIn('fixture-2',fouled)
+        self.assertEqual(sum(p['player'] not in fouled for p in roster),5)
+        fouled=set()
+        self.assertFalse(apply_disqualification('fixture-0',roster,fouled,True))
+        self.assertIn('fixture-0',fouled)
+
     def test_out_players_never_enter_scenario_or_substitution_rosters(self):
         c=context_fixture();out=c['rosters'][c['home']][0]['player']
         c['rosters'][c['home']][0].update(availability_status='Out',probability_played=1)

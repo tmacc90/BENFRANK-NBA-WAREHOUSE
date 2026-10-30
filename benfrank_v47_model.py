@@ -20,6 +20,7 @@ from benfrank_v45_evidence import digest
 from benfrank_v46_reconstructed_replay import allocate_minutes
 from benfrank_v47_availability import observation, UNKNOWN
 from benfrank_v47_history import offered_roster
+from benfrank_v44_calibration import instant
 
 
 def fit_availability(history, snapshots, archives, documents):
@@ -73,17 +74,25 @@ def build_context(history,snapshot,document,archives,availability_model):
         raise ValueError('OFFICIAL_SCHEDULE_AND_CAPTURE_TEAM_CONFLICT')
     report=archives.get(snapshot['captured_at'])
     if report is None:raise ValueError('ORIGINAL_PREGAME_OFFICIAL_REPORT_REQUIRED')
+    if instant(report['report_time_utc'])>instant(snapshot['captured_at']):raise ValueError('OFFICIAL_AVAILABILITY_REPORT_AFTER_LINE_CAPTURE')
     if report['issues']:raise ValueError('UNRESOLVED_OFFICIAL_INJURY_TABLE_PARSE_ISSUES')
     rosters,rates,paces,pace_sds,features,unknowns={},{},[],[],[],[]
     for team in (home,away):
         names={history.canonical(n) for n in offered_roster(document,snapshot,team)}
+        published_names=set(names)
         group=report['game_team_reports'].get(snapshot['game_date']+'|'+away+'@'+home+'|'+team)
         if group:names.update(history.canonical(r['player']) for r in group['players'].values())
         source_mode='PUBLISHED_PREGAME_PROP_ROSTER_PLUS_ORIGINAL_OFFICIAL_REPORT'
-        if len(names)<7:
-            dates=sorted({r['date'] for r in history.by_team[team] if r['date']<=through},reverse=True)[:8]
-            names.update(r['player'] for r in history.by_team[team] if r['date'] in dates)
-            source_mode='PRIOR_TEAM_ROSTER_FALLBACK_WITH_UNVERIFIED_CURRENT_MEMBERSHIP'
+        recent_floor=(date-dt.timedelta(days=45)).isoformat()
+        dates=sorted({r['date'] for r in history.by_team[team] if recent_floor<=r['date']<=through},reverse=True)[:8]
+        prior_only=set()
+        non_out=sum(observation(report,snapshot['game_date'],home,away,team,n)['status']!='Out' for n in names)
+        if non_out<10:
+            for r in history.by_team[team]:
+                if r['date'] not in dates:continue
+                latest=history.prior(r['player'],through,1)
+                if latest and latest[0]['team']==team and r['player'] not in names:
+                    names.add(r['player']);prior_only.add(r['player'])
         if team==snapshot['team']:names.add(history.canonical(snapshot['player']))
         profiles=[]
         for name in sorted(names):
@@ -91,8 +100,13 @@ def build_context(history,snapshot,document,archives,availability_model):
             obs=observation(report,snapshot['game_date'],home,away,team,p['player'])
             role='CORE' if p['minutes_mean']>=20 else 'BENCH'
             probability=availability_probability(availability_model,obs['status'],role)
+            roster_source=source_mode
+            if name in prior_only:
+                attendance=sum(any(r['date']==d and r['team']==team for r in history.prior(name,through,32)) for d in dates)
+                probability=min(probability,(attendance+1)/(len(dates)+2))
+                roster_source='PRIOR_45_DAY_TEAM_APPEARANCE_UNVERIFIED_CURRENT_MEMBERSHIP'
             p.update(availability_status=obs['status'],availability_observation=obs,
-                     probability_played=probability,roster_source=source_mode)
+                     probability_played=probability,roster_source=roster_source)
             profiles.append(p)
         target=history.canonical(snapshot['player'])
         profiles.sort(key=lambda p:(p['player']==target and team==snapshot['team'],p['minutes_mean']*p['probability_played'],p['player']),reverse=True)
@@ -159,11 +173,11 @@ def trial_run(context,player,market,line,trials=25000,seed=42,scenario_count=256
     if not isinstance(trials,int) or not 25000<=trials<=50000:raise ValueError('25000_TO_50000_ACTUAL_GAMES_REQUIRED')
     if player not in {p['player'] for r in context['rosters'].values() for p in r}:raise ValueError('TARGET_ABSENT_FROM_SOURCED_ROSTER')
     scenarios,rejected=rotation_scenarios(context,scenario_count,seed^0x4737)
-    chooser=random.Random(seed^0x4A19);values=[];voids=0;overtime=0
+    chooser=random.Random(seed^0x4A19);values=[];voids=0;overtime=0;last_player_technicals=0
     max_minutes={context['home']:240,context['away']:240}
     for i in range(trials):
         scenario,prepared=scenarios[chooser.randrange(len(scenarios))]
-        game=simulate_game(scenario,seed+i*7919,prepared=prepared,max_overtimes=12,max_shooting_sequences=32)
+        game=simulate_game(scenario,seed+i*7919,prepared=prepared,max_overtimes=12,max_shooting_sequences=32,last_player_exception=True)
         if game['score_tied_after_overtime_limit'] or game['shot_sequence_ceiling_hit']:
             raise ValueError('SIMULATION_TAIL_GUARD_REACHED_NO_COMPLETE_RECEIPT')
         if game['regulation_team_minutes']!=max_minutes:raise ValueError('REGULATION_MINUTES_NOT_CONSERVED')
@@ -171,6 +185,7 @@ def trial_run(context,player,market,line,trials=25000,seed=42,scenario_count=256
             voids+=1
         else:values.append(market_value(game['stats'][player],market))
         overtime+=int(bool(game['overtime_periods']))
+        last_player_technicals+=sum(game.get('last_player_rule_technicals',{}).values())
     over=sum(x>line for x in values);under=sum(x<line for x in values);push=len(values)-over-under
     ordered=sorted(values)
     quantiles={str(q):ordered[round((len(ordered)-1)*q)] if ordered else None for q in (.05,.25,.5,.75,.95)}
@@ -185,6 +200,7 @@ def trial_run(context,player,market,line,trials=25000,seed=42,scenario_count=256
         'mean':statistics.mean(values) if values else None,'quantiles':quantiles,'rotation_scenario_count':len(scenarios),
         'infeasible_availability_draws_rejected':rejected,'regulation_team_minutes':max_minutes,
         'overtime_trials':overtime,'out_players_eligible_for_substitution':False,
+        'last_player_rule_technical_fouls':last_player_technicals,
         'probability_conditioning':'OVER_UNDER_CONDITIONAL_ON_TARGET_PLAYING_NONPUSH_VOID_REPORTED_SEPARATELY',
         'context_sha256':hashlib.sha256(json.dumps(context,sort_keys=True).encode()).hexdigest(),
         'model_source_sha256':digest(__file__),'physics_source_sha256':digest(Path(__file__).with_name('benfrank_v44_twon.py')),
