@@ -82,15 +82,22 @@ def probability_from_history(history, market, line):
 def fit_isotonic(rows):
     """Fit nondecreasing bin predictions with a pooled adjacent violators algorithm."""
     blocks = []
-    for p, y in sorted(rows, key=lambda x: x[0]):
-        blocks.append([float(p), float(p), float(y), 1])
+    # Equal probabilities must have one fitted value. Applying a separate
+    # pseudo-count to every final bin can destroy monotonicity, so PAV fits
+    # actual outcome rates; clipping belongs in the scoring function.
+    ties = {}
+    for p, y in rows:
+        total, n = ties.get(float(p), (0.0, 0))
+        ties[float(p)] = (total + float(y), n + 1)
+    for p, (total, n) in sorted(ties.items()):
+        blocks.append([p, p, total, n])
         while len(blocks) > 1 and blocks[-2][2] / blocks[-2][3] > blocks[-1][2] / blocks[-1][3]:
             right = blocks.pop()
             left = blocks[-1]
             left[1] = right[1]
             left[2] += right[2]
             left[3] += right[3]
-    return [{"min": a, "max": b, "rate": (s + 1) / (n + 2), "n": n}
+    return [{"min": a, "max": b, "rate": s / n, "n": n}
             for a, b, s, n in blocks]
 
 def calibrate(p, blocks):

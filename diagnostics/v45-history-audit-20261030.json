@@ -1,0 +1,89 @@
+{
+  "archive_second_carries": 0,
+  "auditor_source_sha256": "4eb0dcec328bb4e9eb483a41ac394d0080645fce03a692854ec46fdf53660e18",
+  "canonical_receipt_disagreements": 0,
+  "certification": "NOT_CERTIFIED",
+  "duplicate_official_identities": 0,
+  "evidence_database_sha256": "f3d06bb6d72462bb28f820f33d47aa8d93a8db5a7205e6a87c6281bfa22df759",
+  "full_history_coverage": false,
+  "full_rotation_evidence": false,
+  "generated_at": "2026-10-30T08:15:38.018664+00:00",
+  "identity_crosswalk_manifest_sha256": "ba508ee888eb694aba695b92ab14dc968a768a44078f3f8f7f6532886121293f",
+  "identity_crosswalks_used": [
+    {
+      "archived_nba_name": "Hansen Yang",
+      "canonical_name": "Yang Hansen",
+      "checked_at": "2026-10-30",
+      "espn_archive_sha256": "7a4868da67ae7f6ebfba23389e04220be2e3f69d2e56a3942c02aa56f1becc89",
+      "espn_player_id": "5217746",
+      "method": "Official NBA profile supplies current canonical name for stable NBA ID; exact unique ESPN archive name supplies ESPN ID. No fuzzy matching or automatic name reordering.",
+      "nba_player_id": "1642905",
+      "nba_profile_birthdate_observed": "2005-06-26",
+      "nba_profile_name_observed": "Yang Hansen",
+      "nba_profile_url": "https://www.nba.com/player/1642905"
+    }
+  ],
+  "input_database_sha256": "a65f8a4b66ae7b1e084500c860ac05aa637e4a15c8a655da76bfe2cbd992e96d",
+  "input_database_sha256_after": "a65f8a4b66ae7b1e084500c860ac05aa637e4a15c8a655da76bfe2cbd992e96d",
+  "input_database_unchanged": true,
+  "input_player_games": 52737,
+  "missing_positive_minute_player_games": 213,
+  "missing_verification_receipts": 0,
+  "shooting_rejections": 1,
+  "shot_rejection_reasons": {
+    "NBA/ESPN shot-attempt conflict": 1
+  },
+  "source_authorities": [
+    "NBA_STATS",
+    "ESPN"
+  ],
+  "source_coverage_status": "PARTIAL",
+  "source_files": [
+    {
+      "actual_sha256": "c8d4e03b0ae5d4af3e14e94bf75f1524a98e6dc5ee5a0347d8f251ea66e6fe78",
+      "input_rows": 42291,
+      "name": "nba_stats_schedule_master.parquet",
+      "provider": "NBA Stats via SportsDataverse mirror",
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-stats-data/5004766de1817d44fa051432e1f3be5db7501b22/nba_stats/nba_stats_schedule_master.parquet"
+    },
+    {
+      "actual_sha256": "414480718d58be6eb88db2c642d3d6469ee3be6320eb3bec3631667c7ded966d",
+      "input_rows": 35114,
+      "name": "player_boxscores_2025.parquet",
+      "provider": "NBA Stats via SportsDataverse mirror",
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-stats-data/5004766de1817d44fa051432e1f3be5db7501b22/nba_stats/player_boxscores/parquet/player_boxscores_2025.parquet"
+    },
+    {
+      "actual_sha256": "8e34c5b1b7629dda89483356b5ec40f76a0b534aa273a5ddd8d9ef23f3e0e4f7",
+      "input_rows": 35250,
+      "name": "player_box_2025.csv",
+      "provider": "ESPN via SportsDataverse archive",
+      "url": "https://github.com/sportsdataverse/sportsdataverse-data/releases/download/espn_nba_player_boxscores/player_box_2025.csv"
+    },
+    {
+      "actual_sha256": "a0b280ebb0c955e501c0e6feab3f6d726bd9f1b7c2d13f5b5c0746049459132e",
+      "input_rows": 34786,
+      "name": "player_boxscores_2026.parquet",
+      "provider": "NBA Stats via SportsDataverse mirror",
+      "url": "https://raw.githubusercontent.com/sportsdataverse/hoopR-nba-stats-data/5004766de1817d44fa051432e1f3be5db7501b22/nba_stats/player_boxscores/parquet/player_boxscores_2026.parquet"
+    },
+    {
+      "actual_sha256": "7a4868da67ae7f6ebfba23389e04220be2e3f69d2e56a3942c02aa56f1becc89",
+      "input_rows": 34883,
+      "name": "player_box_2026.csv",
+      "provider": "ESPN via SportsDataverse archive",
+      "url": "https://github.com/sportsdataverse/sportsdataverse-data/releases/download/espn_nba_player_boxscores/player_box_2026.csv"
+    }
+  ],
+  "source_manifest_sha256": "e1c67e97aadba5daa3038b44781c86ecc1d38fd2c24ba78bb9789f74b9efcca4",
+  "sqlite_integrity": [
+    "ok"
+  ],
+  "status": "AUDITED_PARTIAL_COVERAGE",
+  "ticket_authority": "NO_TICKET",
+  "verified_shooting_player_games": 52736,
+  "verified_starting_team_games": 4920,
+  "version": "4.5",
+  "warning": "Starting fives are verified postgame facts, not historical pregame forecasts or full substitution rotations.",
+  "zero_minute_rows_requiring_explicit_played_evidence": 7
+}

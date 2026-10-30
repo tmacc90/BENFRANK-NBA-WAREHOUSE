@@ -7,3 +7,5 @@ source.*
 *.partial
 test-results.log
 .venv/
+private-data/
+receipts/

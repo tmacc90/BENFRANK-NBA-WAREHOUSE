@@ -1,0 +1,132 @@
+name: BENFRANK v4.5 real-source certification evidence audit
+on:
+  pull_request:
+    paths:
+      - 'benfrank_v45_*.py'
+      - 'benfrank_v44_snapshot_ledger.py'
+      - 'benfrank_v44_calibration.py'
+      - 'benfrank_v44_twon.py'
+      - 'tests/test_v45*.py'
+      - '.github/workflows/v45-certification-evidence.yml'
+  workflow_dispatch:
+    inputs:
+      history_run_id:
+        description: 'Optional existing historical acquisition run; otherwise audit the newest main-branch artifact'
+        type: string
+        required: false
+      pbp_game_id:
+        description: 'Optional completed regular-season NBA game to crosscheck via PBP Stats'
+        type: string
+        default: '0022400001'
+        required: false
+permissions:
+  contents: read
+  actions: read
+jobs:
+  evidence-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install declared data readers
+        run: python -m pip install -r requirements.txt
+      - name: Run regression and source-contract tests
+        run: python -m unittest discover -s tests -v
+      - name: Select real historical archive without assuming its workflow succeeded
+        id: history
+        uses: actions/github-script@v7
+        env:
+          REQUESTED_HISTORY_RUN: ${{ inputs.history_run_id }}
+        with:
+          script: |
+            const requested = process.env.REQUESTED_HISTORY_RUN || '';
+            if (requested && !/^[0-9]+$/.test(requested)) throw new Error('Invalid run ID');
+            const repo = context.repo;
+            const candidates = requested ? [{id:Number(requested)}] :
+              (await github.rest.actions.listWorkflowRuns({...repo,
+                workflow_id:'acquire-nba.yml', branch:'main', status:'completed', per_page:20})).data.workflow_runs;
+            for (const candidate of candidates) {
+              const artifacts = (await github.rest.actions.listWorkflowRunArtifacts({...repo, run_id:candidate.id})).data.artifacts;
+              const artifact = artifacts.find(a=>!a.expired && a.name===`benfrank-nba-history-${candidate.id}`);
+              if (artifact) {
+                core.setOutput('run_id', String(candidate.id));
+                core.setOutput('name', artifact.name);
+                core.setOutput('digest', artifact.digest || '');
+                core.info(`Audit input run ${candidate.id}, artifact ${artifact.id}; source/coverage gates still apply`);
+                return;
+              }
+            }
+            throw new Error('No retained historical source archive. Supply a valid run ID or run acquisition.');
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ steps.history.outputs.run_id }}
+          name: ${{ steps.history.outputs.name }}
+          github-token: ${{ github.token }}
+          path: private-data/input-archive
+      - name: Audit immutable warehouse and reconcile actual shooting / starter evidence
+        shell: bash
+        run: |
+          mkdir -p receipts
+          set +e
+          python benfrank_v45_evidence.py --archive-dir private-data/input-archive --out-dir private-data/reconciled > receipts/evidence-audit.log 2>&1
+          audit_status=$?
+          set -e
+          cp private-data/reconciled/audit.json receipts/history-audit.json
+          cat receipts/history-audit.json
+          if [ "$audit_status" -ne 0 ] && [ "$audit_status" -ne 2 ]; then exit "$audit_status"; fi
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('receipts/history-audit.json').read_text())
+          if not r.get('input_database_unchanged') or r['status']=='FAILED_INTEGRITY_OR_SOURCE_GATE':
+              raise SystemExit('Input preservation/source-integrity gate failed')
+          PY
+      - name: Read snapshot readiness from the separate ledger
+        run: python benfrank_v45_readiness.py --out receipts/snapshot-readiness.json
+      - name: Capture and crosscheck a real PBP / lineup aggregate sample
+        env:
+          PBP_GAME_ID: ${{ inputs.pbp_game_id || '0022400001' }}
+        shell: bash
+        run: |
+          set +e
+          python benfrank_v45_pbp.py --game "$PBP_GAME_ID" --archive-dir private-data/input-archive --evidence-db private-data/reconciled/verified_evidence.sqlite --out-dir receipts/pbp-sample
+          pbp_status=$?
+          set -e
+          if [ "$pbp_status" -ne 0 ] && [ "$pbp_status" -ne 2 ]; then exit "$pbp_status"; fi
+      - name: Execute genuine-input backtest or preserve exact missing-input blocker
+        shell: bash
+        run: |
+          set +e
+          python benfrank_v45_backtest.py --warehouse private-data/input-archive/nba_warehouse.sqlite --out-dir receipts/backtest
+          replay_status=$?
+          set -e
+          if [ "$replay_status" -ne 0 ] && [ "$replay_status" -ne 2 ]; then exit "$replay_status"; fi
+      - name: Publish audit summary
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
+              out.write('### BENFRANK v4.5 evidence audit\n\n')
+              for name in ['history-audit.json','snapshot-readiness.json','pbp-sample/pbp-audit.json','backtest/backtest.json']:
+                  p=Path('receipts')/name
+                  if p.exists():
+                      r=json.loads(p.read_text())
+                      out.write(f"- {name}: {r.get('status','UNKNOWN')}\n")
+              out.write('\nSoftware/audit execution success does not award FULL certification. Missing genuine pregame inputs remain BLOCKED / NO_TICKET.\n')
+          PY
+      - name: Keep execution receipts and separate verified evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benfrank-v45-evidence-audit-${{ github.run_id }}
+          path: |
+            receipts/
+            private-data/reconciled/
+          if-no-files-found: warn
+          retention-days: 30
