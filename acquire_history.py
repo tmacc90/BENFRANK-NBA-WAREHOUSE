@@ -72,8 +72,16 @@ def minutes(value):
     value = str(value).strip()
     if ':' in value:
         a, b = value.split(':')
-        if not 0 <= float(b) < 60: raise ValueError('Invalid seconds')
-        result = number(a) + number(b) / 60
+        secs = number(b)
+        # The archived NBA source occasionally rounds seconds to exactly :60.
+        # Carry this integer minute instead of rejecting a played appearance;
+        # :61 and malformed clocks remain invalid.
+        if secs == 60:
+            result = number(a) + 1
+        elif secs < 60:
+            result = number(a) + secs / 60
+        else:
+            raise ValueError('Invalid seconds')
     else:
         result = number(value)
     if not 0 <= result <= 70: raise ValueError('Minutes outside [0,70]')
