@@ -45,10 +45,15 @@ def check_receipt(name, item):
     if item.get("verified") is not True:
         problems.append("NOT_INDEPENDENTLY_VERIFIED")
     if name=="historical_coverage":
-        if item.get("verified_rows",0)<52957 or not {"2024-25","2025-26"}.issubset(set(item.get("covered_seasons",[]))):
+        count=item.get("verified_rows")
+        seasons=item.get("covered_seasons")
+        if (not isinstance(count,int) or isinstance(count,bool) or count<52957
+                or not isinstance(seasons,list)
+                or not {"2024-25","2025-26"}.issubset(set(x for x in seasons if isinstance(x,str)))):
             problems.append("INCOMPLETE_SELECTED_SEASON_HISTORY")
     if name=="possession_simulator":
-        if item.get("real_game_trials",0)<25000:
+        count=item.get("real_game_trials")
+        if not isinstance(count,int) or isinstance(count,bool) or count<25000:
             problems.append("FEWER_THAN_25000_REAL_GAME_TRIALS")
         if item.get("simulation_granularity")!="possession_with_rotations":
             problems.append("NOT_POSSESSION_ROTATION_SIMULATOR")
@@ -56,7 +61,9 @@ def check_receipt(name, item):
         problems.append("NOT_INDEPENDENTLY_TRAINED")
     if name=="walk_forward_calibration":
         if item.get("chronological_holdout") is not True:problems.append("NOT_CHRONOLOGICAL_HOLDOUT")
-        if item.get("n_out_of_sample",0)<500:problems.append("INSUFFICIENT_OUT_OF_SAMPLE")
+        count=item.get("n_out_of_sample")
+        if not isinstance(count,int) or isinstance(count,bool) or count<500:
+            problems.append("INSUFFICIENT_OUT_OF_SAMPLE")
         try:
             if not (0<=item["model_brier"]<item["baseline_brier"]<=1):
                 problems.append("NO_BASELINE_BRIER_IMPROVEMENT")
@@ -65,7 +72,12 @@ def check_receipt(name, item):
         except (KeyError,TypeError,ValueError):
             problems.append("INVALID_CALIBRATION_METRICS")
     if name=="governing_stage_audit":
-        if set(item.get("executed_stage_ids",[]))!=set(item.get("required_stage_ids",[])) or not item.get("required_stage_ids"):
+        executed=item.get("executed_stage_ids")
+        required=item.get("required_stage_ids")
+        if (not isinstance(executed,list) or not isinstance(required,list)
+                or not required or not all(isinstance(x,int) and not isinstance(x,bool) for x in required)
+                or not all(isinstance(x,int) and not isinstance(x,bool) for x in executed if isinstance(executed,list))
+                or (isinstance(executed,list) and isinstance(required,list) and set(executed)!=set(required))):
             problems.append("GOVERNING_STAGES_NOT_ALL_EXECUTED")
     if name=="genuine_pregame_lines":
         if not item.get("all_snapshots_pre_tipoff") is True:
