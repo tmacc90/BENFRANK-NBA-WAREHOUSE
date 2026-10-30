@@ -69,7 +69,13 @@ def audit(folder):
             c.close()
     consistent=bool(seasons) and all(
         s.get("declared_failure_count_matches") for s in seasons)
-    complete=consistent and all(s.get("actual_failures")==0 for s in seasons)
+    expected_rows=sum(int(s.get("verified_player_games") or 0) for s in seasons)
+    complete=(consistent and receipt.get("status")=="PASS"
+              and db_report.get("integrity")=="ok"
+              and db_report.get("game_rows")==expected_rows and expected_rows>0
+              and all(s.get("actual_failures")==0 for s in seasons)
+              and all(not item.get("official_games_without_any_crosschecked_player")
+                      for item in receipt.get("seasons",[])))
     return {"status":"PASS_RECONCILED" if complete else
             "INCOMPLETE_RECONCILIATION" if consistent else "INVALID_OR_MISSING_FAILURE_EVIDENCE",
             "import_status":receipt.get("status"),"seasons":seasons,
