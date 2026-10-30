@@ -76,7 +76,11 @@ def ingest(conn,snapshots):
             "warning":"Capture metadata alone does not prove the platform really offered the line"}
 
 def export(conn):
-    conn.execute(SCHEMA)
+    # Export also supports mode=ro connections. Reading must never create a
+    # table or a new, misleadingly empty snapshot ledger.
+    if not conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' "
+                        "AND name='exact_line_snapshots'").fetchone():
+        return []
     rows=conn.execute("SELECT payload_json FROM exact_line_snapshots ORDER BY captured_at,snapshot_id").fetchall()
     return [json.loads(row[0]) for row in rows]
 

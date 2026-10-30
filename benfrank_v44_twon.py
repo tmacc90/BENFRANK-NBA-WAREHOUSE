@@ -280,13 +280,17 @@ def trial_run(context,player,market,line,trials=25000,seed=42):
     push=trials-over-under
     prob=over/trials
     margin=1.96*math.sqrt(prob*(1-prob)/trials)
+    ordered=sorted(values)
+    quantiles={str(q):ordered[round((len(ordered)-1)*q)] for q in (.05,.25,.5,.75,.95)}
     return {"method":"SOURCE_GATED_SEQUENTIAL_5_ON_5_UNCALIBRATED",
             "status":"EXECUTED_POSSESSION_TRIALS" if trials>=25000 else "EXECUTED_BELOW_25K",
             "game_date":context["game_date"],"player":player,"market":market,"exact_line":line,
             "trials_executed":trials,"seed":seed,
+            "simulator_source_sha256":hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
             "context_sha256":hashlib.sha256(json.dumps(context,sort_keys=True).encode()).hexdigest(),
             "over_count":over,"under_count":under,"push_count":push,
             "mean":round(statistics.mean(values),4),
+            "quantiles":quantiles,
             "over_frequency_uncalibrated":round(prob,6),
             "under_frequency_uncalibrated":round(under/trials,6),
             "push_frequency_uncalibrated":round(push/trials,6),

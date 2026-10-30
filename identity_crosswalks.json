@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "identity_only_not_historical_performance_features": true,
+  "entries": [
+    {
+      "nba_player_id": "1642905",
+      "espn_player_id": "5217746",
+      "canonical_name": "Yang Hansen",
+      "archived_nba_name": "Hansen Yang",
+      "nba_profile_url": "https://www.nba.com/player/1642905",
+      "nba_profile_name_observed": "Yang Hansen",
+      "nba_profile_birthdate_observed": "2005-06-26",
+      "espn_archive_sha256": "7a4868da67ae7f6ebfba23389e04220be2e3f69d2e56a3942c02aa56f1becc89",
+      "checked_at": "2026-10-30",
+      "method": "Official NBA profile supplies current canonical name for stable NBA ID; exact unique ESPN archive name supplies ESPN ID. No fuzzy matching or automatic name reordering."
+    }
+  ]
+}

@@ -1,5 +1,11 @@
 # BENFRANK NBA v4.1 — official historical refresh
 
+## Current additive evidence repair: v4.5
+
+The v4.5 repair adds a read-only historical audit, a separate crosschecked shooting/starting-five database, original-source prop capture, separate-ledger readiness, and actual-simulator retrospective backtesting by platform/market/line band. It also audits real PBP Stats possessions and lineup aggregates while retaining source disagreements. The earlier warehouse and release history below are preserved.
+
+See [v4.5 execution and remaining inputs](docs/V45_EVIDENCE_EXECUTION_REPORT.md). The new [evidence workflow](.github/workflows/v45-certification-evidence.yml) audits actual downloaded historical artifacts. A successful software or data-audit job does not award FULL certification; actual pregame line captures, forecast provenance, held-out model validation, and all governing gates remain required.
+
 The saved v3.7 framework and its original modules are preserved. The original release notes are in [docs/ORIGINAL_V37.md](docs/ORIGINAL_V37.md). This repair adds reproducible historical acquisition and record-level reconciliation; it does not complete the proposed possession simulator, independent AI, injury feeds, or model calibration.
 
 ## Execute

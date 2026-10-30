@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-29",
+  "status": "PARSED_UNVERIFIED",
+  "parsed_rows": 66,
+  "official_verified_rows": 0,
+  "promoted_to_games": 0,
+  "shot_attempt_staging": {
+    "staged": 66,
+    "missing_or_invalid": 0,
+    "authority": "ESPN_SECONDARY",
+    "official_verified": 0,
+    "promoted_to_games": 0
+  },
+  "player_rows_sha256": "52997667225d01f5c32ab00abc97e701b17a084a2c2f4296a68ee612591c0eaf",
+  "retrieved_at": "2026-10-30T07:32:16.004823+00:00"
+}

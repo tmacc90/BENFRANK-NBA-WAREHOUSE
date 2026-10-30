@@ -1,0 +1,15 @@
+{
+  "certification": "NOT_CERTIFIED",
+  "eligible_metadata_snapshots": 0,
+  "eligible_snapshots": [],
+  "minimum_for_exploratory_evaluation": 50,
+  "next_fix": "Supply the separate exact_line_snapshots ledger and original capture files.",
+  "rejections": [],
+  "selected_outcomes": 0,
+  "selection_policy": "FIRST_CAPTURE_PER_PLATFORM_PLAYER_MARKET_GAME",
+  "source_linked_snapshots": 0,
+  "status": "BLOCKED_NO_SNAPSHOT_LEDGER",
+  "ticket_authority": "NO_TICKET",
+  "total_snapshots": 0,
+  "warning": "50 is an execution minimum, not a certification threshold. A hash alone does not attest platform authenticity."
+}

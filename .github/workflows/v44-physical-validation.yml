@@ -10,6 +10,8 @@ on:
       - 'tests/test_v44_blind_process.py'
       - 'tests/test_v44_calibration.py'
       - '.github/workflows/v44-physical-validation.yml'
+      - 'benfrank_v45_readiness.py'
+      - 'benfrank_v44_snapshot_ledger.py'
   workflow_dispatch:
 permissions:
   contents: read
@@ -46,15 +48,12 @@ jobs:
           r=json.loads(Path("receipts/real_history_blind_ml.json").read_text())
           if r.get("status")!="EXECUTED_PROCESS_SEPARATE_ML":
               raise SystemExit("Blind ML real-history run failed: "+str(r))
-          db=sqlite3.connect("file:"+str(Path(sys.argv[1]).resolve())+"?mode=ro",uri=True)
-          tables={x[0] for x in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-          available=db.execute("SELECT COUNT(*) FROM prop_snapshots").fetchone()[0] if "prop_snapshots" in tables else 0
-          report={"historical_snapshot_count":available,
-                  "calibration_status":"READY_FOR_REAL_SNAPSHOT_BACKTEST" if available>=50 else "BLOCKED_NOT_ENOUGH_IMMUTABLE_PREGAME_LINES",
-                  "minimum_eligible_training_and_holdout":50,
-                  "do_not_invent_historical_prop_lines":True}
+          import os
+          from benfrank_v45_readiness import inspect_ledger
+          report=inspect_ledger(os.environ.get("BENFRANK_SNAPSHOT_LEDGER"),
+                                os.environ.get("BENFRANK_SNAPSHOT_EVIDENCE_ROOT"))
           Path("receipts/real_snapshot_readiness.json").write_text(json.dumps(report,indent=2))
-          print(report)
+          print({k:v for k,v in report.items() if k!="eligible_snapshots"})
           PY
       - name: Execute 25,000 sequential 5-on-5 games on explicit software-only fixture
         shell: bash

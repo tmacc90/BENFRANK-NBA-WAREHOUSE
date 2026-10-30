@@ -1,0 +1,10 @@
+{
+  "certification": "NOT_CERTIFIED",
+  "executed_at": "2026-10-30T08:01:03.496524+00:00",
+  "prediction_origin": "RETROSPECTIVE_REPLAY_NOT_LIVE_PREGAME_PICK",
+  "predictions": [],
+  "rejections": [],
+  "simulation_trials_executed": 0,
+  "status": "BLOCKED_NO_SOURCE_LINKED_PREGAME_SNAPSHOTS",
+  "ticket_authority": "NO_TICKET"
+}

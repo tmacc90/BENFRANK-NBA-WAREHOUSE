@@ -1,0 +1,75 @@
+{
+  "auditor_source_sha256": "ca3ea2116fccbfc8eaaae628774e9a6e3f2438abd1ac8a02339aa0d7afdede3a",
+  "certification": "NOT_CERTIFIED",
+  "chronological_rotation_sequence_verified": false,
+  "game_date": "2024-11-12",
+  "game_id": "0022400001",
+  "input_evidence_database_sha256": "f3d06bb6d72462bb28f820f33d47aa8d93a8db5a7205e6a87c6281bfa22df759",
+  "input_evidence_database_unchanged": true,
+  "mean_possession_clock_seconds": 14.545454545454545,
+  "note": "Postgame historical evidence for model fitting. Quarter lineup aggregates are not ordered stints or pregame rotation forecasts.",
+  "observed_possessions": 198,
+  "played_players_checked": 19,
+  "played_players_crosschecked": 18,
+  "quarter_lineup_combinations": 38,
+  "regulation_possession_clock_seconds": 2880,
+  "regulation_team_minutes": {
+    "ATL": 240.0,
+    "BOS": 240.0
+  },
+  "source_authority": "NBA_DERIVED_PBPSTATS_NOT_INDEPENDENT_OF_NBA_STATS",
+  "source_conflicts": [
+    {
+      "fields": {
+        "fga": {
+          "pbp": 17,
+          "verified_box": 16
+        }
+      },
+      "kind": "PLAYER_BOX",
+      "player_id": "1630552"
+    },
+    {
+      "kind": "POSSESSION_FGA",
+      "pbp": 100,
+      "team": "ATL",
+      "verified_box": 99
+    }
+  ],
+  "source_receipts": [
+    {
+      "authority": "NBA_DERIVED_PBPSTATS",
+      "delivery": "SAVED_SOURCE_REPLAY",
+      "file": "player.json",
+      "retrieved_at": null,
+      "sha256": "6e9dc2c23c0f26d2c5f7be02df7eb95e39e24d59ffa79e785c7bb4afe91da18f",
+      "url": "https://api.pbpstats.com/get-game-stats?GameId=0022400001&Type=Player"
+    },
+    {
+      "authority": "NBA_DERIVED_PBPSTATS",
+      "delivery": "SAVED_SOURCE_REPLAY",
+      "file": "lineups.json",
+      "retrieved_at": null,
+      "sha256": "21857f8f5fd44802f236531f6fe5e3b5fe868e7b0535eadde38a1bfebb953c52",
+      "url": "https://api.pbpstats.com/get-game-stats?GameId=0022400001&Type=Lineup"
+    },
+    {
+      "authority": "NBA_DERIVED_PBPSTATS",
+      "delivery": "SAVED_SOURCE_REPLAY",
+      "file": "offense.json",
+      "retrieved_at": null,
+      "sha256": "f2aaf5f06337eee24ab67a53f87c55e558dbd8eacc556b6a3298a387fce37d7c",
+      "url": "https://api.pbpstats.com/get-possessions/nba?Season=2024-25&SeasonType=Regular+Season&TeamId=1610612738&FromDate=2024-11-12&ToDate=2024-11-12&OffDef=Offense"
+    },
+    {
+      "authority": "NBA_DERIVED_PBPSTATS",
+      "delivery": "SAVED_SOURCE_REPLAY",
+      "file": "defense.json",
+      "retrieved_at": null,
+      "sha256": "5593c4024058f1114f14b19838ab2a7958fd9b06efe22f0852d37560be29703f",
+      "url": "https://api.pbpstats.com/get-possessions/nba?Season=2024-25&SeasonType=Regular+Season&TeamId=1610612738&FromDate=2024-11-12&ToDate=2024-11-12&OffDef=Defense"
+    }
+  ],
+  "status": "PARTIAL_PBP_SOURCE_CONFLICTS",
+  "ticket_authority": "NO_TICKET"
+}
