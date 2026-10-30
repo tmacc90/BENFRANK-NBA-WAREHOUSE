@@ -165,9 +165,9 @@ def evaluate(conn, snapshots, min_train=MIN_TRAIN, min_test=MIN_TEST):
               "chronological_cutoff_policy": "Every snapshot timestamp must precede tipoff; game history must precede game date",
               "fixed_line_backtest": False}
     if len(rows) < min_train + min_test:
-        result.update(status="INSUFFICIENT_SNAPSHOTS",
+        result.update({"status": "INSUFFICIENT_SNAPSHOTS",
                       "required_eligible": min_train + min_test,
-                      "official_verified_eligible": sum(x["official_game_verified"] for x in rows))
+                      "official_verified_eligible": sum(x["official_game_verified"] for x in rows)})
         return result
     # Strict forward split. No held-out outcome contributes to isotonic fit.
     split = max(min_train, int(len(rows)*0.6))
@@ -176,17 +176,20 @@ def evaluate(conn, snapshots, min_train=MIN_TRAIN, min_test=MIN_TEST):
     model = fit_isotonic([(r["p_over_raw"], r["over_result"]) for r in train])
     for r in test:
         r["p_over_calibrated"] = calibrate(r["p_over_raw"], model)
-    result.update(status="EVALUATED_UNCERTIFIED",
-                  "train_n": len(train), "holdout_n": len(test),
-                  "train_latest_tipoff": train[-1]["tipoff_utc"],
-                  "holdout_earliest_tipoff": test[0]["tipoff_utc"],
-                  "official_verified_eligible": sum(x["official_game_verified"] for x in rows),
-                  "all_eligible_official_verified": all(x["official_game_verified"] for x in rows),
-                  "raw_holdout": scores(test, "p_over_raw"),
-                  "calibrated_holdout": scores(test, "p_over_calibrated"),
-                  "isotonic_bins": model,
-                  "holdout_results": test,
-                  warning="No certified deployment threshold, independent multi-season test, or future-prop winning probability is claimed")
+    result.update({
+        "status": "EVALUATED_UNCERTIFIED",
+        "train_n": len(train),
+        "holdout_n": len(test),
+        "train_latest_tipoff": train[-1]["tipoff_utc"],
+        "holdout_earliest_tipoff": test[0]["tipoff_utc"],
+        "official_verified_eligible": sum(x["official_game_verified"] for x in rows),
+        "all_eligible_official_verified": all(x["official_game_verified"] for x in rows),
+        "raw_holdout": scores(test, "p_over_raw"),
+        "calibrated_holdout": scores(test, "p_over_calibrated"),
+        "isotonic_bins": model,
+        "holdout_results": test,
+        "warning": "No certified deployment threshold, independent multi-season test, or future-prop winning probability is claimed"
+    })
     if not result["all_eligible_official_verified"]:
         result["status"] = "EVALUATED_SOURCE_VERIFICATION_PENDING"
     return result
