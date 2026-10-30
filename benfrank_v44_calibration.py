@@ -186,7 +186,7 @@ def evaluate(conn, snapshots, min_train=MIN_TRAIN, min_test=MIN_TEST):
                   "calibrated_holdout": scores(test, "p_over_calibrated"),
                   "isotonic_bins": model,
                   "holdout_results": test,
-                  "warning": "No certified deployment threshold, independent multi-season test, or future-prop winning probability is claimed"})
+                  warning="No certified deployment threshold, independent multi-season test, or future-prop winning probability is claimed")
     if not result["all_eligible_official_verified"]:
         result["status"] = "EVALUATED_SOURCE_VERIFICATION_PENDING"
     return result
