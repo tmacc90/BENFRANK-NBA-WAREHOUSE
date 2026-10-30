@@ -1,0 +1,66 @@
+name: BENFRANK v4.8 evidence-based certification readiness
+on:
+  pull_request:
+    paths:
+      - 'benfrank_v48_*.py'
+      - 'tests/test_v48_*.py'
+      - 'configs/v47_validation_protocol.json'
+      - 'models/v47_prizepicks_points_25_30_calibration.json'
+      - 'diagnostics/v47-model-repair-validation-20261030.json'
+      - '.github/workflows/v48-certification-readiness.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  independent-readiness-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Execute evidence-contract and frozen-research unit tests
+        run: python -m unittest discover -s tests -p 'test_v48_*.py' -v
+      - name: Re-audit actual v4.7 empirical evidence and nine release dependencies
+        run: |
+          python benfrank_v48_readiness.py --output receipts/v48-certification-readiness.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('receipts/v48-certification-readiness.json').read_text())
+          assert r['status']=='NOT_CERTIFIED'
+          assert r['ticket_authority']=='NO_TICKET'
+          assert r['required']==9
+          assert r['measured_v47']['new_test_games']==32
+          assert r['measured_v47']['total_trials']==2575000
+          assert r['measured_v47']['brier_delta_bootstrap_95pct'][1]>0
+          print('PASS: fail-closed research-to-certification audit, no misleading FULL promotion')
+          PY
+      - name: Publish explicit reproducible blockers
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          p=Path('receipts/v48-certification-readiness.json')
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+              f.write('### BENFRANK NBA v4.8 independent certification readiness\n\n')
+              if not p.exists():
+                  f.write('No evidence receipt: certification blocked.\n')
+              else:
+                  r=json.loads(p.read_text())
+                  f.write('**'+r['status']+'**, ticket authority: **'+r['ticket_authority']+'**.\n\n')
+                  for stage,info in r['gates'].items():
+                      f.write('- '+stage+': '+info['status']+' — '+', '.join(info['reasons'])+'\n')
+                  f.write('\nSource report is a retrospective 32-game point-band study. It is not independently verified production prediction accuracy.\n')
+          PY
+      - name: Retain certification evidence, not private source archives
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benfrank-v48-certification-readiness-${{ github.run_id }}
+          path: receipts/v48-certification-readiness.json
+          if-no-files-found: warn
+          retention-days: 30
