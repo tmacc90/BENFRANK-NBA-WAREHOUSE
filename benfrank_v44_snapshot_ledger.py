@@ -43,7 +43,7 @@ def ingest(conn,snapshots):
     with conn:
         for snapshot in snapshots:
             check_snapshot(snapshot)
-            if snapshot.get("source_type") not in ("SCREENSHOT_CAPTURE","PLATFORM_API","MANUAL_ENTRY"):
+            if snapshot.get("source_type") not in ("SCREENSHOT_CAPTURE","PLATFORM_API","MANUAL_ENTRY","PUBLIC_COLLECTOR_ARCHIVE"):
                 raise ValueError("source_type must identify origin")
             digest=fingerprint(snapshot)
             source_hash=snapshot.get("source_sha256")

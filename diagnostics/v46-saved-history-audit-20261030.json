@@ -1,0 +1,49 @@
+{
+  "canonical_receipt_conflicts": 0,
+  "certification": "NOT_CERTIFIED",
+  "comparison_to_github_import": {
+    "additional_rows": 220,
+    "baseline_rows": 52737,
+    "baseline_sha256": "a65f8a4b66ae7b1e084500c860ac05aa637e4a15c8a655da76bfe2cbd992e96d",
+    "baseline_unchanged": true,
+    "different_baseline_rows": [],
+    "missing_baseline_rows": [],
+    "saved_rows": 52957
+  },
+  "database_sha256": "76bd45d13047e7e4b0bf7b26a1546c631e82ae81bdd221bb5781e3b76e33d64b",
+  "database_unchanged": true,
+  "delivery_manifest_database_hash_matches": true,
+  "duplicate_official_identities": 0,
+  "failures": [],
+  "missing_verification_receipts": 0,
+  "official_access": "SAVED_RESPONSES_NOT_LIVE_ACCESS",
+  "seasons": [
+    {
+      "conflicts": [],
+      "missing_identities": [],
+      "official_records": 26306,
+      "official_records_missing": 0,
+      "official_sha256": "01b8baa55acd6d88bb1dc1c7b5e150fbcf61d1c8fa7c0b22d99546a36367ba58",
+      "original_retrieved_at": "2026-10-25T02:20:50.107173+00:00",
+      "season": "2024-25",
+      "status": "PASS",
+      "warehouse_records": 26306
+    },
+    {
+      "conflicts": [],
+      "missing_identities": [],
+      "official_records": 26651,
+      "official_records_missing": 0,
+      "official_sha256": "2b192646f7a2bf4092667a72fee94b9da436a469f2dc6cb39240103e1134e00c",
+      "original_retrieved_at": "2026-10-25T02:20:50.138783+00:00",
+      "season": "2025-26",
+      "status": "PASS",
+      "warehouse_records": 26651
+    }
+  ],
+  "sqlite_integrity": "ok",
+  "status": "PASS_COMPLETE_SELECTED_SEASONS",
+  "ticket_authority": "NO_TICKET",
+  "warehouse_player_games": 52957,
+  "warning": "Complete selected-season logs do not certify shots, forecasts, other seasons or predictions."
+}

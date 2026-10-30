@@ -1,0 +1,40 @@
+{
+  "capture_fetch_failures": [],
+  "certification": "NOT_CERTIFIED",
+  "date_range": [
+    "2026-02-01",
+    "2026-04-12"
+  ],
+  "exclusion_reasons": {
+    "INVALID_EVENT_TEAMS": 1,
+    "MATERIAL_PROVIDER_OFFICIAL_TIPOFF_CONFLICT": 54,
+    "NO_UNIQUE_VERIFIED_PLAYER_GAME_SETTLEMENT": 1969,
+    "UNSUPPORTED_OR_UNVERIFIED_MARKET_CONTRACT": 6643
+  },
+  "ledger": {
+    "calibration_certification": "NOT_CERTIFIED",
+    "idempotent": 0,
+    "inserted": 13117,
+    "received": 13117,
+    "status": "SAVED_IMMUTABLE_PREGAME_SNAPSHOTS",
+    "total_snapshots": 13117,
+    "warning": "Capture metadata alone does not prove the platform really offered the line"
+  },
+  "per_market": {
+    "assists": 1848,
+    "blocks": 419,
+    "points": 5306,
+    "rebounds": 3030,
+    "steals": 721,
+    "threes": 827,
+    "turnovers": 966
+  },
+  "requested_captures": 67,
+  "source_tier": "SECONDARY_PUBLIC_COLLECTOR_NOT_PLATFORM_ATTESTED",
+  "status": "RECOVERED_SECONDARY_PREGAME_ARCHIVE",
+  "supported_pregame_rows": 15140,
+  "ticket_authority": "NO_TICKET",
+  "unique_games": 498,
+  "verified_settlement_linked_rows": 13117,
+  "warning": "Public collector provenance supports research; platform authenticity and historical injuries/rotations are not independently attested. Selection excludes unresolved, unplayed and unsupported rows; measure this selection bias."
+}

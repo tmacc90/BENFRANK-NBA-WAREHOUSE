@@ -32,6 +32,7 @@ def inspect_ledger(ledger=None, evidence_root=None, minimum=50):
         conn.close()
     result["total_snapshots"] = len(entries)
     valid = []
+    public_archive_cache = {}
     for row in entries:
         try:
             snapshot = json.loads(row["payload_json"])
@@ -56,12 +57,16 @@ def inspect_ledger(ledger=None, evidence_root=None, minimum=50):
                 raise ValueError("STABLE_GAME_ID_REQUIRED")
             if str(snapshot["opponent"]).startswith("UNRESOLVED_"):
                 raise ValueError("PLAYER_GAME_TEAM_MAPPING_REQUIRED")
-            if snapshot["source_type"] not in ("PLATFORM_API", "SCREENSHOT_CAPTURE"):
+            if snapshot["source_type"] not in ("PLATFORM_API", "SCREENSHOT_CAPTURE", "PUBLIC_COLLECTOR_ARCHIVE"):
                 raise ValueError("MANUAL_ENTRY_REQUIRES_INDEPENDENT_CAPTURE")
             if snapshot["source_type"] == "PLATFORM_API":
                 from benfrank_v45_odds import capture_matches
                 if snapshot.get("source_provider") != "THE_ODDS_API" or not capture_matches(snapshot, source):
                     raise ValueError("PLATFORM_LINE_DOES_NOT_MATCH_ORIGINAL_RESPONSE")
+            if snapshot["source_type"] == "PUBLIC_COLLECTOR_ARCHIVE":
+                from benfrank_v46_public_lines import capture_matches
+                if not capture_matches(snapshot, source, root, public_archive_cache):
+                    raise ValueError("PUBLIC_ARCHIVE_LINE_DOES_NOT_MATCH_PINNED_CAPTURE")
             result["source_linked_snapshots"] += 1
             valid.append((capture, row["snapshot_id"], snapshot))
         except (ValueError, TypeError, KeyError, OSError) as exc:
@@ -75,6 +80,7 @@ def inspect_ledger(ledger=None, evidence_root=None, minimum=50):
     result.update(selected_outcomes=len(selected), eligible_snapshots=selected,
                   duplicate_or_moved_line_captures_excluded=len(valid) - len(selected),
                   per_platform_market=dict(collections.Counter(s["platform"] + "|" + s["market"] for s in selected)),
+                  source_tiers=dict(collections.Counter(s.get("source_tier", s["source_type"]) for s in selected)),
                   ledger_sha256=before, ledger_unchanged=before == digest(ledger),
                   status="READY_FOR_UNCERTIFIED_BACKTEST" if len(selected) >= minimum
                   else "BLOCKED_INSUFFICIENT_SOURCE_LINKED_SNAPSHOTS",

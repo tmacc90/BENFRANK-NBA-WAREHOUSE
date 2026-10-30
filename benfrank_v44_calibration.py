@@ -118,8 +118,9 @@ def scores(rows, field):
             "log_loss": round(statistics.mean(-y*math.log(p) - (1-y)*math.log(1-p)
                                               for p, y in zip(probabilities, outcomes)), 6),
             "directional_accuracy": round(statistics.mean(
-                int((p > .5 and y == 1) or (p < .5 and y == 0))
-                for p, y in zip(probabilities, outcomes)), 6)}
+                int((p >= .5) == bool(y)) for p, y in zip(probabilities, outcomes)), 6),
+            "direction_rule": "OVER_IF_P_OVER_GE_0_5_ELSE_UNDER",
+            "probability_ties_n": sum(p == .5 for p in probabilities)}
 
 def evaluate(conn, snapshots, min_train=MIN_TRAIN, min_test=MIN_TEST):
     if not isinstance(snapshots, list) or not snapshots:
