@@ -1,0 +1,216 @@
+{
+  "new_test_dates": [
+    "2026-10-20",
+    "2026-10-28"
+  ],
+  "cohort_count": 32,
+  "new_test_outcomes_used_for_fitting": false,
+  "snapshots": [
+    {
+      "game_id": "0022600001",
+      "snapshot_id": "pp-archive-2144e72da1399ba66706ffd8596b8c22f62c0089531754b5d5fd52833b31ff8e-nba",
+      "captured_at": "2026-10-20T12:10:33+00:00"
+    },
+    {
+      "game_id": "0022600002",
+      "snapshot_id": "pp-archive-626457e3bdba155215b518472764d6540702c6a3b9a636d0991b4c4680df860d-nba",
+      "captured_at": "2026-10-20T12:10:33+00:00"
+    },
+    {
+      "game_id": "0022600003",
+      "snapshot_id": "pp-archive-fb6444bb82c47171f73f8082213cee2c53e7f40971b5b449ec52138355692177-nba",
+      "captured_at": "2026-10-20T12:10:33+00:00"
+    },
+    {
+      "game_id": "0022600004",
+      "snapshot_id": "pp-archive-3f3f889ef0e5b8c3f2b9d1d5bb3ae9a2a9a9e49642a9e76d1dda9db652d4035a-nba",
+      "captured_at": "2026-10-21T12:10:09+00:00"
+    },
+    {
+      "game_id": "0022600006",
+      "snapshot_id": "pp-archive-c64d3d422c2d4687d3fdaa8e4bbc500d3fb54d8031a40e652c81d322fbb10bc1-nba",
+      "captured_at": "2026-10-22T12:10:07+00:00"
+    },
+    {
+      "game_id": "0022600007",
+      "snapshot_id": "pp-archive-f2037763ad3e802fa92271b1c41a5a63d41679c08b0240e579e1715290d72fbc-nba",
+      "captured_at": "2026-10-22T12:10:07+00:00"
+    },
+    {
+      "game_id": "0022600008",
+      "snapshot_id": "pp-archive-c2b8614f023c6c0266d71b06f218ae621f6dc0d939956cd95025c56f407a24cc-nba",
+      "captured_at": "2026-10-23T12:08:51+00:00"
+    },
+    {
+      "game_id": "0022600096",
+      "snapshot_id": "pp-archive-d57d346ff45702f98894f7df271b2e884f40d13fd3d8e18f14294e6ca779c2d2-nba",
+      "captured_at": "2026-10-23T12:08:51+00:00"
+    },
+    {
+      "game_id": "0022600098",
+      "snapshot_id": "pp-archive-d0a507fecabf7c7722a2e62f453c55d6ffb73bc25ae33f48d998985eaa0b33bf-nba",
+      "captured_at": "2026-10-23T12:08:51+00:00"
+    },
+    {
+      "game_id": "0022600009",
+      "snapshot_id": "pp-archive-143518c541c65d9584683e1b42a512420ba52a572b7c7676ef624645e9c5606e-nba",
+      "captured_at": "2026-10-23T12:08:51+00:00"
+    },
+    {
+      "game_id": "0022600102",
+      "snapshot_id": "pp-archive-571c7022e342c76b9060763537c34b603f6aebce7d80f32f625c0d8b87d456d9-nba",
+      "captured_at": "2026-10-23T12:08:51+00:00"
+    },
+    {
+      "game_id": "0022600104",
+      "snapshot_id": "pp-archive-2cb6049c08f415afeb3e78dca7dc749881b4fa983ef6df27d4a86180f8658045-nba",
+      "captured_at": "2026-10-24T12:08:08+00:00"
+    },
+    {
+      "game_id": "0022600105",
+      "snapshot_id": "pp-archive-27f9440720eb2192818047abe9b8a940659b6a3a7c85a27f347c1aea7d89e595-nba",
+      "captured_at": "2026-10-24T12:08:08+00:00"
+    },
+    {
+      "game_id": "0022600109",
+      "snapshot_id": "pp-archive-217726c0da93146994ba5bad57e6d4a7e741175035bc6d2720f2e44ec15e4e2d-nba",
+      "captured_at": "2026-10-24T12:08:08+00:00"
+    },
+    {
+      "game_id": "0022600110",
+      "snapshot_id": "pp-archive-7ec61f95f23bcee9541f87d56820b16f14e553db3128e01d02abdb55cce57a5a-nba",
+      "captured_at": "2026-10-24T12:08:08+00:00"
+    },
+    {
+      "game_id": "0022600115",
+      "snapshot_id": "pp-archive-58db1af9a35343f106a04afdde7a9ceeb53022568f6acdb96fba882064fb5532-nba",
+      "captured_at": "2026-10-25T12:09:09+00:00"
+    },
+    {
+      "game_id": "0022600114",
+      "snapshot_id": "pp-archive-c8d1f6a1bca5d657f58bef91a405fcf8ef51fef5f2aff3121b4283b77fbf3455-nba",
+      "captured_at": "2026-10-25T12:09:09+00:00"
+    },
+    {
+      "game_id": "0022600116",
+      "snapshot_id": "pp-archive-f15d0757dde9ebdf641498a88f0addad0dc40604aeb3cc156c285c2bd75cc0ec-nba",
+      "captured_at": "2026-10-25T12:09:09+00:00"
+    },
+    {
+      "game_id": "0022600117",
+      "snapshot_id": "pp-archive-649373dd711c7da96ef1e0ffaa9daf09c4652c26298066818593ea4ad3d24116-nba",
+      "captured_at": "2026-10-25T12:09:09+00:00"
+    },
+    {
+      "game_id": "0022600120",
+      "snapshot_id": "pp-archive-45ae6a188176f7d936ee6df7a2b3d350eff0bfd4a1b3785c91a2f25a17422704-nba",
+      "captured_at": "2026-10-26T13:33:30+00:00"
+    },
+    {
+      "game_id": "0022600121",
+      "snapshot_id": "pp-archive-cc59863bf18572b4148d170c4f5c703bdf471f6d2620be23ebca5dd4829d2f33-nba",
+      "captured_at": "2026-10-26T13:33:30+00:00"
+    },
+    {
+      "game_id": "0022600126",
+      "snapshot_id": "pp-archive-d3d08283e08f8e2e4e0e66c450695fc1dec179236a5b1538e9f1788689a961b2-nba",
+      "captured_at": "2026-10-26T13:33:30+00:00"
+    },
+    {
+      "game_id": "0022600127",
+      "snapshot_id": "pp-archive-27be21dc347c24b2f8871399b8ef8dc64d8fc6d332fd916a49e5c9ca2983647c-nba",
+      "captured_at": "2026-10-26T13:33:30+00:00"
+    },
+    {
+      "game_id": "0022600128",
+      "snapshot_id": "pp-archive-5e20283370eef2a68d0ae28945488db61a6f47a615ef41d2c4f010a117ca02b1-nba",
+      "captured_at": "2026-10-27T12:09:59+00:00"
+    },
+    {
+      "game_id": "0022600129",
+      "snapshot_id": "pp-archive-abbdb23fd299b6d0e752be26bfa66df14f6fee5f5f56da4557fce8d6f955fc30-nba",
+      "captured_at": "2026-10-27T12:09:59+00:00"
+    },
+    {
+      "game_id": "0022600130",
+      "snapshot_id": "pp-archive-e474010c73eb620beed105ebcaf6c18524eabf56ef3e34037a2f3b6994b4231a-nba",
+      "captured_at": "2026-10-27T12:09:59+00:00"
+    },
+    {
+      "game_id": "0022600133",
+      "snapshot_id": "pp-archive-479735933591ba606578ed9a4cd3c1d500778a9853777be21804938233802002-nba",
+      "captured_at": "2026-10-28T12:08:30+00:00"
+    },
+    {
+      "game_id": "0022600134",
+      "snapshot_id": "pp-archive-5b2f50e1a4eeea5ae37b633f102c912d7b88dad194e285e1a78bada9f1592494-nba",
+      "captured_at": "2026-10-28T12:08:30+00:00"
+    },
+    {
+      "game_id": "0022600137",
+      "snapshot_id": "pp-archive-18394798800a9617f080abb296930144d743b17bd586f4e2df63e92c488584cb-nba",
+      "captured_at": "2026-10-28T12:08:30+00:00"
+    },
+    {
+      "game_id": "0022600140",
+      "snapshot_id": "pp-archive-74c62487073ea9909197800de5184313d0ef7ff40650a1d1acc4d179f2cce1ed-nba",
+      "captured_at": "2026-10-28T12:08:30+00:00"
+    },
+    {
+      "game_id": "0022600138",
+      "snapshot_id": "pp-archive-ab33115b529b0d9edb8ff6fc449d2290ea8607a83a13b46a519a19f3c9914c56-nba",
+      "captured_at": "2026-10-28T12:08:30+00:00"
+    },
+    {
+      "game_id": "0022600141",
+      "snapshot_id": "pp-archive-2e8f43dffab8192acd445ff1921e3aa6b06d93d5135388494a3ee86a00a270c3-nba",
+      "captured_at": "2026-10-28T12:08:30+00:00"
+    }
+  ],
+  "full_private_cohort_sha256": "e715f77646409f450d592e56a104341dd5bfd6e353bb7000623cbf74e7439880",
+  "capture_commits": [
+    {
+      "sha": "dc32da4c0c7ca48ab13bee9cd2d8a72a834ad781",
+      "committed_at": "2026-10-28T12:08:30Z"
+    },
+    {
+      "sha": "518d433fb61ad1c061370b2ac309e8602f1c7d48",
+      "committed_at": "2026-10-27T12:09:59Z"
+    },
+    {
+      "sha": "77b61c9e58928a7bc8c4561b11a40959c3d1eb52",
+      "committed_at": "2026-10-26T13:33:30Z"
+    },
+    {
+      "sha": "6618a1b82b8cb31ee1725c7c7a4b71ca331a7ddd",
+      "committed_at": "2026-10-25T12:09:09Z"
+    },
+    {
+      "sha": "c6567d8ef616a026a48af26aefb76845b10d71a4",
+      "committed_at": "2026-10-24T12:08:08Z"
+    },
+    {
+      "sha": "c0f6d3febd0ac2d1b4991bdb8f4b95928d1adc3e",
+      "committed_at": "2026-10-23T12:08:51Z"
+    },
+    {
+      "sha": "9d02c1a177a1e8f0c4b61e995a1ce77b857c2cab",
+      "committed_at": "2026-10-22T12:10:07Z"
+    },
+    {
+      "sha": "b8a90cfac8ad27091cf41e365739355172165514",
+      "committed_at": "2026-10-21T12:10:09Z"
+    },
+    {
+      "sha": "ebf5535730ee43c3d9f924e7ed71d959e2b09d4b",
+      "committed_at": "2026-10-20T12:10:33Z"
+    }
+  ],
+  "official_mirror_commit": "634d595f3742ea6d8d8960be14af75dc7bc1418d",
+  "source_files": {
+    "current-schedule.parquet": "c8d4e03b0ae5d4af3e14e94bf75f1524a98e6dc5ee5a0347d8f251ea66e6fe78",
+    "espn2027.csv": "ab8fc809d8f6691852d5d5e30befca62124d58a1e1c4aba8126244f8a3e6a53d",
+    "nba-current-aggregate.parquet": "77bfeae11caefbb93a3fbcd31cd2d9dec6684168c1b21d3f57d431913f6ff4b5"
+  },
+  "protocol_sha256": "442ce8145247dd30027f52fb44caf545ab1a678ef409cea7c077ac2ff8292006"
+}
