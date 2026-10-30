@@ -1,0 +1,51 @@
+name: BENFRANK NBA v4.4 ESPN staging diagnostic
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'NBA local date YYYY-MM-DD (optional, default yesterday UTC)'
+        required: false
+        type: string
+      max_events:
+        description: 'Max completed games to stage, 1-10'
+        required: false
+        default: '2'
+        type: string
+  pull_request:
+    paths:
+      - 'espn_live_stage.py'
+      - 'tests/test_espn_live_stage.py'
+      - '.github/workflows/v44-espn-staging.yml'
+permissions:
+  contents: read
+jobs:
+  staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline collector schema tests
+        run: python -m unittest discover -s tests -p test_espn_live_stage.py -v
+      - name: Stage limited secondary-source box scores (never promote to official)
+        env:
+          GAME_DATE: ${{ inputs.date }}
+          MAX_EVENTS: ${{ inputs.max_events }}
+        shell: bash
+        run: |
+          mkdir -p receipts/espn_live
+          if [ -n "$GAME_DATE" ]; then
+            python espn_live_stage.py --date "$GAME_DATE" --max-events "${MAX_EVENTS:-2}" --out-dir receipts/espn_live
+          else
+            python espn_live_stage.py --max-events "${MAX_EVENTS:-2}" --out-dir receipts/espn_live
+          fi
+      - name: Keep source receipts and isolated staging SQLite
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benfrank-v44-espn-stage-${{ github.run_id }}
+          path: receipts/
+          if-no-files-found: warn
+          retention-days: 30
