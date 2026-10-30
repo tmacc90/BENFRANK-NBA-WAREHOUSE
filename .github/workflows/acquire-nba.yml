@@ -70,6 +70,31 @@ jobs:
           if report['integrity_status']!='PASS':
               raise SystemExit(2)
           PY
+      - name: Categorize all unresolved official and ESPN source discrepancies
+        if: always()
+        continue-on-error: true
+        run: |
+          python benfrank_v47_history_diagnostics.py --input acquisition --output acquisition/failure_diagnostics.json
+      - name: Show historical certification scope without hiding import failures
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          p=Path("acquisition/failure_diagnostics.json")
+          with open(os.environ["GITHUB_STEP_SUMMARY"],"a") as out:
+              out.write("### Historical import: source reconciliation evidence\n\n")
+              if not p.exists():
+                  out.write("Failure diagnostic receipt missing. No historical certification.\n")
+              else:
+                  r=json.loads(p.read_text())
+                  out.write("**"+r["status"]+"** — never equivalent to prediction certification.\n\n")
+                  for s in r.get("seasons",[]):
+                      out.write("- "+str(s.get("season"))+": "+str(s.get("verified_player_games"))+
+                                " crosschecked rows; "+str(s.get("actual_failures"))+" discrepancies. "+
+                                str(s.get("categories",{}))+"\n")
+          PY
       - name: Preserve source files, SQLite database, failures and receipts
         if: always()
         uses: actions/upload-artifact@v4
