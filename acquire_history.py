@@ -199,6 +199,7 @@ def reconcile(c, nba_rows, espn_rows, schedule_rows, year, nba_meta, espn_meta):
                                          if str(r.get('position') or '').strip())
     official_counts = collections.Counter((str(r['game_id']),str(r['person_id'])) for r in nba_rows)
     imported = 0
+    source_clock_carries_accepted = 0
     seen_games = set()
     official_dnp = 0
     official_eligible = 0
@@ -248,7 +249,11 @@ def reconcile(c, nba_rows, espn_rows, schedule_rows, year, nba_meta, espn_meta):
                 continue
             values = tuple(obj[k] for k in FIELDS)
             c.execute('INSERT OR REPLACE INTO games VALUES ('+','.join('?' for _ in FIELDS)+')', values)
-            detail = {'counting_stats':'EXACT','date_team_opponent_home':'EXACT',
+            is_source_clock_carry = (
+                ':' in str(raw['minutes'])
+                and number(str(raw['minutes']).rsplit(':',1)[1]) == 60)
+            detail = {'raw_source_minute_60_carry':is_source_clock_carry,
+                      'counting_stats':'EXACT','date_team_opponent_home':'EXACT',
                       'starter':'NBA_POSITION_CONFIRMED_BY_EXPLICIT_ESPN_FLAG',
                       'minutes_tolerance':1.0,'minutes_difference':abs(obj['minutes']-match['minutes']),
                       'scores':'EXACT','neutral_site':bool(g.get('is_neutral')),
@@ -261,6 +266,7 @@ def reconcile(c, nba_rows, espn_rows, schedule_rows, year, nba_meta, espn_meta):
             c.execute('UPDATE staged_games SET verified=1,issue=NULL WHERE source=? AND player=? AND game_date=? AND team=?',
                       ('espn',match['player'],date,team))
             imported += 1; seen_games.add(game_id)
+            source_clock_carries_accepted += int(is_source_clock_carry)
             used_espn.add((match['date'],match['team'],name_key(match['player'])))
         except Exception as exc:
             errors.append({**identity,'code':'VERIFICATION_REJECTED','detail':str(exc)})
@@ -278,7 +284,8 @@ def reconcile(c, nba_rows, espn_rows, schedule_rows, year, nba_meta, espn_meta):
     return {'season':season,'official_input_rows':len(nba_rows),'espn_input_rows':len(espn_rows),
             'official_eligible_player_games':official_eligible,'official_dnp_excluded':official_dnp,
             'espn_regular_played_staged':staged['staged'],'crosschecked_player_games':imported,
-            'engine_season_rows_after':counts,'official_expected_final_regular_games':len(expected),
+            'engine_season_rows_after':counts,'approved_raw_source_minute_carries':source_clock_carries_accepted,
+            'official_expected_final_regular_games':len(expected),
             'games_with_at_least_one_crosschecked_player':len(seen_games),
             'official_games_without_any_crosschecked_player':sorted(expected-seen_games),
             'exclusions':dict(excluded),'failure_count':len(errors),'failures':errors,
