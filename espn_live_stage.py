@@ -204,7 +204,8 @@ def main():
     data["player_rows_sha256"] = hashlib.sha256(json.dumps(rows, sort_keys=True).encode()).hexdigest() if rows else None
     (out / "source_receipt.json").write_text(json.dumps(data, indent=2) + "\n")
     print(json.dumps({"status": data["status"], "date": args.date, "parsed_rows": data["parsed_rows"],
-                      "official_verified_rows": 0, "promoted_to_games": 0}, indent=2))
+                      "official_verified_rows": 0, "promoted_to_games": 0,
+                      "shot_attempt_rows": (data.get("shot_attempt_staging") or {}).get("staged", 0)}, indent=2))
     if args.strict and data["status"] not in ("PARSED_UNVERIFIED", "NO_COMPLETED_REGULAR_GAMES"):
         raise SystemExit(2)
 
