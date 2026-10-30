@@ -14,6 +14,7 @@ from pathlib import Path
 
 from benfrank_v44_audit import build_receipt
 from benfrank_v44_governance import governing_receipt
+from benfrank_v44_blind_orchestrator import run_separate
 from engine import MARKETS
 from production import report
 
@@ -131,15 +132,30 @@ def run_one(connection, prop, trials=25000, db_integrity=False):
     prediction = base.get("baseline_projection")
     direction = ("MORE" if prediction > prop["line"] else "LESS" if prediction < prop["line"] else "UNRESOLVED") if prediction is not None else "UNRESOLVED"
     margin = round(prediction - prop["line"], 3) if prediction is not None else None
-    governing = governing_receipt(prop, audit["stages"], direction, "NO_TICKET")
+    # Dedicated child process cannot receive prop line or primary forecast.
+    challenger = run_separate(connection, prop["player"], prop["market"], prop["game_date"])
+    challenger_value = challenger.get("projection") if challenger.get("status") == "EXECUTED_PROCESS_SEPARATE_ML" else None
+    if challenger_value is not None and prediction is not None:
+        competitor_direction = "OVER" if challenger_value > prop["line"] else "UNDER" if challenger_value < prop["line"] else "PUSH"
+        preliminary_direction = "OVER" if prediction > prop["line"] else "UNDER" if prediction < prop["line"] else "PUSH"
+        disagreement = competitor_direction != preliminary_direction
+        stage(e, "model_disagreement", "benfrank_v44_blind_orchestrator.py separate ML process", now.isoformat(),
+              "Independent post-hoc disagreement checked; challenger not calibrated or production-certified")
+        audit = build_receipt({k: prop[k] for k in ("player", "market", "line", "opponent", "game_date")}, e)
+    else:
+        disagreement = None
+    direction_label = ("OVER" if direction == "MORE" else "UNDER" if direction == "LESS" else "UNRESOLVED")
+    governing = governing_receipt(prop, audit["stages"], direction_label, "NO_TICKET")
     return {"player": prop["player"], "market": prop["market"], "line": prop["line"],
             "opponent": prop["opponent"], "game_date": prop["game_date"],
-            "direction": direction, "direction_status": "PROVISIONAL_NO_TICKET" if direction != "UNRESOLVED" else "NO_EVIDENCE",
+            "direction": direction_label, "direction_status": "PROVISIONAL_NO_TICKET" if direction != "UNRESOLVED" else "NO_EVIDENCE",
             "projection": prediction, "margin": margin,
             "historical_games": base.get("games_available"), "historical_windows": base.get("windows"),
             "empirical_bootstrap": base.get("simulation"),
             "minute_proxy": base.get("sequential_minute_proxy"),
             "blind_statistical_formula": base.get("blind_statistical_model"),
+            "blind_ml_challenger": challenger,
+            "blind_ml_disagreement": disagreement,
             "stress_diagnostics": stress_diagnostics(base, prop["line"]),
             "official_coverage_certified": False, "possession_twon_certified": False,
             "independent_blind_ai_certified": False, "calibration_certified": False,
