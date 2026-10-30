@@ -166,7 +166,8 @@ def fetch_staged(date, max_events=2, opener=None):
             entry["status"] = "UNAVAILABLE_OR_INVALID"
             entry["error"] = type(exc).__name__ + ": " + str(exc)[:200]
         receipt["events"].append(entry)
-    receipt["status"] = ("PARTIAL_STAGING" if receipt["staged_rows"] and any(e["status"] != "PARSED_UNVERIFIED" for e in receipt["events"])\n                         else "PARSED_UNVERIFIED" if receipt["staged_rows"] else "SUMMARY_UNAVAILABLE")
+    receipt["status"] = ("PARTIAL_STAGING" if receipt["staged_rows"] and any(e["status"] != "PARSED_UNVERIFIED" for e in receipt["events"])
+                         else "PARSED_UNVERIFIED" if receipt["staged_rows"] else "SUMMARY_UNAVAILABLE")
     return receipt
 
 
@@ -174,7 +175,8 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--date", default=(dt.datetime.now(dt.timezone.utc).date()-dt.timedelta(days=1)).isoformat())
     p.add_argument("--max-events", type=int, default=2)
-    p.add_argument("--out-dir", default="receipts/espn_live")\n    p.add_argument("--strict", action="store_true", help="Return exit 2 for missing or partially collected completed games")
+    p.add_argument("--out-dir", default="receipts/espn_live")
+    p.add_argument("--strict", action="store_true", help="Return exit 2 for missing or partially collected completed games")
     args = p.parse_args()
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -191,7 +193,9 @@ def main():
     data["player_rows_sha256"] = hashlib.sha256(json.dumps(rows, sort_keys=True).encode()).hexdigest() if rows else None
     (out / "source_receipt.json").write_text(json.dumps(data, indent=2) + "\n")
     print(json.dumps({"status": data["status"], "date": args.date, "parsed_rows": data["parsed_rows"],
-                      "official_verified_rows": 0, "promoted_to_games": 0}, indent=2))\n    if args.strict and data["status"] not in ("PARSED_UNVERIFIED", "NO_COMPLETED_REGULAR_GAMES"):\n        raise SystemExit(2)
+                      "official_verified_rows": 0, "promoted_to_games": 0}, indent=2))
+    if args.strict and data["status"] not in ("PARSED_UNVERIFIED", "NO_COMPLETED_REGULAR_GAMES"):
+        raise SystemExit(2)
 
 
 if __name__ == "__main__":
