@@ -1,0 +1,87 @@
+name: BENFRANK NBA v4.4 physical model validation
+on:
+  pull_request:
+    paths:
+      - 'benfrank_v44_twon.py'
+      - 'benfrank_v44_blind_worker.py'
+      - 'benfrank_v44_blind_orchestrator.py'
+      - 'benfrank_v44_calibration.py'
+      - 'tests/test_v44_twon.py'
+      - 'tests/test_v44_blind_process.py'
+      - 'tests/test_v44_calibration.py'
+      - '.github/workflows/v44-physical-validation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  physical-model-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run isolated model and source gate tests
+        run: python -m unittest discover -s tests -p 'test_v44_*.py' -v
+      - name: Retrieve non-synthetic historical NBA player games
+        uses: actions/download-artifact@v4
+        with:
+          run-id: '40177116577'
+          name: benfrank-nba-history-40177116577
+          github-token: ${{ github.token }}
+          path: archived_warehouse
+      - name: Calculate real-data blind ML challenger and snapshot readiness
+        shell: bash
+        run: |
+          mkdir -p receipts
+          DB="$(find archived_warehouse -type f -name nba_warehouse.sqlite -print -quit)"
+          if [ -z "$DB" ]; then echo "No real archived warehouse found" >&2; exit 2; fi
+          sha256sum "$DB" > receipts/archive_hash.txt
+          python benfrank_v44_blind_orchestrator.py --db "$DB" --player "Jalen Brunson" --market points --asof 2026-10-29 > receipts/real_history_blind_ml.json
+          python - "$DB" <<'PY'
+          import json, sqlite3, sys
+          from pathlib import Path
+          r=json.loads(Path("receipts/real_history_blind_ml.json").read_text())
+          if r.get("status")!="EXECUTED_PROCESS_SEPARATE_ML":
+              raise SystemExit("Blind ML real-history run failed: "+str(r))
+          db=sqlite3.connect("file:"+str(Path(sys.argv[1]).resolve())+"?mode=ro",uri=True)
+          tables={x[0] for x in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+          available=db.execute("SELECT COUNT(*) FROM prop_snapshots").fetchone()[0] if "prop_snapshots" in tables else 0
+          report={"historical_snapshot_count":available,
+                  "calibration_status":"READY_FOR_REAL_SNAPSHOT_BACKTEST" if available>=50 else "BLOCKED_NOT_ENOUGH_IMMUTABLE_PREGAME_LINES",
+                  "minimum_eligible_training_and_holdout":50,
+                  "do_not_invent_historical_prop_lines":True}
+          Path("receipts/real_snapshot_readiness.json").write_text(json.dumps(report,indent=2))
+          print(report)
+          PY
+      - name: Execute 25,000 sequential 5-on-5 games on explicit software-only fixture
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, sys
+          from pathlib import Path
+          sys.path.insert(0,"tests")
+          from test_v44_twon import fixture
+          Path("receipts/synthetic_test_context.json").write_text(json.dumps(fixture(),indent=2))
+          PY
+          python benfrank_v44_twon.py --context receipts/synthetic_test_context.json --player 'BOS Player 0' --market points --line 22.5 --trials 25000 --seed 20261029 --output receipts/fixture_twon_25k.json > receipts/fixture_twon_summary.log
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          result=json.loads(Path("receipts/fixture_twon_25k.json").read_text())
+          assert result["trials_executed"]==25000
+          assert result["status"]=="EXECUTED_POSSESSION_TRIALS"
+          assert result["certification"]=="NOT_CERTIFIED"
+          assert result["regulation_team_minutes"]=={"BOS":240,"NYK":240}
+          print("25K executed for TEST FIXTURE ONLY; real NBA lineup and shot profile validation still required")
+          PY
+      - name: Keep all model and failure receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benfrank-v44-physical-validation-${{ github.run_id }}
+          path: receipts/
+          if-no-files-found: warn
+          retention-days: 30
