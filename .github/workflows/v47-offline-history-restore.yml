@@ -1,0 +1,72 @@
+name: BENFRANK v4.7 original NBA archive re-verification
+on:
+  workflow_dispatch:
+    inputs:
+      archive_run_id:
+        description: 'Actions run ID holding the original saved verified v4.1 ZIP (must be preuploaded privately as an Actions artifact)'
+        required: true
+        type: string
+      archive_artifact_name:
+        description: 'Exact artifact name in that run'
+        required: true
+        default: benfrank-v41-original-verified-archive
+        type: string
+permissions:
+  contents: read
+  actions: read
+jobs:
+  offline-reverification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install pinned project requirements
+        run: python -m pip install -r requirements.txt
+      - name: Verify recovery and audit contracts
+        run: python -m unittest discover -s tests -p 'test_v47_*history*.py' -v
+      - name: Retrieve previously uploaded original verified source archive
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ inputs.archive_run_id }}
+          name: ${{ inputs.archive_artifact_name }}
+          github-token: ${{ github.token }}
+          path: private-data/archive-source
+      - name: Fail closed if original archive missing or renamed
+        run: |
+          test -f private-data/archive-source/BENFRANK_NBA_v4_1_VERIFIED_WAREHOUSE.zip
+      - name: Revalidate original cached official responses and 52957 historical player games
+        run: |
+          python benfrank_v47_saved_history_ci.py \
+            --archive private-data/archive-source/BENFRANK_NBA_v4_1_VERIFIED_WAREHOUSE.zip \
+            --expected-database-sha256 76bd45d13047e7e4b0bf7b26a1546c631e82ae81bdd221bb5781e3b76e33d64b \
+            --out receipts/v47-original-official-history.json
+      - name: Summarize official-history verification scope
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          p=Path("receipts/v47-original-official-history.json")
+          with open(os.environ["GITHUB_STEP_SUMMARY"],"a") as f:
+              f.write("### v4.7 original saved NBA archive\n\n")
+              if p.exists():
+                  r=json.loads(p.read_text())
+                  f.write(f"Historical status: **{r['status']}**.\n\n")
+                  f.write(f"Saved player games: {r.get('saved_game_rows')}.\n\n")
+              else:
+                  f.write("Archive was not accessible or no verification receipt was produced.\n")
+              f.write("This job never provides live NBA availability, current odds, or certified predictions.\n")
+          PY
+      - name: Upload audit receipt only; exclude protected full warehouse and raw official data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benfrank-v47-offline-history-receipt-${{ github.run_id }}
+          path: receipts/
+          retention-days: 30
+          if-no-files-found: warn
