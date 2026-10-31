@@ -34,14 +34,23 @@ def checked_summary(event_id, target_date, requested_dates, fetch=fetch_json):
     if not home or not away or home==away:raise ValueError("NO_VERIFIED_BOTH_TEAMS")
     rows=rows_from_summary(str(event_id),local,home,away,body)
     accepted=[]
+    excluded=[]
     for r in rows:
         r["source_body_sha"]=meta["sha256"]
         r["retrieved_at"]=meta["retrieved_at"]
-        validate_row(r,target_date)
-        accepted.append(r)
+        try:
+            validate_row(r,target_date)
+            accepted.append(r)
+        except (ValueError,KeyError,TypeError) as exc:
+            # An ESPN played=false or exactly zero-minute row is NOT an
+            # invented zero-point playing appearance and must not discard
+            # the remaining valid player-game box score of that entire game.
+            # All exceptions are preserved as source-specific exclusions.
+            excluded.append({"player":r.get("player"),"reason":str(exc)[:100]})
     if len(accepted)<12:raise ValueError("GAME_BOX_SCORE_PLAYER_COVERAGE_TOO_LOW")
     return accepted,{"game_id":str(event_id),"date":local,"home":home,"away":away,
-                     "players":len(accepted),"sha256":meta["sha256"],
+                     "players":len(accepted),"excluded_player_rows":excluded,
+                     "sha256":meta["sha256"],
                      "source":"ESPN_COMPLETED_SUMMARY_DATE_VERIFIED"}
 
 def recover(existing_db, out_db, out_receipt, start_id, end_id, target_date, allowed_dates):
@@ -55,25 +64,42 @@ def recover(existing_db, out_db, out_receipt, start_id, end_id, target_date, all
     if out.exists():raise FileExistsError("RECEIPTS_ARE_IMMUTABLE_NO_OVERWRITE")
     shutil.copyfile(existing,out)
     conn=connect(out)
-    errors=[];events=[];recovered=[]
+    errors=[];events=[];recovered=[];conflicted_players=[]
     try:
         prior=conn.execute("SELECT COUNT(*) FROM current_games").fetchone()[0]
         for eid in range(start_id,end_id+1):
+            transaction_started=False
+            event_recovered=[]
             try:
                 rows,meta=checked_summary(eid,target_date,allowed_dates)
+                conn.execute("SAVEPOINT one_game")
+                transaction_started=True
                 for r in rows:
                     key=(r["player"],r["date"],r["team"])
                     prior_row=conn.execute("SELECT * FROM current_games WHERE player=? AND date=? AND team=?",key).fetchone()
                     if prior_row:
-                        if any(prior_row[c]!=r.get(c) for c in COLUMNS
-                               if c not in ("retrieved_at",)):
-                            raise ValueError("CONFLICT_WITH_STAGED_ESPN_SOURCE")
+                        # ESPN returns a mutable JSON response even for final
+                        # scores. Preserve the original source hash and row.
+                        # A changed source hash alone is NOT a changed stat.
+                        conflict=[c for c in COLUMNS
+                                  if c not in ("retrieved_at","source_body_sha")
+                                  and prior_row[c]!=r.get(c)]
+                        if conflict:
+                            conflicted_players.append({"game_id":str(eid),
+                                "player":r["player"],"date":r["date"],
+                                "fields":conflict})
                         continue
                     conn.execute("INSERT INTO current_games VALUES ("+",".join("?" for _ in COLUMNS)+")",
                                  [r.get(k) for k in COLUMNS])
-                    recovered.append(key)
+                    event_recovered.append(key)
+                conn.execute("RELEASE SAVEPOINT one_game")
+                transaction_started=False
+                recovered.extend(event_recovered)
                 events.append(meta)
             except (KeyError,TypeError,ValueError,IndexError,OSError,TimeoutError,json.JSONDecodeError) as exc:
+                if transaction_started:
+                    conn.execute("ROLLBACK TO SAVEPOINT one_game")
+                    conn.execute("RELEASE SAVEPOINT one_game")
                 errors.append({"event_id":eid,"reason":type(exc).__name__+": "+str(exc)[:160]})
         conn.commit()
         integrity=conn.execute("PRAGMA integrity_check").fetchone()[0]
@@ -82,10 +108,12 @@ def recover(existing_db, out_db, out_receipt, start_id, end_id, target_date, all
         count=conn.execute("SELECT COUNT(*) FROM current_games").fetchone()[0]
     finally:
         conn.close()
-    report={"status":"RECOVERED_FINAL_SOURCE_SUMMARIES" if not errors else "PARTIAL_ESPN_GAP_RECOVERY",
+    report={"status":"RECOVERED_FINAL_SOURCE_SUMMARIES_WITH_ROW_QUARANTINES" if not errors else "PARTIAL_ESPN_GAP_RECOVERY",
             "target_date":target_date,"allowed_missing_dates":allowed_dates,"scanned_ids":[start_id,end_id],
             "before_rows":prior,"new_rows":len(recovered),"after_rows":count,
-            "recovered_games":events,"errors":errors,"official_verified":False,
+            "recovered_games":events,"errors":errors,
+            "conflicting_source_players_preserved":conflicted_players,
+            "official_verified":False,
             "source_tier":"ESPN_SECONDARY_FINAL_SUMMARIES_WITH_DATE_AND_TEAM_CHECKS",
             "source_input_sha256":hashlib.sha256(existing.read_bytes()).hexdigest(),
             "output_db_sha256":hashlib.sha256(out.read_bytes()).hexdigest(),
