@@ -1,0 +1,16 @@
+{
+  "version": "BENFRANK_V52_EARLY_PREGAME",
+  "issued_at": "2026-10-31T15:01:26.459520+00:00",
+  "early_forecasts_frozen": 6,
+  "main_actual_complete_games": 150000,
+  "stress_actual_complete_games": 24000,
+  "blind_models_executed": 6,
+  "paired_model_disagreements": 4,
+  "scenario_fragile_props": 4,
+  "final_starters_required": false,
+  "outcomes_observed": 0,
+  "prediction_accuracy_certified": false,
+  "data_preservation_verified": true,
+  "original_private_boards_not_committed": true,
+  "note": "Actual early pregame execution, not outcome validation; private per-prop receipts retained separately."
+}

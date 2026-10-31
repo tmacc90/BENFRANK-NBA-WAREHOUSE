@@ -1,0 +1,30 @@
+{
+  "policy": "BENFRANK_V52_EARLY_PREGAME",
+  "user_authorized_change_date": "2026-10-31",
+  "purpose": "Issue and freeze testable early forecasts using depth charts and projected roles without waiting for final starters",
+  "source_requirements": {
+    "depth_chart_max_age_hours": 24,
+    "injury_observation_max_age_hours": 36,
+    "projected_lineup_max_age_hours": 24,
+    "all_sources_observed_by_analysis_cutoff": true,
+    "all_target_features_strictly_before_game_date": true,
+    "unlisted_is_healthy": false,
+    "secondary_sources_become_official": false
+  },
+  "early_mode_amendments": {
+    "G08": "Use current sourced availability and model explicit uncertainty; no final-clearance wait",
+    "G09": "Use source-stamped projected/depth roles and minute distributions; no confirmed-starter wait",
+    "G60": "Freeze the early snapshot; later information creates a new immutable revision, never a prerequisite for this forecast"
+  },
+  "minimum_main_actual_complete_games": 25000,
+  "default_stress_actual_games_per_branch": 2000,
+  "blind": "Independent pooled lagged ridge with at least 3 real target appearances and 100 real chronological training rows",
+  "missing_non_target_reserve_history": "Explicit observed-peer prior, zero target logs retained, uncertainty and sensitivity recorded",
+  "missing_target_history": "Never invent games; require genuine supported target features or show an exact blocker",
+  "direction": "Mandatory OVER or UNDER on successfully executed supported props",
+  "test_readiness": "FORWARD_TEST_READY when the prediction is actually frozen before tipoff",
+  "certification": "UNVALIDATED_EARLY_CHALLENGER",
+  "ticket_authority": "RESEARCH_ONLY",
+  "probability_calibration_applied": false,
+  "original_rules_and_receipts": "Preserved; this is a separate early-mode amendment"
+}
