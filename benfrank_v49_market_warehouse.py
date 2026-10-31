@@ -20,6 +20,8 @@ MARKETS={
  "field_goals_attempted":("fga",),"three_pointers_attempted":("fg3a",),
  "two_pointers_made":("fgm","fg3m"),
  "two_pointers_attempted":("fga","fg3a"),
+ "two_point_attempts":("fga","fg3a"),
+ "two_point_made":("fgm","fg3m"),
  "free_throws_made":("ftm",),"free_throws_attempted":("fta",),
  "offensive_rebounds":("oreb",),"defensive_rebounds":("dreb",),
  "double_double":("pts","reb","ast","stl","blk"),
@@ -37,14 +39,15 @@ def stat(row,market):
     if market not in MARKETS:
         return None
     def v(k):
-        return row[k] if k in row else None
+        try: return row[k]
+        except (KeyError, IndexError): return None
     if any(v(k) is None for k in MARKETS[market]):
         return None
     if market=="fantasy_score":
         return v("pts")+1.2*v("reb")+1.5*v("ast")+3*(v("stl")+v("blk"))-v("tov")
     if market=="double_double":
         return int(sum(v(k)>=10 for k in ("pts","reb","ast","stl","blk"))>=2)
-    if market in ("two_pointers_made","two_pointers_attempted"):
+    if market in ("two_pointers_made","two_pointers_attempted","two_point_attempts","two_point_made"):
         a,b=MARKETS[market]
         return v(a)-v(b) if v(a)>=v(b) else None
     return sum(v(k) for k in MARKETS[market])
