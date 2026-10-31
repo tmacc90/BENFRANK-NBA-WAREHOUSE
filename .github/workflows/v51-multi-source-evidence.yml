@@ -85,6 +85,14 @@ jobs:
         continue-on-error: true
         run: |
           python -u benfrank_v51_nba_official.py --target-date "$TARGET_DATE" --days 3 --max-games 20 --output receipts/v51/official
+      - name: Use public ESPN and NBA Stats 2027 mirror releases when live NBA CDN returns 403
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          python -m pip install 'pyarrow>=18,<27'
+          python -u benfrank_v51_release_fallback.py --date "$TARGET_DATE" --output receipts/v51/mirrors
       - name: Retrieve secondary completed ESPN boxes for independent past-game reconciliation
         continue-on-error: true
         run: |
@@ -127,6 +135,7 @@ jobs:
           roster=receipt('rosters/rosters-evidence-receipt.json')
           injury=receipt('injury/live-official-injury-receipt.json')
           lines=receipt('lines/secondary-line-source-receipt.json')
+          mirrors=receipt('mirrors/v51-mirror-fallback-receipt.json')
           out=[
              '### BENFRANK v5.1 source-backed NBA collection',
              '',
@@ -138,6 +147,8 @@ jobs:
              'Secondary complete team rosters: '+str(roster.get('roster_teams_collected',0)),
              'Public collector current pregame exact lines: '+str(lines.get('current_date_pregame_rows',0)),
              'PrizePicks native line authenticity: NOT_VERIFIED',
+             'Public 2027 ESPN/NBA Stats mirrors captured: '+str(mirrors.get('captured',0)),
+             'Mirrors with filtered game rows before cutoff: '+str(mirrors.get('asof_qualified',0)),
              'Original NBA injury report: '+str(injury.get('status','MISSING_OR_BLOCKED')),
              '',
              '**Still not proven:** independently authenticated pre-tipoff starters/minutes, native PrizePicks timestamps, prospective model calibration, live candidate-specific 25K simulation and ticket approval.',
