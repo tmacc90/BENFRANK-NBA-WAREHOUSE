@@ -76,6 +76,11 @@ jobs:
                            str(Path('receipts/v51/raw')/source['raw_file']),
                            '--output','receipts/v51/rosters'],check=True)
           PY
+      - name: Capture pinned public PrizePicks line snapshots (secondary source, not native attestation)
+        continue-on-error: true
+        shell: bash
+        run: |
+          python benfrank_v51_secondary_lines.py --date "$TARGET_DATE" --output receipts/v51/lines
       - name: Independently capture NBA CDN completed earlier-game box scores and play-by-play
         continue-on-error: true
         run: |
@@ -121,6 +126,7 @@ jobs:
           checks=receipt('source-crosscheck.json')
           roster=receipt('rosters/rosters-evidence-receipt.json')
           injury=receipt('injury/live-official-injury-receipt.json')
+          lines=receipt('lines/secondary-line-source-receipt.json')
           out=[
              '### BENFRANK v5.1 source-backed NBA collection',
              '',
@@ -130,6 +136,8 @@ jobs:
              'Official NBA play-by-play games: '+str(nba.get('official_pbp_games',0)),
              'Independently matching player games: '+str(checks.get('independently_crosschecked_player_games',0)),
              'Secondary complete team rosters: '+str(roster.get('roster_teams_collected',0)),
+             'Public collector current pregame exact lines: '+str(lines.get('current_date_pregame_rows',0)),
+             'PrizePicks native line authenticity: NOT_VERIFIED',
              'Original NBA injury report: '+str(injury.get('status','MISSING_OR_BLOCKED')),
              '',
              '**Still not proven:** independently authenticated pre-tipoff starters/minutes, native PrizePicks timestamps, prospective model calibration, live candidate-specific 25K simulation and ticket approval.',
