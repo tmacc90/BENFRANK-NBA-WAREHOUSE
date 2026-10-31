@@ -85,7 +85,7 @@ class ESPNEvidenceTests(unittest.TestCase):
             raise AssertionError("Unapproved URL "+url)
         with tempfile.TemporaryDirectory() as folder:
             report=collect("2026-10-30",folder,days=2,max_events=20,fetch=fetch)
-            self.assertEqual(report["completed_games"],1)
+            self.assertEqual(report["completed_games"],1, report["issues"])
             self.assertEqual(report["played_player_rows"],18)
             self.assertEqual(report["game_play_sequences"],1)
             self.assertEqual(report["observed_espn_shot_coordinates"],40)
