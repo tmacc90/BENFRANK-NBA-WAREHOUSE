@@ -55,6 +55,16 @@ jobs:
           DAYS: ${{ inputs.lookback_days || '14' }}
         run: |
           python -u benfrank_v50_current_asof.py --target-date "$TARGET_DATE" --days "$DAYS" --out-dir receipts/v50_current
+      - name: Recover October 26-27 finalized game summaries if primary scoreboard failed
+        if: github.event_name != 'pull_request'
+        continue-on-error: true
+        run: |
+          python -u benfrank_v50_recover_espn_gap.py \
+            --input-db receipts/v50_current/current_2026_27.sqlite \
+            --output-db receipts/v50_current/current_2026_27_gap_recovered.sqlite \
+            --output-receipt receipts/v50_current/gap_recovery_receipt.json \
+            --first-id 401909868 --last-id 401909880 \
+            --target-date 2026-10-30 --dates 2026-10-26 2026-10-27
       - name: Verify no lookahead and print explicit source assurance
         run: |
           python - <<'PY'
