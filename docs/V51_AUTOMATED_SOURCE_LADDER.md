@@ -1,3 +1,5 @@
+> **Update — current governing workflow:** The user selected **ESPN.com and NBA.com only** for active scheduled source ingestion. See [V51_ESPN_NBA_ONLY_ACTIVE_SOURCE_POLICY.md](V51_ESPN_NBA_ONLY_ACTIVE_SOURCE_POLICY.md). Third-party archives and public line collectors described below remain **optional research code only** and are **not run in the scheduled workflow**. Provider-restricted NBA CDN results remain blocked rather than substituted as official.
+
 # BENFRANK NBA v5.1 automatic source acquisition and certification gaps
 
 ## Real execution evidence (October 30, 2026)
