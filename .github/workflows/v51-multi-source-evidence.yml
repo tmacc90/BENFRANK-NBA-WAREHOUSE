@@ -56,7 +56,7 @@ jobs:
             TARGET_DATE="$(TZ=America/New_York date +%F)"
           fi
           echo "TARGET_DATE=$TARGET_DATE" >> "$GITHUB_ENV"
-          mkdir -p receipts/v51/raw receipts/v51/official receipts/v51/espn receipts/v51/rosters receipts/v51/injury
+          mkdir -p receipts/v51/raw receipts/v51/official receipts/v51/espn receipts/v51/rosters receipts/v51/injury receipts/v51/pregame
       - name: Pull NBA official schedule and scoreboard plus ESPN schedule, injury, news and team index
         shell: bash
         run: |
@@ -82,6 +82,14 @@ jobs:
         continue-on-error: true
         run: |
           python -u benfrank_v51_nba_official.py --target-date "$TARGET_DATE" --days 3 --max-games 20 --output receipts/v51/official
+      - name: Capture actual as-of ESPN pregame starters only if explicitly listed before tipoff
+        continue-on-error: true
+        run: |
+          python benfrank_v51_espn_pregame.py --game-date "$TARGET_DATE" --output receipts/v51/pregame
+      - name: Normalize ESPN injury observations separately from official NBA injury document
+        continue-on-error: true
+        run: |
+          python benfrank_v44_injuries.py --out receipts/v51/espn-injury-observations.json
       - name: Collect completed ESPN.com NBA player boxscores, shot coordinates and play-by-play
         continue-on-error: true
         run: |
@@ -128,6 +136,8 @@ jobs:
           roster=receipt('rosters/rosters-evidence-receipt.json')
           injury=receipt('injury/live-official-injury-receipt.json')
           game_details=receipt('espn/espn-completed-game-receipt.json')
+          pregame=receipt('pregame/espn-pregame-observations.json')
+          espn_injuries=receipt('espn-injury-observations.json')
           out=[
              '### BENFRANK v5.1 source-backed NBA collection',
              '',
@@ -140,6 +150,8 @@ jobs:
              'Direct ESPN completed NBA player games: '+str(game_details.get('played_player_rows',0)),
              'Direct ESPN historical game play-by-play sequences: '+str(game_details.get('game_play_sequences',0)),
              'Direct ESPN shot events with coordinates: '+str(game_details.get('observed_espn_shot_coordinates',0)),
+             'ESPN current-game listed tentative pregame starters: '+str(pregame.get('listed_pregame_starters',0)),
+             'ESPN secondary injury player observations: '+str(len(espn_injuries.get('injuries',[]))),
              'Native PrizePicks exact-line authenticity: NOT_AVAILABLE_FROM_ESPN_OR_NBA',
              'Original NBA injury report: '+str(injury.get('status','MISSING_OR_BLOCKED')),
              '',
