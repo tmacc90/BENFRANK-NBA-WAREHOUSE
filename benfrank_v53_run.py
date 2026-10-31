@@ -13,7 +13,8 @@ from benfrank_v53_core import report
 from acquire_history import name_key
 
 ALIASES={"pts":"points","reb":"rebounds","ast":"assists","3pm":"threes",
-         "points_rebounds_assists":"pra","rebounds_plus_assists":"rebounds_assists"}
+         "points_rebounds_assists":"pra","rebounds_plus_assists":"rebounds_assists",
+         "pr":"points_rebounds","pa":"points_assists","ra":"rebounds_assists"}
 COLUMNS={"points":("points","pts"),"rebounds":("rebounds","reb"),"assists":("assists","ast"),
          "three_pm":("three_pm","fg3m","threes_made"),"steals":("steals","stl"),
          "blocks":("blocks","blk"),"turnovers":("turnovers","tov")}
@@ -39,7 +40,7 @@ def load_games(db,player,cutoff):
   for f in ("minutes","usage","pace","rebound_chances","potential_assists","opponent_positional_allowance",
             "opponent_def_rating","fga","three_pa","fta","touches"):
    if f in r:game[f]=r[f]
-  output.append(game)
+  if game["played"] and not game.get("game_id"):\n   game["game_id"]=str(r["date"])+"|"+str(r.get("team",""))+"|"+str(r["player"])\n  output.append(game)
  return output
 
 def run(config,output):
@@ -73,7 +74,7 @@ def run(config,output):
                              "trials_executed":frozen["main_simulation"].get("trials_executed")}}
    result=report(context)
    result["source_v52_receipt"]=str(source)
-   result["missing_evidence"].append("UPCOMING_POSITIONAL_TRACKING_AND_PEER_ANALOGUES_NOT_YET_CONNECTED") if "missing_evidence" in result else None
+   result["missing_evidence"]=["UPCOMING_POSITIONAL_TRACKING_AND_PEER_ANALOGUES_NOT_YET_CONNECTED",\n      "NO_ASOF_OPPORTUNITY_TRACKING_IN_LEGACY_GAMES_TABLE"]
    path=out/(snapshot+".json")
    with path.open("x") as handle:json.dump(result,handle,indent=2)
    summary.append({"snapshot_id":snapshot,"status":"V53_COMPANION_CREATED",
