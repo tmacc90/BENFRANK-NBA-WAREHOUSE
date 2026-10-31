@@ -62,8 +62,8 @@ def validate_row(r,target):
 
 def collect(target,days=14,fetcher=fetch_staged):
     cutoff=dt.date.fromisoformat(target)
-    if cutoff.year!=2026 or cutoff.month not in (10,11,12):
-        raise ValueError("RESEARCH_TARGET_DATE_OUTSIDE_CURRENT_SEASON")
+    if not dt.date(2026,10,20)<=cutoff<=dt.date(2027,6,30):
+        raise ValueError("RESEARCH_TARGET_DATE_OUTSIDE_2026_27_SEASON")
     if not 1<=days<=35:
         raise ValueError("LOOKBACK_DAYS_OUTSIDE_ALLOWED_RANGE")
     accepted={}
