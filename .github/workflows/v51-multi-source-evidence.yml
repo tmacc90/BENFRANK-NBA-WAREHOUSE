@@ -1,0 +1,150 @@
+name: BENFRANK v5.1 automatic official and secondary NBA evidence
+on:
+  pull_request:
+    paths:
+      - 'benfrank_v51_*.py'
+      - 'tests/test_v51_*.py'
+      - '.github/workflows/v51-multi-source-evidence.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'benfrank_v51_*.py'
+      - 'tests/test_v51_*.py'
+      - '.github/workflows/v51-multi-source-evidence.yml'
+  schedule:
+    - cron: '15 2,14,20,23 * * *'
+  workflow_dispatch:
+    inputs:
+      target_date:
+        description: 'As-of Eastern game date YYYY-MM-DD; previous final games only'
+        required: false
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: benfrank-v51-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  source-contract-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify provider origin, date cutoffs and exact-stat cross-source requirements
+        run: python -m unittest discover -s tests -p 'test_v51_*.py' -v
+  collect-evidence:
+    if: github.event_name != 'pull_request'
+    needs: source-contract-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      TARGET_DATE: ${{ inputs.target_date }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Establish audit cutoff date and source path
+        shell: bash
+        run: |
+          if [ -z "$TARGET_DATE" ]; then
+            TARGET_DATE="$(TZ=America/New_York date +%F)"
+          fi
+          echo "TARGET_DATE=$TARGET_DATE" >> "$GITHUB_ENV"
+          mkdir -p receipts/v51/raw receipts/v51/official receipts/v51/espn receipts/v51/rosters receipts/v51/injury
+      - name: Pull NBA official schedule and scoreboard plus ESPN schedule, injury, news and team index
+        shell: bash
+        run: |
+          python -u benfrank_v51_multisource_capture.py --date "$TARGET_DATE" --output receipts/v51/raw
+      - name: Fetch current NBA team rosters separately (not authenticated starters)
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          import json,subprocess
+          from pathlib import Path
+          p=Path('receipts/v51/raw/v51-source-receipt.json')
+          data=json.loads(p.read_text())
+          source=next((s for s in data['sources'] if s['source']=='espn_teams' and
+                       s['status']=='CAPTURED_UNVERIFIED'),None)
+          if source is None:
+              print('ESPN team index unavailable; roster verification BLOCKED')
+              raise SystemExit(2)
+          subprocess.run(['python','benfrank_v51_rosters.py','--teams-index',
+                           str(Path('receipts/v51/raw')/source['raw_file']),
+                           '--output','receipts/v51/rosters'],check=True)
+          PY
+      - name: Independently capture NBA CDN completed earlier-game box scores and play-by-play
+        continue-on-error: true
+        run: |
+          python -u benfrank_v51_nba_official.py --target-date "$TARGET_DATE" --days 3 --max-games 20 --output receipts/v51/official
+      - name: Retrieve secondary completed ESPN boxes for independent past-game reconciliation
+        continue-on-error: true
+        run: |
+          python -u benfrank_v50_current_asof.py --target-date "$TARGET_DATE" --days 3 --out-dir receipts/v51/espn
+      - name: Count NBA-vs-ESPN exact 12-stat past-game matches, quarantine mismatches
+        continue-on-error: true
+        run: |
+          if [ -f receipts/v51/official/nba_official_2026_27.sqlite ] && \
+             [ -f receipts/v51/espn/current_2026_27.sqlite ]; then
+            python benfrank_v51_official_espn_crosscheck.py \
+              --nba-db receipts/v51/official/nba_official_2026_27.sqlite \
+              --espn-db receipts/v51/espn/current_2026_27.sqlite \
+              --out receipts/v51/source-crosscheck.json
+          else
+            echo 'Missing one or both NBA/ESPN source databases: no cross-source certification'
+          fi
+      - name: Capture the original official NBA injury PDF and statuses without inferring health
+        continue-on-error: true
+        run: |
+          python -m pip install pdfplumber==0.11.9
+          if ! command -v pdftotext >/dev/null; then
+            sudo apt-get -qq update
+            sudo apt-get -qq install -y poppler-utils
+          fi
+          python benfrank_v47_live_official_injuries.py --output-dir receipts/v51/injury
+      - name: Summarize achieved evidence and exactly remaining category blockers
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          root=Path('receipts/v51')
+          def receipt(path):
+              p=root/path
+              return json.loads(p.read_text()) if p.is_file() else {}
+          sources=receipt('raw/v51-source-receipt.json')
+          nba=receipt('official/nba-official-game-receipt.json')
+          checks=receipt('source-crosscheck.json')
+          roster=receipt('rosters/rosters-evidence-receipt.json')
+          injury=receipt('injury/live-official-injury-receipt.json')
+          out=[
+             '### BENFRANK v5.1 source-backed NBA collection',
+             '',
+             'Raw sources captured: '+str(sources.get('captured',0)),
+             'Raw sources blocked: '+str(sources.get('blocked',len([]))),
+             'Official final NBA game boxes: '+str(nba.get('final_boxes',0)),
+             'Official NBA play-by-play games: '+str(nba.get('official_pbp_games',0)),
+             'Independently matching player games: '+str(checks.get('independently_crosschecked_player_games',0)),
+             'Secondary complete team rosters: '+str(roster.get('roster_teams_collected',0)),
+             'Original NBA injury report: '+str(injury.get('status','MISSING_OR_BLOCKED')),
+             '',
+             '**Still not proven:** independently authenticated pre-tipoff starters/minutes, native PrizePicks timestamps, prospective model calibration, live candidate-specific 25K simulation and ticket approval.',
+             '',
+             '**Prediction certification: NOT_CERTIFIED; ticket authority: NO_TICKET.**']
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+              f.write('\n'.join(out)+'\n')
+          print('\n'.join(out))
+          PY
+      - name: Preserve raw SHA256 source bytes, reconciliation receipts and isolated databases
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benfrank-v51-multi-source-evidence-${{ github.run_id }}
+          path: receipts/v51/
+          retention-days: 30
+          if-no-files-found: warn
+          compression-level: 8
