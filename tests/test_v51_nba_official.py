@@ -19,7 +19,7 @@ def sample_box():
     teams=[]
     for team in ("IND","MIA"):
         players=[]
-        for i in range(7):
+        for i in range(8):
             played=(i!=6)
             players.append({"personId":str((100 if team=="IND" else 200)+i),
                 "name":f"{team} Player {i}","played":"1" if played else "0",
@@ -58,7 +58,7 @@ class NBAOfficialSourceTests(unittest.TestCase):
         expected={"game_id":"0022600123","game_date":"2026-10-29",
                   "home":"IND","away":"MIA"}
         rows,ex=parsed_game(box,expected,"a"*64,"2026-10-30T00:00:00Z")
-        self.assertEqual(len(rows),11)
+        self.assertEqual(len(rows),13)
         self.assertTrue(any("POINT_ACCOUNTING" in x["reason"] for x in ex))
     def test_end_to_end_official_finals_and_playbyplay_have_source_hashes(self):
         schedule=sample_schedule()
@@ -71,12 +71,12 @@ class NBAOfficialSourceTests(unittest.TestCase):
             r=collect("2026-10-30",d,days=3,max_games=20,
                       fetch=fake,raw_schedule=schedule)
             self.assertEqual(r["final_boxes"],1)
-            self.assertEqual(r["official_player_game_rows"],12)
+            self.assertEqual(r["official_player_game_rows"],14)
             self.assertEqual(r["official_pbp_games"],1)
             self.assertFalse(r["pregame_lineup_confirmation"])
             self.assertEqual(r["ticket_authority"],"NO_TICKET")
             c=sqlite3.connect(Path(d)/"nba_official_2026_27.sqlite")
-            self.assertEqual(c.execute("SELECT COUNT(*) FROM nba_official_completed").fetchone()[0],12)
+            self.assertEqual(c.execute("SELECT COUNT(*) FROM nba_official_completed").fetchone()[0],14)
             self.assertEqual(c.execute("SELECT MAX(game_date) FROM nba_official_completed").fetchone()[0],"2026-10-29")
             self.assertTrue((Path(d)/"official_pbp_0022600123.json").exists())
             c.close()
