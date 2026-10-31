@@ -19,7 +19,10 @@ from benfrank_v49_market_warehouse import stat as market_stat, MARKETS
 
 def norm(name):
     txt=unicodedata.normalize("NFKD",str(name)).casefold()
-    return "".join(x for x in txt if x.isalnum() and not unicodedata.combining(x))
+    value="".join(x for x in txt if x.isalnum() and not unicodedata.combining(x))
+    # Verified original NBA archive and current ESPN use Bobby Portis;
+    # the screenshot lists Bobby Portis Jr. One explicit exact alias only.
+    return "bobbyportis" if value in ("bobbyportis","bobbyportisjr") else value
 def open_ro(path):
     p=Path(path).resolve()
     if not p.is_file():raise FileNotFoundError(p)
