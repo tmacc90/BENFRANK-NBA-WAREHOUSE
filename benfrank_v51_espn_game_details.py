@@ -32,6 +32,42 @@ PLAY_SCHEMA="""CREATE TABLE IF NOT EXISTS espn_completed_plays(
  source_sha256 TEXT NOT NULL,
  play_json TEXT NOT NULL,
  PRIMARY KEY(source_game_id,play_index))"""
+SHOTS_SCHEMA="""CREATE TABLE IF NOT EXISTS espn_shot_coordinates(
+ source_game_id TEXT NOT NULL, game_date TEXT NOT NULL,
+ play_index INTEGER NOT NULL, play_id TEXT,
+ athlete_id TEXT, team_id TEXT,
+ x REAL NOT NULL, y REAL NOT NULL,
+ made INTEGER NOT NULL,
+ text TEXT, source_sha256 TEXT NOT NULL,
+ PRIMARY KEY(source_game_id,play_index))"""
+def coordinate_shots(actions):
+    """ESPN-supplied shot coordinates; never assert a calibrated court geometry."""
+    results=[];rejected=0
+    for index,_,_,_,payload in actions:
+        play=json.loads(payload)
+        if play.get("shootingPlay") is not True:
+            continue
+        desc=str(play.get("text") or "")
+        if "free throw" in desc.lower():
+            continue
+        point=play.get("coordinate") or {}
+        x,y=point.get("x"),point.get("y")
+        if (not isinstance(x,(int,float)) or isinstance(x,bool) or
+            not isinstance(y,(int,float)) or isinstance(y,bool)):
+            rejected+=1
+            continue
+        if not (-1000<=x<=1000 and -1000<=y<=1000):
+            rejected+=1
+            continue
+        athlete_list=play.get("athletes") or []
+        athlete=(athlete_list[0].get("athlete") or {}) if athlete_list and isinstance(athlete_list[0],dict) else {}
+        pid=str(athlete.get("id")) if athlete.get("id") is not None else None
+        team=play.get("team") or {}
+        team_id=str(team.get("id")) if isinstance(team,dict) and team.get("id") is not None else None
+        results.append((index,str(play.get("id","")) or None,
+                        pid,team_id,float(x),float(y),int(play.get("scoringPlay") is True),desc))
+    return results,rejected
+
 def fetch_json(url,fetch=None):
     parsed=urllib.parse.urlparse(url)
     if parsed.scheme!="https" or parsed.hostname!="site.api.espn.com" or not url.startswith(BASE):
@@ -132,7 +168,8 @@ def collect(target_date,out_dir,days=3,max_events=20,fetch=None):
     root=Path(out_dir);root.mkdir(parents=True,exist_ok=True)
     db=connect(root/"espn_completed_evidence.sqlite")
     db.execute(PLAY_SCHEMA)
-    events=[];problems=[];player_rows=0;play_games=0
+    db.execute(SHOTS_SCHEMA)
+    events=[];problems=[];player_rows=0;play_games=0;shots_total=0;shots_missing_coordinates=0
     for delta in range(days,0,-1):
         date=(target-dt.timedelta(days=delta)).isoformat()
         url=BASE+"scoreboard?dates="+date.replace("-","")
@@ -166,6 +203,7 @@ def collect(target_date,out_dir,days=3,max_events=20,fetch=None):
                 if len(played)<12:
                     raise ValueError("ESPN_COMPLETED_BOX_UNDER_12_PLAYER_ROWS")
                 actions,status=extract_plays(summary)
+                shot_rows,bad_coords=coordinate_shots(actions)
                 db.execute("SAVEPOINT game")
                 try:
                     for r in played:
@@ -177,6 +215,11 @@ def collect(target_date,out_dir,days=3,max_events=20,fetch=None):
                           VALUES (?,?,?,?,?,?,?)""",
                           [(eid,date,idx,pid,pnum,clk,sha,payload)
                             for idx,pid,pnum,clk,payload in actions])
+                    if shot_rows:
+                        db.executemany("""INSERT INTO espn_shot_coordinates
+                          VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                          [(eid,date,idx,pid,athlete_id,team_id,x,y,made,desc,sha)
+                           for idx,pid,athlete_id,team_id,x,y,made,desc in shot_rows])
                     db.execute("RELEASE SAVEPOINT game")
                 except (ValueError,sqlite3.Error):
                     db.execute("ROLLBACK TO SAVEPOINT game")
@@ -184,11 +227,15 @@ def collect(target_date,out_dir,days=3,max_events=20,fetch=None):
                     raise
                 player_rows+=len(played)
                 play_games+=int(bool(actions))
+                shots_total+=len(shot_rows)
+                shots_missing_coordinates+=bad_coords
                 (root/("summary_"+eid+"_"+sha[:12]+".json")).write_bytes(rawsummary)
                 events.append({**event,"status":"ESPN_FINAL_BOX_CAPTURED",
                                "box_sha256":sha,"players":len(played),
                                "excluded_player_rows":excluded,
-                               "play_by_play_status":status,"play_events":len(actions)})
+                               "play_by_play_status":status,"play_events":len(actions),
+                               "shot_coordinates":len(shot_rows),
+                               "shot_plays_without_valid_coordinates":bad_coords})
             except (OSError,ValueError,TypeError,KeyError,sqlite3.Error,
                     urllib.error.URLError,TimeoutError,json.JSONDecodeError) as exc:
                 problems.append({"event_id":eid,"date":date,
@@ -205,6 +252,9 @@ def collect(target_date,out_dir,days=3,max_events=20,fetch=None):
              "source":"ESPN_DIRECT_SECONDARY",
              "completed_games":len(events),"played_player_rows":player_rows,
              "game_play_sequences":play_games,
+             "observed_espn_shot_coordinates":shots_total,
+             "shot_plays_without_valid_coordinates":shots_missing_coordinates,
+             "shot_coordinate_system_independently_verified":False,
              "games":events,"issues":problems,
              "sqlite_integrity":integrity,
              "action_sequences_are_certified_possessions":False,
