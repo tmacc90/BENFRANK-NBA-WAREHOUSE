@@ -1,0 +1,80 @@
+name: BENFRANK v5.0 current-season as-of evidence
+on:
+  push:
+    branches: [benfrank-v50-2026-current-asof-trueup, main]
+    paths:
+      - 'benfrank_v50_current_asof.py'
+      - 'benfrank_v50_trueup.py'
+      - 'tests/test_v50_*.py'
+      - '.github/workflows/v50-current-asof.yml'
+  pull_request:
+    paths:
+      - 'benfrank_v50_current_asof.py'
+      - 'benfrank_v50_trueup.py'
+      - 'tests/test_v50_*.py'
+      - '.github/workflows/v50-current-asof.yml'
+  workflow_dispatch:
+    inputs:
+      target_date:
+        description: 'Pregame date (YYYY-MM-DD); only earlier completed games may be fetched'
+        required: true
+        default: '2026-10-30'
+        type: string
+      lookback_days:
+        description: 'Days before pregame date, maximum 35'
+        required: true
+        default: '14'
+        type: string
+permissions:
+  contents: read
+jobs:
+  test-source-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify target-time and source conservation safety
+        run: python -m unittest discover -s tests -p 'test_v50_*.py' -v
+  fetch-current-observed-before-target:
+    if: github.event_name != 'pull_request'
+    needs: test-source-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Collect 2026-27 completed player game logs, cutoff-exclusive
+        shell: bash
+        env:
+          TARGET_DATE: ${{ inputs.target_date || '2026-10-30' }}
+          DAYS: ${{ inputs.lookback_days || '14' }}
+        run: |
+          python -u benfrank_v50_current_asof.py --target-date "$TARGET_DATE" --days "$DAYS" --out-dir receipts/v50_current
+      - name: Verify no lookahead and print explicit source assurance
+        run: |
+          python - <<'PY'
+          import json,sqlite3
+          r=json.load(open('receipts/v50_current/current_source_receipt.json'))
+          c=sqlite3.connect('receipts/v50_current/current_2026_27.sqlite')
+          bad=c.execute('SELECT count(*) FROM current_games WHERE date>=?',(r['target_game_date'],)).fetchone()[0]
+          assert bad==0, 'POST_TARGET_GAME_LEAKAGE'
+          assert c.execute('PRAGMA integrity_check').fetchone()[0]=='ok'
+          print('Past NBA player-game rows:',r['player_game_rows'])
+          print('Source issues:',len(r['retrieval_issues']))
+          print('Officially verified:',r['official_verified'])
+          print('Player minutes confirmed:',r['lineups_confirmed'])
+          print('This is public ESPN secondary evidence, not FULL certification.')
+          PY
+      - name: Preserve isolated current-season data + data-quality issues
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benfrank-v50-2026-27-current-asof-${{ github.run_id }}
+          path: receipts/v50_current/
+          retention-days: 30
+          if-no-files-found: warn
