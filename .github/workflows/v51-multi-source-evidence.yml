@@ -33,8 +33,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install verified Parquet parser for source contract tests
-        run: python -m pip install 'pyarrow>=18,<27'
       - name: Verify provider origin, date cutoffs and exact-stat cross-source requirements
         run: python -m unittest discover -s tests -p 'test_v51_*.py' -v
   collect-evidence:
@@ -78,35 +76,26 @@ jobs:
                            str(Path('receipts/v51/raw')/source['raw_file']),
                            '--output','receipts/v51/rosters'],check=True)
           PY
-      - name: Capture pinned public PrizePicks line snapshots (secondary source, not native attestation)
-        continue-on-error: true
-        shell: bash
-        run: |
-          python benfrank_v51_secondary_lines.py --date "$TARGET_DATE" --output receipts/v51/lines
       - name: Independently capture NBA CDN completed earlier-game box scores and play-by-play
         continue-on-error: true
         run: |
           python -u benfrank_v51_nba_official.py --target-date "$TARGET_DATE" --days 3 --max-games 20 --output receipts/v51/official
-      - name: Use public ESPN and NBA Stats 2027 mirror releases when live NBA CDN returns 403
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          python -m pip install 'pyarrow>=18,<27'
-          python -u benfrank_v51_release_fallback.py --date "$TARGET_DATE" --output receipts/v51/mirrors
-      - name: Retrieve secondary completed ESPN boxes for independent past-game reconciliation
+      - name: Collect completed ESPN.com NBA player boxscores, shot coordinates and play-by-play
         continue-on-error: true
         run: |
-          python -u benfrank_v50_current_asof.py --target-date "$TARGET_DATE" --days 3 --out-dir receipts/v51/espn
+          python -u benfrank_v51_espn_game_details.py --target-date "$TARGET_DATE" --days 3 --max-events 30 --output receipts/v51/espn
+      - name: ESPN completed-game scoreboard fallback when source summaries are unavailable
+        continue-on-error: true
+        run: |
+          python -u benfrank_v50_current_asof.py --target-date "$TARGET_DATE" --days 3 --out-dir receipts/v51/espn_fallback
       - name: Count NBA-vs-ESPN exact 12-stat past-game matches, quarantine mismatches
         continue-on-error: true
         run: |
           if [ -f receipts/v51/official/nba_official_2026_27.sqlite ] && \
-             [ -f receipts/v51/espn/current_2026_27.sqlite ]; then
+             [ -f receipts/v51/espn/espn_completed_evidence.sqlite ]; then
             python benfrank_v51_official_espn_crosscheck.py \
               --nba-db receipts/v51/official/nba_official_2026_27.sqlite \
-              --espn-db receipts/v51/espn/current_2026_27.sqlite \
+              --espn-db receipts/v51/espn/espn_completed_evidence.sqlite \
               --out receipts/v51/source-crosscheck.json
           else
             echo 'Missing one or both NBA/ESPN source databases: no cross-source certification'
@@ -136,8 +125,7 @@ jobs:
           checks=receipt('source-crosscheck.json')
           roster=receipt('rosters/rosters-evidence-receipt.json')
           injury=receipt('injury/live-official-injury-receipt.json')
-          lines=receipt('lines/secondary-line-source-receipt.json')
-          mirrors=receipt('mirrors/v51-mirror-fallback-receipt.json')
+          game_details=receipt('espn/espn-completed-game-receipt.json')
           out=[
              '### BENFRANK v5.1 source-backed NBA collection',
              '',
@@ -147,10 +135,10 @@ jobs:
              'Official NBA play-by-play games: '+str(nba.get('official_pbp_games',0)),
              'Independently matching player games: '+str(checks.get('independently_crosschecked_player_games',0)),
              'Secondary complete team rosters: '+str(roster.get('roster_teams_collected',0)),
-             'Public collector current pregame exact lines: '+str(lines.get('current_date_pregame_rows',0)),
-             'PrizePicks native line authenticity: NOT_VERIFIED',
-             'Public 2027 ESPN/NBA Stats mirrors captured: '+str(mirrors.get('captured',0)),
-             'Mirrors with filtered game rows before cutoff: '+str(mirrors.get('asof_qualified',0)),
+             'Direct ESPN completed NBA player games: '+str(game_details.get('played_player_rows',0)),
+             'Direct ESPN historical game play-by-play sequences: '+str(game_details.get('game_play_sequences',0)),
+             'Direct ESPN shot events with coordinates: '+str(game_details.get('observed_espn_shot_coordinates',0)),
+             'Native PrizePicks exact-line authenticity: NOT_AVAILABLE_FROM_ESPN_OR_NBA',
              'Original NBA injury report: '+str(injury.get('status','MISSING_OR_BLOCKED')),
              '',
              '**Still not proven:** independently authenticated pre-tipoff starters/minutes, native PrizePicks timestamps, prospective model calibration, live candidate-specific 25K simulation and ticket approval.',
