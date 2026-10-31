@@ -1,5 +1,9 @@
 # BENFRANK NBA v4.1 — official historical refresh
 
+## Early pregame forecasting and forward testing: v5.2
+
+The user-authorized [v5.2 early process](docs/V52_EARLY_PREGAME_PROCESS.md) forecasts from timestamped depth charts and projected roles without waiting for final starters. It adds 25K actual complete-game inference, separate scenario stresses, a pooled isolated Blind model for thin histories, and an append-only pre-tipoff prediction/settlement ledger. Run `python benfrank_v52_pipeline.py --config /private/early-config.json --output /private/new-run` with real historical profile contexts. The outputs are ready for forward measurement, remain unvalidated research, and do not inherit unrelated calibration. Original data, rules, receipts and legacy certification mode are preserved.
+
 ## Current additive model repair: v4.7
 
 The [v4.7 execution and validation notes](docs/V47_MODEL_REPAIR.md) document original-report availability, variable rotations, scoped uncertainty calibration, and batch integration. A separate 32-game period completed 800,000 actual game simulations after 1,775,000 development simulations. Calibrated nominal 90% intervals covered 30/32 outcomes; point MAE was 7.16 versus 7.79 for the blind model. This narrow retrospective result does not establish a betting edge or blanket FULL certification. Original warehouses, earlier results and all governing source/release requirements are preserved.
