@@ -21,6 +21,16 @@ SOURCES={
    "url":"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates={date}",
    "host":"site.api.espn.com","format":"json","max_bytes":3000000,
    "authority":"ESPN_SECONDARY","cadence":"daily"},
+ "espn_teams":{
+   "category":"league_roster_team_index",
+   "url":"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams",
+   "host":"site.api.espn.com","format":"json","max_bytes":3000000,
+   "authority":"ESPN_SECONDARY_ROSTER_INDEX","cadence":"daily"},
+ "nba_cdn_schedule":{
+   "category":"official_nba_season_schedule_game_ids",
+   "url":"https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json",
+   "host":"cdn.nba.com","format":"json","max_bytes":9000000,
+   "authority":"NBA_CDN_OFFICIAL_SCHEDULE","cadence":"daily"},
  "espn_injuries":{
    "category":"injury_secondary",
    "url":"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries",
@@ -74,6 +84,8 @@ def capture(name,day,out,fetch=None):
             with urllib.request.urlopen(req,timeout=16) as res:
                 status=res.status
                 content_type=res.headers.get("Content-Type","")
+                if not validate_url(res.geturl(),spec["host"]):
+                    raise ValueError("UNTRUSTED_SOURCE_REDIRECT")
                 raw=res.read(spec["max_bytes"]+1)
         else:
             status,content_type,raw=fetch(url,spec["max_bytes"])
