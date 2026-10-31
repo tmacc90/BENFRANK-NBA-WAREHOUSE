@@ -28,10 +28,10 @@ def value(row, market):
              "pra": ("points", "rebounds", "assists"), "rebounds_assists": ("rebounds", "assists"),
              "points_rebounds": ("points", "rebounds"), "points_assists": ("points", "assists"),
              "threes": ("three_pm",), "steals": ("steals",), "blocks": ("blocks",),
-             "turnovers": ("turnovers",)}
+             "turnovers": ("turnovers",), "fantasy_score": ("points","rebounds","assists","steals","blocks","turnovers") }
     if market not in parts: raise ValueError("UNSUPPORTED_MARKET: " + market)
     if any(row.get(k) is None for k in parts[market]): return None
-    return sum(float(row[k]) for k in parts[market])
+    if market=="fantasy_score":\n        return (float(row["points"])+1.2*float(row["rebounds"])+1.5*float(row["assists"])+3*(float(row["steals"])+float(row["blocks"]))-float(row["turnovers"]))\n    return sum(float(row[k]) for k in parts[market])
 
 def coverage(rows, market, line, cutoff):
     """Exclude same-day and future outcomes; count only actual played games."""
@@ -51,7 +51,7 @@ def coverage(rows, market, line, cutoff):
     for n in WINDOWS: result["windows"]["L"+str(n)]=summarize(eligible[-n:])
     season=max((r.get("season","") for r in eligible),default="")
     previous=sorted(set(r.get("season","") for r in eligible if r.get("season")))[-2:-1]
-    result["windows"]["current_season"]=summarize([r for r in eligible if r.get("season")==season])
+    result["windows"]["current_season"]=summarize([r for r in eligible if season is not None and r.get("season")==season])
     result["windows"]["previous_season"]=summarize([r for r in eligible if r.get("season") in previous])
     result["windows"]["available_career"]=summarize(eligible)
     result["career_coverage_note"]="AVAILABLE_ARCHIVE_ONLY; full career not asserted"
