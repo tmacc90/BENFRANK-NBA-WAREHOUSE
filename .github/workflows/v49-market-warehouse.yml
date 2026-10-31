@@ -1,0 +1,111 @@
+name: BENFRANK NBA v4.9 source-backed market warehouse
+on:
+  pull_request:
+    paths:
+      - 'benfrank_v49_*.py'
+      - 'tests/test_v49_*.py'
+      - '.github/workflows/v49-market-warehouse.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'benfrank_v49_*.py'
+      - 'tests/test_v49_*.py'
+      - '.github/workflows/v49-market-warehouse.yml'
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: 'Prior acquisition run with saved verified games and raw pinned ESPN CSVs'
+        required: true
+        default: '41129466517'
+        type: string
+permissions:
+  contents: read
+  actions: read
+jobs:
+  market-adapter-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test all source-verified market/identity/attempt contracts
+        run: python -m unittest discover -s tests -p 'test_v49_market_warehouse.py' -v
+  source-reconciled-backfill:
+    if: github.event_name != 'pull_request'
+    needs: market-adapter-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Obtain pinned previous acquisition warehouse and original ESPN box-score files
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ inputs.source_run_id || '41129466517' }}
+          name: benfrank-nba-history-${{ inputs.source_run_id || '41129466517' }}
+          github-token: ${{ github.token }}
+          path: evidence
+      - name: Never silently accept missing acquisition evidence
+        run: |
+          test -f evidence/nba_warehouse.sqlite
+          test -f evidence/source/player_box_2025.csv
+          test -f evidence/source/player_box_2026.csv
+      - name: Copy baseline without overwriting original source
+        run: |
+          mkdir -p expanded
+          cp evidence/nba_warehouse.sqlite expanded/BENFRANK_NBA_EXPANDED.sqlite
+      - name: Add missing shooting/attempt categories from pinned source receipts
+        run: |
+          python benfrank_v49_source_backfill.py \
+            --db expanded/BENFRANK_NBA_EXPANDED.sqlite \
+            --source-dir evidence/source \
+            --sources-json sources.json \
+            --out expanded/market_source_reconciliation.json
+      - name: Assert original counting-stat rows intact and explicit incomplete coverage
+        run: |
+          python - <<'PY'
+          import hashlib,json,sqlite3
+          from pathlib import Path
+          p=Path('expanded/market_source_reconciliation.json')
+          r=json.loads(p.read_text())
+          assert r['original_games_unchanged']
+          assert r['expanded_shooting_rows']>0
+          assert r['original_warehouse_game_rows']>=50000
+          assert r['prediction_certification']=='NOT_CERTIFIED'
+          db=Path('expanded/BENFRANK_NBA_EXPANDED.sqlite')
+          c=sqlite3.connect(db)
+          assert c.execute('PRAGMA integrity_check').fetchone()[0]=='ok'
+          assert c.execute('SELECT COUNT(*) FROM games').fetchone()[0]==r['original_warehouse_game_rows']
+          print('Validated source-backed supplemental stats:',r['expanded_shooting_rows'])
+          print('Unmatched source records:',r['unmatched_or_conflicted'])
+          PY
+      - name: Summarize real acquisition coverage and unresolved conflicts
+        if: always()
+        run: |
+          python - <<'PY'
+          import os,json
+          from pathlib import Path
+          p=Path('expanded/market_source_reconciliation.json')
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+              f.write('### v4.9 extra NBA box score categories\n\n')
+              if p.exists():
+                  r=json.loads(p.read_text())
+                  f.write(f"Verified extra rows: **{r['expanded_shooting_rows']}** / {r['original_warehouse_game_rows']}\n\n")
+                  f.write(f"Unmatched and conflicts: **{r['unmatched_or_conflicted']}**\n\n")
+                  f.write('Original official game rows unchanged. Pregame prediction certification: NOT_CERTIFIED.\n')
+              else:
+                  f.write('Acquisition failed or missing source hashes. No certification.\n')
+          PY
+      - name: Publish expanded partial GitHub-acquisition warehouse as separate downloadable evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benfrank-v49-extended-secondary-warehouse-${{ github.run_id }}
+          path: expanded/
+          retention-days: 30
+          compression-level: 8
+          if-no-files-found: warn
