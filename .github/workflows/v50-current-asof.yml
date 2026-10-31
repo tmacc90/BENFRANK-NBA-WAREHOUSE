@@ -4,8 +4,7 @@ on:
     branches: [benfrank-v50-2026-current-asof-trueup, main]
     paths:
       - 'benfrank_v50_current_asof.py'
-      - 'benfrank_v50_trueup.py'
-      - 'tests/test_v50_*.py'
+      - 'benfrank_v50_recover_espn_gap.py'
       - '.github/workflows/v50-current-asof.yml'
   pull_request:
     paths:
