@@ -212,7 +212,7 @@ def collect(target_date,out_dir,days=3,max_events=20,fetch=None):
                                    [r.get(field) for field in COLUMNS])
                     if actions:
                         db.executemany("""INSERT INTO espn_completed_plays
-                          VALUES (?,?,?,?,?,?,?)""",
+                          VALUES (?,?,?,?,?,?,?,?)""",
                           [(eid,date,idx,pid,pnum,clk,sha,payload)
                             for idx,pid,pnum,clk,payload in actions])
                     if shot_rows:
