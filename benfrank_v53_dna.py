@@ -31,7 +31,9 @@ def value(row, market):
              "turnovers": ("turnovers",), "fantasy_score": ("points","rebounds","assists","steals","blocks","turnovers") }
     if market not in parts: raise ValueError("UNSUPPORTED_MARKET: " + market)
     if any(row.get(k) is None for k in parts[market]): return None
-    if market=="fantasy_score":\n        return (float(row["points"])+1.2*float(row["rebounds"])+1.5*float(row["assists"])+3*(float(row["steals"])+float(row["blocks"]))-float(row["turnovers"]))\n    return sum(float(row[k]) for k in parts[market])
+    if market=="fantasy_score":
+        return (float(row["points"])+1.2*float(row["rebounds"])+1.5*float(row["assists"])+3*(float(row["steals"])+float(row["blocks"]))-float(row["turnovers"]))
+    return sum(float(row[k]) for k in parts[market])
 
 def coverage(rows, market, line, cutoff):
     """Exclude same-day and future outcomes; count only actual played games."""
