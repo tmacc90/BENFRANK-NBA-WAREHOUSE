@@ -1,0 +1,681 @@
+{
+  "version": "BENFRANK_MULTISPORT_CATALOG_V1",
+  "status": "ARCHITECTURE_ONLY",
+  "policy": {
+    "separate_repositories": true,
+    "separate_databases": true,
+    "separate_models": true,
+    "separate_calibration": true,
+    "separate_prediction_ledgers": true,
+    "separate_backtests": true,
+    "separate_source_credentials": true,
+    "separate_rules_and_scoring": true,
+    "shared_only": [
+      "selector_contract",
+      "audit_receipt_schema",
+      "engineering_test_conventions",
+      "report_style"
+    ],
+    "routing": "EXPLICIT_SPORT_ONLY",
+    "cross_sport_training": false,
+    "automatic_cross_sport_learning": false,
+    "missing_framework_behavior": "NOT_BUILT_NO_PREDICTION",
+    "production_requirement": "VERIFIED_REAL_DATA_END_TO_END_RUN",
+    "accuracy_certification": "INDEPENDENT_FORWARD_VALIDATION_REQUIRED"
+  },
+  "sports": [
+    {
+      "id": "NBA",
+      "discipline": "basketball",
+      "repository": "BENFRANK-NBA-WAREHOUSE",
+      "data_namespace": "nba",
+      "season_boundary": "2026-27",
+      "features": [
+        "minutes",
+        "usage",
+        "possessions",
+        "shot_quality",
+        "rotation",
+        "defense"
+      ],
+      "markets": [
+        "points",
+        "rebounds",
+        "assists",
+        "threes",
+        "fantasy_score"
+      ],
+      "model_id": "BENFRANK_NBA_MODEL",
+      "ledger_id": "BENFRANK_NBA_LEDGER",
+      "calibration_id": "BENFRANK_NBA_CALIBRATION",
+      "status": "IN_DEVELOPMENT",
+      "rules": {
+        "market_settlement": "SOURCE_AND_BOOK_SPECIFIC",
+        "push_void_handling": "MARKET_SPECIFIC",
+        "injury_and_availability": "SPORT_SPECIFIC",
+        "historical_windows": "SPORT_SPECIFIC",
+        "simulation_unit": "SPORT_SPECIFIC",
+        "competition_rules": "SPORT_SPECIFIC"
+      }
+    },
+    {
+      "id": "NFL",
+      "discipline": "american_football",
+      "repository": "BENFRANK-NFL-WAREHOUSE",
+      "data_namespace": "nfl",
+      "season_boundary": "season",
+      "features": [
+        "snaps",
+        "routes",
+        "targets",
+        "coverage",
+        "pressure",
+        "weather",
+        "game_script"
+      ],
+      "markets": [
+        "passing_yards",
+        "rushing_yards",
+        "receptions",
+        "touchdowns",
+        "fantasy_score"
+      ],
+      "model_id": "BENFRANK_NFL_MODEL",
+      "ledger_id": "BENFRANK_NFL_LEDGER",
+      "calibration_id": "BENFRANK_NFL_CALIBRATION",
+      "status": "PLANNED",
+      "rules": {
+        "market_settlement": "SOURCE_AND_BOOK_SPECIFIC",
+        "push_void_handling": "MARKET_SPECIFIC",
+        "injury_and_availability": "SPORT_SPECIFIC",
+        "historical_windows": "SPORT_SPECIFIC",
+        "simulation_unit": "SPORT_SPECIFIC",
+        "competition_rules": "SPORT_SPECIFIC"
+      }
+    },
+    {
+      "id": "TENNIS",
+      "discipline": "tennis",
+      "repository": "BENFRANK-TENNIS-WAREHOUSE",
+      "data_namespace": "tennis",
+      "season_boundary": "tournament",
+      "features": [
+        "surface",
+        "indoor_outdoor",
+        "serve_return",
+        "hold_break",
+        "best_of",
+        "fatigue",
+        "retirement"
+      ],
+      "markets": [
+        "aces",
+        "double_faults",
+        "games",
+        "sets",
+        "breaks"
+      ],
+      "model_id": "BENFRANK_TENNIS_MODEL",
+      "ledger_id": "BENFRANK_TENNIS_LEDGER",
+      "calibration_id": "BENFRANK_TENNIS_CALIBRATION",
+      "status": "PLANNED",
+      "rules": {
+        "market_settlement": "SOURCE_AND_BOOK_SPECIFIC",
+        "push_void_handling": "MARKET_SPECIFIC",
+        "injury_and_availability": "SPORT_SPECIFIC",
+        "historical_windows": "SPORT_SPECIFIC",
+        "simulation_unit": "SPORT_SPECIFIC",
+        "competition_rules": "SPORT_SPECIFIC"
+      }
+    },
+    {
+      "id": "NHL",
+      "discipline": "ice_hockey",
+      "repository": "BENFRANK-NHL-WAREHOUSE",
+      "data_namespace": "nhl",
+      "season_boundary": "season",
+      "features": [
+        "goalie_start",
+        "lines",
+        "ice_time",
+        "power_play",
+        "shot_quality",
+        "back_to_back"
+      ],
+      "markets": [
+        "shots_on_goal",
+        "goals",
+        "assists",
+        "points",
+        "saves"
+      ],
+      "model_id": "BENFRANK_NHL_MODEL",
+      "ledger_id": "BENFRANK_NHL_LEDGER",
+      "calibration_id": "BENFRANK_NHL_CALIBRATION",
+      "status": "PLANNED",
+      "rules": {
+        "market_settlement": "SOURCE_AND_BOOK_SPECIFIC",
+        "push_void_handling": "MARKET_SPECIFIC",
+        "injury_and_availability": "SPORT_SPECIFIC",
+        "historical_windows": "SPORT_SPECIFIC",
+        "simulation_unit": "SPORT_SPECIFIC",
+        "competition_rules": "SPORT_SPECIFIC"
+      }
+    },
+    {
+      "id": "SOCCER",
+      "discipline": "soccer",
+      "repository": "BENFRANK-SOCCER-WAREHOUSE",
+      "data_namespace": "soccer",
+      "season_boundary": "competition",
+      "features": [
+        "competition",
+        "formation",
+        "starting_xi",
+        "minutes",
+        "xg",
+        "xa",
+        "stoppage_time",
+        "extra_time_rules"
+      ],
+      "markets": [
+        "shots",
+        "shots_on_target",
+        "goals",
+        "assists",
+        "saves",
+        "passes"
+      ],
+      "model_id": "BENFRANK_SOCCER_MODEL",
+      "ledger_id": "BENFRANK_SOCCER_LEDGER",
+      "calibration_id": "BENFRANK_SOCCER_CALIBRATION",
+      "status": "PLANNED",
+      "rules": {
+        "market_settlement": "SOURCE_AND_BOOK_SPECIFIC",
+        "push_void_handling": "MARKET_SPECIFIC",
+        "injury_and_availability": "SPORT_SPECIFIC",
+        "historical_windows": "SPORT_SPECIFIC",
+        "simulation_unit": "SPORT_SPECIFIC",
+        "competition_rules": "SPORT_SPECIFIC"
+      }
+    },
+    {
+      "id": "COD",
+      "discipline": "esports_cod",
+      "repository": "BENFRANK-COD-WAREHOUSE",
+      "data_namespace": "cod",
+      "season_boundary": "title_patch",
+      "features": [
+        "game_title",
+        "game_version",
+        "patch",
+        "map",
+        "mode",
+        "roster",
+        "series_format",
+        "side"
+      ],
+      "markets": [
+        "kills",
+        "deaths",
+        "map_kills",
+        "series_kills"
+      ],
+      "model_id": "BENFRANK_COD_MODEL",
+      "ledger_id": "BENFRANK_COD_LEDGER",
+      "calibration_id": "BENFRANK_COD_CALIBRATION",
+      "status": "PLANNED",
+      "rules": {
+        "market_settlement": "SOURCE_AND_BOOK_SPECIFIC",
+        "push_void_handling": "MARKET_SPECIFIC",
+        "injury_and_availability": "SPORT_SPECIFIC",
+        "historical_windows": "SPORT_SPECIFIC",
+        "simulation_unit": "SPORT_SPECIFIC",
+        "competition_rules": "SPORT_SPECIFIC"
+      }
+    },
+    {
+      "id": "CS2",
+      "discipline": "esports_cs2",
+      "repository": "BENFRANK-CS2-WAREHOUSE",
+      "data_namespace": "cs2",
+      "season_boundary": "patch",
+      "features": [
+        "game_title",
+        "patch",
+        "map_veto",
+        "side",
+        "economy",
+        "rounds",
+        "roster",
+        "series_format"
+      ],
+      "markets": [
+        "kills",
+        "headshots",
+        "assists",
+        "rounds"
+      ],
+      "model_id": "BENFRANK_CS2_MODEL",
+      "ledger_id": "BENFRANK_CS2_LEDGER",
+      "calibration_id": "BENFRANK_CS2_CALIBRATION",
+      "status": "PLANNED",
+      "rules": {
+        "market_settlement": "SOURCE_AND_BOOK_SPECIFIC",
+        "push_void_handling": "MARKET_SPECIFIC",
+        "injury_and_availability": "SPORT_SPECIFIC",
+        "historical_windows": "SPORT_SPECIFIC",
+        "simulation_unit": "SPORT_SPECIFIC",
+        "competition_rules": "SPORT_SPECIFIC"
+      }
+    },
+    {
+      "id": "MLB",
+      "discipline": "baseball",
+      "repository": "BENFRANK-MLB-WAREHOUSE",
+      "data_namespace": "mlb",
+      "season_boundary": "season",
+      "features": [
+        "starting_pitcher",
+        "pitch_count",
+        "batting_order",
+        "park",
+        "weather",
+        "bullpen",
+        "umpire"
+      ],
+      "markets": [
+        "pitcher_strikeouts",
+        "outs",
+        "hits",
+        "total_bases",
+        "hrrbi",
+        "fantasy_score"
+      ],
+      "model_id": "BENFRANK_MLB_MODEL",
+      "ledger_id": "BENFRANK_MLB_LEDGER",
+      "calibration_id": "BENFRANK_MLB_CALIBRATION",
+      "status": "PLANNED",
+      "rules": {
+        "market_settlement": "SOURCE_AND_BOOK_SPECIFIC",
+        "push_void_handling": "MARKET_SPECIFIC",
+        "injury_and_availability": "SPORT_SPECIFIC",
+        "historical_windows": "SPORT_SPECIFIC",
+        "simulation_unit": "SPORT_SPECIFIC",
+        "competition_rules": "SPORT_SPECIFIC"
+      }
+    },
+    {
+      "id": "WNBA",
+      "discipline": "basketball",
+      "repository": "BENFRANK-WNBA-WAREHOUSE",
+      "data_namespace": "wnba",
+      "season_boundary": "season",
+      "features": [
+        "minutes",
+        "usage",
+        "rotation",
+        "defense",
+        "pace",
+        "league_scoring_rules"
+      ],
+      "markets": [
+        "points",
+        "rebounds",
+        "assists",
+        "pra",
+        "threes",
+        "fantasy_score"
+      ],
+      "model_id": "BENFRANK_WNBA_MODEL",
+      "ledger_id": "BENFRANK_WNBA_LEDGER",
+      "calibration_id": "BENFRANK_WNBA_CALIBRATION",
+      "status": "PLANNED",
+      "rules": {
+        "market_settlement": "SOURCE_AND_BOOK_SPECIFIC",
+        "push_void_handling": "MARKET_SPECIFIC",
+        "injury_and_availability": "SPORT_SPECIFIC",
+        "historical_windows": "SPORT_SPECIFIC",
+        "simulation_unit": "SPORT_SPECIFIC",
+        "competition_rules": "SPORT_SPECIFIC"
+      }
+    },
+    {
+      "id": "NCAAB",
+      "discipline": "college_basketball",
+      "repository": "BENFRANK-NCAAB-WAREHOUSE",
+      "data_namespace": "ncaab",
+      "season_boundary": "season",
+      "features": [
+        "conference",
+        "minutes",
+        "tempo",
+        "rotation",
+        "opponent_quality",
+        "tournament"
+      ],
+      "markets": [
+        "points",
+        "rebounds",
+        "assists",
+        "threes",
+        "fantasy_score"
+      ],
+      "model_id": "BENFRANK_NCAAB_MODEL",
+      "ledger_id": "BENFRANK_NCAAB_LEDGER",
+      "calibration_id": "BENFRANK_NCAAB_CALIBRATION",
+      "status": "PLANNED",
+      "rules": {
+        "market_settlement": "SOURCE_AND_BOOK_SPECIFIC",
+        "push_void_handling": "MARKET_SPECIFIC",
+        "injury_and_availability": "SPORT_SPECIFIC",
+        "historical_windows": "SPORT_SPECIFIC",
+        "simulation_unit": "SPORT_SPECIFIC",
+        "competition_rules": "SPORT_SPECIFIC"
+      }
+    },
+    {
+      "id": "CFB",
+      "discipline": "college_football",
+      "repository": "BENFRANK-CFB-WAREHOUSE",
+      "data_namespace": "cfb",
+      "season_boundary": "season",
+      "features": [
+        "depth_chart",
+        "snaps",
+        "scheme",
+        "coverage",
+        "pace",
+        "weather",
+        "transfer_role"
+      ],
+      "markets": [
+        "passing_yards",
+        "rushing_yards",
+        "receiving_yards",
+        "touchdowns",
+        "fantasy_score"
+      ],
+      "model_id": "BENFRANK_CFB_MODEL",
+      "ledger_id": "BENFRANK_CFB_LEDGER",
+      "calibration_id": "BENFRANK_CFB_CALIBRATION",
+      "status": "PLANNED",
+      "rules": {
+        "market_settlement": "SOURCE_AND_BOOK_SPECIFIC",
+        "push_void_handling": "MARKET_SPECIFIC",
+        "injury_and_availability": "SPORT_SPECIFIC",
+        "historical_windows": "SPORT_SPECIFIC",
+        "simulation_unit": "SPORT_SPECIFIC",
+        "competition_rules": "SPORT_SPECIFIC"
+      }
+    },
+    {
+      "id": "MMA",
+      "discipline": "combat_mma",
+      "repository": "BENFRANK-MMA-WAREHOUSE",
+      "data_namespace": "mma",
+      "season_boundary": "bout",
+      "features": [
+        "weight_class",
+        "scheduled_rounds",
+        "stance",
+        "striking",
+        "grappling",
+        "weigh_in",
+        "short_notice"
+      ],
+      "markets": [
+        "significant_strikes",
+        "takedowns",
+        "rounds",
+        "fight_duration"
+      ],
+      "model_id": "BENFRANK_MMA_MODEL",
+      "ledger_id": "BENFRANK_MMA_LEDGER",
+      "calibration_id": "BENFRANK_MMA_CALIBRATION",
+      "status": "PLANNED",
+      "rules": {
+        "market_settlement": "SOURCE_AND_BOOK_SPECIFIC",
+        "push_void_handling": "MARKET_SPECIFIC",
+        "injury_and_availability": "SPORT_SPECIFIC",
+        "historical_windows": "SPORT_SPECIFIC",
+        "simulation_unit": "SPORT_SPECIFIC",
+        "competition_rules": "SPORT_SPECIFIC"
+      }
+    },
+    {
+      "id": "GOLF",
+      "discipline": "golf",
+      "repository": "BENFRANK-GOLF-WAREHOUSE",
+      "data_namespace": "golf",
+      "season_boundary": "tournament",
+      "features": [
+        "course",
+        "weather",
+        "tee_time",
+        "field_strength",
+        "strokes_gained",
+        "cut_rule"
+      ],
+      "markets": [
+        "birdies",
+        "strokes",
+        "round_score",
+        "finish"
+      ],
+      "model_id": "BENFRANK_GOLF_MODEL",
+      "ledger_id": "BENFRANK_GOLF_LEDGER",
+      "calibration_id": "BENFRANK_GOLF_CALIBRATION",
+      "status": "PLANNED",
+      "rules": {
+        "market_settlement": "SOURCE_AND_BOOK_SPECIFIC",
+        "push_void_handling": "MARKET_SPECIFIC",
+        "injury_and_availability": "SPORT_SPECIFIC",
+        "historical_windows": "SPORT_SPECIFIC",
+        "simulation_unit": "SPORT_SPECIFIC",
+        "competition_rules": "SPORT_SPECIFIC"
+      }
+    },
+    {
+      "id": "DOTA2",
+      "discipline": "esports_dota2",
+      "repository": "BENFRANK-DOTA2-WAREHOUSE",
+      "data_namespace": "dota2",
+      "season_boundary": "patch",
+      "features": [
+        "patch",
+        "hero_draft",
+        "role",
+        "side",
+        "map",
+        "series_format",
+        "roster"
+      ],
+      "markets": [
+        "kills",
+        "deaths",
+        "assists",
+        "map_totals"
+      ],
+      "model_id": "BENFRANK_DOTA2_MODEL",
+      "ledger_id": "BENFRANK_DOTA2_LEDGER",
+      "calibration_id": "BENFRANK_DOTA2_CALIBRATION",
+      "status": "PLANNED",
+      "rules": {
+        "market_settlement": "SOURCE_AND_BOOK_SPECIFIC",
+        "push_void_handling": "MARKET_SPECIFIC",
+        "injury_and_availability": "SPORT_SPECIFIC",
+        "historical_windows": "SPORT_SPECIFIC",
+        "simulation_unit": "SPORT_SPECIFIC",
+        "competition_rules": "SPORT_SPECIFIC"
+      }
+    },
+    {
+      "id": "LOL",
+      "discipline": "esports_lol",
+      "repository": "BENFRANK-LOL-WAREHOUSE",
+      "data_namespace": "lol",
+      "season_boundary": "patch",
+      "features": [
+        "patch",
+        "champion_draft",
+        "role",
+        "side",
+        "objectives",
+        "map",
+        "roster"
+      ],
+      "markets": [
+        "kills",
+        "deaths",
+        "assists",
+        "creep_score"
+      ],
+      "model_id": "BENFRANK_LOL_MODEL",
+      "ledger_id": "BENFRANK_LOL_LEDGER",
+      "calibration_id": "BENFRANK_LOL_CALIBRATION",
+      "status": "PLANNED",
+      "rules": {
+        "market_settlement": "SOURCE_AND_BOOK_SPECIFIC",
+        "push_void_handling": "MARKET_SPECIFIC",
+        "injury_and_availability": "SPORT_SPECIFIC",
+        "historical_windows": "SPORT_SPECIFIC",
+        "simulation_unit": "SPORT_SPECIFIC",
+        "competition_rules": "SPORT_SPECIFIC"
+      }
+    },
+    {
+      "id": "VALORANT",
+      "discipline": "esports_valorant",
+      "repository": "BENFRANK-VALORANT-WAREHOUSE",
+      "data_namespace": "valorant",
+      "season_boundary": "patch",
+      "features": [
+        "patch",
+        "agent",
+        "map_veto",
+        "side",
+        "economy",
+        "rounds",
+        "roster"
+      ],
+      "markets": [
+        "kills",
+        "assists",
+        "first_bloods",
+        "headshots"
+      ],
+      "model_id": "BENFRANK_VALORANT_MODEL",
+      "ledger_id": "BENFRANK_VALORANT_LEDGER",
+      "calibration_id": "BENFRANK_VALORANT_CALIBRATION",
+      "status": "PLANNED",
+      "rules": {
+        "market_settlement": "SOURCE_AND_BOOK_SPECIFIC",
+        "push_void_handling": "MARKET_SPECIFIC",
+        "injury_and_availability": "SPORT_SPECIFIC",
+        "historical_windows": "SPORT_SPECIFIC",
+        "simulation_unit": "SPORT_SPECIFIC",
+        "competition_rules": "SPORT_SPECIFIC"
+      }
+    },
+    {
+      "id": "F1",
+      "discipline": "motorsport_f1",
+      "repository": "BENFRANK-F1-WAREHOUSE",
+      "data_namespace": "f1",
+      "season_boundary": "race_weekend",
+      "features": [
+        "circuit",
+        "qualifying",
+        "grid_penalty",
+        "weather",
+        "tyre",
+        "reliability",
+        "sprint_rules"
+      ],
+      "markets": [
+        "qualifying_position",
+        "finishing_position",
+        "teammate_matchup"
+      ],
+      "model_id": "BENFRANK_F1_MODEL",
+      "ledger_id": "BENFRANK_F1_LEDGER",
+      "calibration_id": "BENFRANK_F1_CALIBRATION",
+      "status": "PLANNED",
+      "rules": {
+        "market_settlement": "SOURCE_AND_BOOK_SPECIFIC",
+        "push_void_handling": "MARKET_SPECIFIC",
+        "injury_and_availability": "SPORT_SPECIFIC",
+        "historical_windows": "SPORT_SPECIFIC",
+        "simulation_unit": "SPORT_SPECIFIC",
+        "competition_rules": "SPORT_SPECIFIC"
+      }
+    },
+    {
+      "id": "BOXING",
+      "discipline": "combat_boxing",
+      "repository": "BENFRANK-BOXING-WAREHOUSE",
+      "data_namespace": "boxing",
+      "season_boundary": "bout",
+      "features": [
+        "weight_class",
+        "scheduled_rounds",
+        "stance",
+        "reach",
+        "punch_rate",
+        "judging"
+      ],
+      "markets": [
+        "rounds",
+        "knockdowns",
+        "punches",
+        "fight_result"
+      ],
+      "model_id": "BENFRANK_BOXING_MODEL",
+      "ledger_id": "BENFRANK_BOXING_LEDGER",
+      "calibration_id": "BENFRANK_BOXING_CALIBRATION",
+      "status": "PLANNED",
+      "rules": {
+        "market_settlement": "SOURCE_AND_BOOK_SPECIFIC",
+        "push_void_handling": "MARKET_SPECIFIC",
+        "injury_and_availability": "SPORT_SPECIFIC",
+        "historical_windows": "SPORT_SPECIFIC",
+        "simulation_unit": "SPORT_SPECIFIC",
+        "competition_rules": "SPORT_SPECIFIC"
+      }
+    },
+    {
+      "id": "TABLETENNIS",
+      "discipline": "table_tennis",
+      "repository": "BENFRANK-TABLETENNIS-WAREHOUSE",
+      "data_namespace": "tabletennis",
+      "season_boundary": "match",
+      "features": [
+        "format",
+        "serve_rotation",
+        "surface",
+        "pace",
+        "recent_form",
+        "fatigue"
+      ],
+      "markets": [
+        "points",
+        "sets",
+        "match_winner",
+        "handicap"
+      ],
+      "model_id": "BENFRANK_TABLETENNIS_MODEL",
+      "ledger_id": "BENFRANK_TABLETENNIS_LEDGER",
+      "calibration_id": "BENFRANK_TABLETENNIS_CALIBRATION",
+      "status": "PLANNED",
+      "rules": {
+        "market_settlement": "SOURCE_AND_BOOK_SPECIFIC",
+        "push_void_handling": "MARKET_SPECIFIC",
+        "injury_and_availability": "SPORT_SPECIFIC",
+        "historical_windows": "SPORT_SPECIFIC",
+        "simulation_unit": "SPORT_SPECIFIC",
+        "competition_rules": "SPORT_SPECIFIC"
+      }
+    }
+  ]
+}
