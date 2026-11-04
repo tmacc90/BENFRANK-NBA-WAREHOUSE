@@ -1,0 +1,42 @@
+name: BENFRANK v6.0 manual evidence batch
+on:
+  workflow_dispatch:
+    inputs:
+      config_path:
+        description: "Committed v5.2/v6.0 config JSON path (board, contexts, history_db, ledger)"
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install project requirements
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: Execute physical pipeline with immutable receipt directory
+        shell: bash
+        env:
+          CONFIG_PATH: ${{ inputs.config_path }}
+        run: |
+          set -o pipefail
+          mkdir -p runs
+          python run_framework.py --config "$CONFIG_PATH" --output "runs/v60-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" 2>&1 | tee runs/runner.log
+      - name: Upload all execution evidence, even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benfrank-v60-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: runs/
+          if-no-files-found: warn
+          retention-days: 30
+# IMPORTANT: A green job or uploaded receipts do not certify simulation authenticity,
+# independent Blind AI, source provenance, or out-of-sample predictive accuracy.
