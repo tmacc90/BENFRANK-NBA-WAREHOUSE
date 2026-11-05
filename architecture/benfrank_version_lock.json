@@ -1,0 +1,231 @@
+{
+  "schema_version": 1,
+  "policy": "EXPLICIT_PIN_AND_APPROVAL",
+  "core": {
+    "package": "BENFRANK-CORE",
+    "version": "0.1.0-design",
+    "sha256": null,
+    "release_status": "NOT_RELEASED"
+  },
+  "sports": {
+    "NBA": {
+      "core_version": "0.1.0-design",
+      "model_version": "0.0.0-unreleased",
+      "data_schema_version": "1.0.0",
+      "scoring_rules_version": "0.0.0-unreleased",
+      "calibration_version": "0.0.0-unreleased",
+      "approved_core_sha256": null,
+      "approved_model_sha256": null,
+      "release_status": "NOT_RELEASED",
+      "automatic_upgrades": false
+    },
+    "NFL": {
+      "core_version": "0.1.0-design",
+      "model_version": "0.0.0-unreleased",
+      "data_schema_version": "1.0.0",
+      "scoring_rules_version": "0.0.0-unreleased",
+      "calibration_version": "0.0.0-unreleased",
+      "approved_core_sha256": null,
+      "approved_model_sha256": null,
+      "release_status": "NOT_RELEASED",
+      "automatic_upgrades": false
+    },
+    "TENNIS": {
+      "core_version": "0.1.0-design",
+      "model_version": "0.0.0-unreleased",
+      "data_schema_version": "1.0.0",
+      "scoring_rules_version": "0.0.0-unreleased",
+      "calibration_version": "0.0.0-unreleased",
+      "approved_core_sha256": null,
+      "approved_model_sha256": null,
+      "release_status": "NOT_RELEASED",
+      "automatic_upgrades": false
+    },
+    "NHL": {
+      "core_version": "0.1.0-design",
+      "model_version": "0.0.0-unreleased",
+      "data_schema_version": "1.0.0",
+      "scoring_rules_version": "0.0.0-unreleased",
+      "calibration_version": "0.0.0-unreleased",
+      "approved_core_sha256": null,
+      "approved_model_sha256": null,
+      "release_status": "NOT_RELEASED",
+      "automatic_upgrades": false
+    },
+    "SOCCER": {
+      "core_version": "0.1.0-design",
+      "model_version": "0.0.0-unreleased",
+      "data_schema_version": "1.0.0",
+      "scoring_rules_version": "0.0.0-unreleased",
+      "calibration_version": "0.0.0-unreleased",
+      "approved_core_sha256": null,
+      "approved_model_sha256": null,
+      "release_status": "NOT_RELEASED",
+      "automatic_upgrades": false
+    },
+    "COD": {
+      "core_version": "0.1.0-design",
+      "model_version": "0.0.0-unreleased",
+      "data_schema_version": "1.0.0",
+      "scoring_rules_version": "0.0.0-unreleased",
+      "calibration_version": "0.0.0-unreleased",
+      "approved_core_sha256": null,
+      "approved_model_sha256": null,
+      "release_status": "NOT_RELEASED",
+      "automatic_upgrades": false
+    },
+    "CS2": {
+      "core_version": "0.1.0-design",
+      "model_version": "0.0.0-unreleased",
+      "data_schema_version": "1.0.0",
+      "scoring_rules_version": "0.0.0-unreleased",
+      "calibration_version": "0.0.0-unreleased",
+      "approved_core_sha256": null,
+      "approved_model_sha256": null,
+      "release_status": "NOT_RELEASED",
+      "automatic_upgrades": false
+    },
+    "MLB": {
+      "core_version": "0.1.0-design",
+      "model_version": "0.0.0-unreleased",
+      "data_schema_version": "1.0.0",
+      "scoring_rules_version": "0.0.0-unreleased",
+      "calibration_version": "0.0.0-unreleased",
+      "approved_core_sha256": null,
+      "approved_model_sha256": null,
+      "release_status": "NOT_RELEASED",
+      "automatic_upgrades": false
+    },
+    "WNBA": {
+      "core_version": "0.1.0-design",
+      "model_version": "0.0.0-unreleased",
+      "data_schema_version": "1.0.0",
+      "scoring_rules_version": "0.0.0-unreleased",
+      "calibration_version": "0.0.0-unreleased",
+      "approved_core_sha256": null,
+      "approved_model_sha256": null,
+      "release_status": "NOT_RELEASED",
+      "automatic_upgrades": false
+    },
+    "NCAAB": {
+      "core_version": "0.1.0-design",
+      "model_version": "0.0.0-unreleased",
+      "data_schema_version": "1.0.0",
+      "scoring_rules_version": "0.0.0-unreleased",
+      "calibration_version": "0.0.0-unreleased",
+      "approved_core_sha256": null,
+      "approved_model_sha256": null,
+      "release_status": "NOT_RELEASED",
+      "automatic_upgrades": false
+    },
+    "CFB": {
+      "core_version": "0.1.0-design",
+      "model_version": "0.0.0-unreleased",
+      "data_schema_version": "1.0.0",
+      "scoring_rules_version": "0.0.0-unreleased",
+      "calibration_version": "0.0.0-unreleased",
+      "approved_core_sha256": null,
+      "approved_model_sha256": null,
+      "release_status": "NOT_RELEASED",
+      "automatic_upgrades": false
+    },
+    "MMA": {
+      "core_version": "0.1.0-design",
+      "model_version": "0.0.0-unreleased",
+      "data_schema_version": "1.0.0",
+      "scoring_rules_version": "0.0.0-unreleased",
+      "calibration_version": "0.0.0-unreleased",
+      "approved_core_sha256": null,
+      "approved_model_sha256": null,
+      "release_status": "NOT_RELEASED",
+      "automatic_upgrades": false
+    },
+    "GOLF": {
+      "core_version": "0.1.0-design",
+      "model_version": "0.0.0-unreleased",
+      "data_schema_version": "1.0.0",
+      "scoring_rules_version": "0.0.0-unreleased",
+      "calibration_version": "0.0.0-unreleased",
+      "approved_core_sha256": null,
+      "approved_model_sha256": null,
+      "release_status": "NOT_RELEASED",
+      "automatic_upgrades": false
+    },
+    "DOTA2": {
+      "core_version": "0.1.0-design",
+      "model_version": "0.0.0-unreleased",
+      "data_schema_version": "1.0.0",
+      "scoring_rules_version": "0.0.0-unreleased",
+      "calibration_version": "0.0.0-unreleased",
+      "approved_core_sha256": null,
+      "approved_model_sha256": null,
+      "release_status": "NOT_RELEASED",
+      "automatic_upgrades": false
+    },
+    "LOL": {
+      "core_version": "0.1.0-design",
+      "model_version": "0.0.0-unreleased",
+      "data_schema_version": "1.0.0",
+      "scoring_rules_version": "0.0.0-unreleased",
+      "calibration_version": "0.0.0-unreleased",
+      "approved_core_sha256": null,
+      "approved_model_sha256": null,
+      "release_status": "NOT_RELEASED",
+      "automatic_upgrades": false
+    },
+    "VALORANT": {
+      "core_version": "0.1.0-design",
+      "model_version": "0.0.0-unreleased",
+      "data_schema_version": "1.0.0",
+      "scoring_rules_version": "0.0.0-unreleased",
+      "calibration_version": "0.0.0-unreleased",
+      "approved_core_sha256": null,
+      "approved_model_sha256": null,
+      "release_status": "NOT_RELEASED",
+      "automatic_upgrades": false
+    },
+    "F1": {
+      "core_version": "0.1.0-design",
+      "model_version": "0.0.0-unreleased",
+      "data_schema_version": "1.0.0",
+      "scoring_rules_version": "0.0.0-unreleased",
+      "calibration_version": "0.0.0-unreleased",
+      "approved_core_sha256": null,
+      "approved_model_sha256": null,
+      "release_status": "NOT_RELEASED",
+      "automatic_upgrades": false
+    },
+    "BOXING": {
+      "core_version": "0.1.0-design",
+      "model_version": "0.0.0-unreleased",
+      "data_schema_version": "1.0.0",
+      "scoring_rules_version": "0.0.0-unreleased",
+      "calibration_version": "0.0.0-unreleased",
+      "approved_core_sha256": null,
+      "approved_model_sha256": null,
+      "release_status": "NOT_RELEASED",
+      "automatic_upgrades": false
+    },
+    "TABLETENNIS": {
+      "core_version": "0.1.0-design",
+      "model_version": "0.0.0-unreleased",
+      "data_schema_version": "1.0.0",
+      "scoring_rules_version": "0.0.0-unreleased",
+      "calibration_version": "0.0.0-unreleased",
+      "approved_core_sha256": null,
+      "approved_model_sha256": null,
+      "release_status": "NOT_RELEASED",
+      "automatic_upgrades": false
+    }
+  },
+  "release_rules": {
+    "reject_unpinned_artifacts": true,
+    "reject_cross_sport_artifacts": true,
+    "reject_unapproved_version_changes": true,
+    "require_immutable_sha256_for_operational_release": true,
+    "require_per_sport_test_and_backtest_evidence": true,
+    "require_per_sport_approval": true,
+    "require_cutoff_timestamp": true,
+    "rollback_by_manifest_revert": true
+  }
+}

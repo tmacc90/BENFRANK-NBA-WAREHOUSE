@@ -40,7 +40,9 @@ def load_games(db,player,cutoff):
   for f in ("minutes","usage","pace","rebound_chances","potential_assists","opponent_positional_allowance",
             "opponent_def_rating","fga","three_pa","fta","touches"):
    if f in r:game[f]=r[f]
-  if game["played"] and not game.get("game_id"):\n   game["game_id"]=str(r["date"])+"|"+str(r.get("team",""))+"|"+str(r["player"])\n  output.append(game)
+  if game["played"] and not game.get("game_id"):
+   game["game_id"]=str(r["date"])+"|"+str(r.get("team",""))+"|"+str(r["player"])
+  output.append(game)
  return output
 
 def run(config,output):
@@ -74,7 +76,8 @@ def run(config,output):
                              "trials_executed":frozen["main_simulation"].get("trials_executed")}}
    result=report(context)
    result["source_v52_receipt"]=str(source)
-   result["missing_evidence"]=["UPCOMING_POSITIONAL_TRACKING_AND_PEER_ANALOGUES_NOT_YET_CONNECTED",\n      "NO_ASOF_OPPORTUNITY_TRACKING_IN_LEGACY_GAMES_TABLE"]
+   result["missing_evidence"]=["UPCOMING_POSITIONAL_TRACKING_AND_PEER_ANALOGUES_NOT_YET_CONNECTED",
+      "NO_ASOF_OPPORTUNITY_TRACKING_IN_LEGACY_GAMES_TABLE"]
    path=out/(snapshot+".json")
    with path.open("x") as handle:json.dump(result,handle,indent=2)
    summary.append({"snapshot_id":snapshot,"status":"V53_COMPANION_CREATED",
