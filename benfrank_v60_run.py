@@ -24,8 +24,12 @@ def run(config, output):
     comparison = json.loads(comparison_path.read_text()) if comparison_path.exists() else {}
     by_id = {r.get("snapshot_id"): r for r in comparison.get("results", [])}
     reports = []
+    seen_snapshots = set()
     for prop in board:
         snapshot = prop["snapshot_id"]
+        if snapshot in seen_snapshots:
+            raise ValueError("DUPLICATE_SNAPSHOT_ID: " + snapshot)
+        seen_snapshots.add(snapshot)
         early_path = root / "pipeline" / "v52" / "results" / (snapshot + ".json")
         dna_path = root / "pipeline" / "v53" / (snapshot + ".json")
         early = json.loads(early_path.read_text()) if early_path.exists() else None
@@ -33,12 +37,32 @@ def run(config, output):
         sim = early.get("main_simulation", {}) if early else {}
         blind = early.get("blind_model", {}) if early else {}
         trials = sim.get("trials_executed")
+        # Claimed trial counts and nonempty blind results are not execution proof.
+        sim_proof = sim.get("trial_evidence", {})
+        sim_verified = (
+            isinstance(trials, int) and not isinstance(trials, bool)
+            and trials >= 25000 and isinstance(sim_proof, dict)
+            and sim_proof.get("verified") is True
+            and bool(sim_proof.get("trials_sha256"))
+            and sim_proof.get("seed") is not None
+            and bool(sim_proof.get("input_sha256"))
+        )
+        blind_proof = blind.get("independence_evidence", {})
+        blind_verified = (
+            isinstance(blind_proof, dict)
+            and blind_proof.get("verified") is True
+            and bool(blind_proof.get("model_id"))
+            and bool(blind_proof.get("training_cutoff_utc"))
+            and bool(blind_proof.get("feature_manifest_sha256"))
+            and blind_proof.get("line_excluded") is True
+            and blind_proof.get("primary_prediction_excluded") is True
+        )
         checks = {
             "exact_prop": bool(prop.get("player") and prop.get("market") and isinstance(prop.get("line"), (int,float))),
             "v52_receipt": early is not None,
             "v53_dna_receipt": dna is not None,
-            "sequential_25000": isinstance(trials,int) and trials >= 25000,
-            "blind_model": bool(blind),
+            "sequential_25000": bool(sim_verified),
+            "blind_model": bool(blind_verified),
             "source_cutoff": bool(early and early.get("analysis_cutoff_utc")),
             "dna_tests": bool(dna and dna.get("dna_100_test_results")),
         }
@@ -53,6 +77,8 @@ def run(config, output):
             "checks":checks,"missing":[k for k,v in checks.items() if not v],
             "v53_status":by_id.get(snapshot,{}).get("status","MISSING"),
             "simulation_trials_reported":trials,
+            "simulation_trials_independently_verified":bool(sim_verified),
+            "blind_independence_verified":bool(blind_verified),
             "warning":"Receipt presence is not independent source, calibration, or accuracy certification."
         })
     result = {"version":"BENFRANK_V60","pipeline_exit_code":proc.returncode,
