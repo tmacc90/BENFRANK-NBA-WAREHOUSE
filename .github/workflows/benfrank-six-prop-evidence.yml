@@ -1,0 +1,57 @@
+name: BENFRANK six-prop live evidence execution
+on:
+  push:
+    branches: [benfrank-exact-line-coverage-tests-20261106]
+    paths:
+      - '.github/workflows/benfrank-six-prop-evidence.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify exact-line calculations
+        run: python -m unittest discover -s tests -p test_exact_line_coverage.py -v
+      - name: Capture actual as-of public NBA and ESPN source receipts
+        shell: bash
+        run: |
+          mkdir -p receipts/six-prop
+          python -u benfrank_v51_multisource_capture.py --date 2026-11-06 --output receipts/six-prop/raw
+      - name: Capture prior final NBA official game boxes
+        continue-on-error: true
+        run: python -u benfrank_v51_nba_official.py --target-date 2026-11-06 --days 3 --max-games 20 --output receipts/six-prop/official
+      - name: Capture prior final ESPN player boxes
+        continue-on-error: true
+        run: python -u benfrank_v51_espn_game_details.py --target-date 2026-11-06 --days 3 --max-events 30 --output receipts/six-prop/espn
+      - name: Build six source-backed exact-line history reports
+        run: |
+          python tools/bridge_captured_game_logs.py \
+            --official receipts/six-prop/official/nba_official_2026_27.sqlite \
+            --espn receipts/six-prop/espn/espn_completed_evidence.sqlite \
+            --out receipts/six-prop/coverage
+      - name: Write honest coverage and prediction gate receipt
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,pathlib
+          root=pathlib.Path('receipts/six-prop')
+          def exists(s):return (root/s).exists()
+          receipt={'slate_date':'2026-11-06','uploaded_props':6,'source_capture_receipt_exists':exists('raw/v51-source-receipt.json'),'official_db_exists':exists('official/nba_official_2026_27.sqlite'),'espn_db_exists':exists('espn/espn_completed_evidence.sqlite'),'exact_line_charts':'NOT_EXECUTED_UNTIL_VERIFIED_PLAYER_LOG_ADAPTER','simulation_trials_executed':0,'blind_ai_runs_executed':0,'certification':'NOT_CERTIFIED','ticket_authority':'NO_TICKET'}
+          root.mkdir(parents=True,exist_ok=True)
+          (root/'execution-gate.json').write_text(json.dumps(receipt,indent=2))
+          print(json.dumps(receipt,indent=2))
+          PY
+      - name: Upload raw evidence and blocker receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benfrank-six-prop-evidence-${{ github.run_id }}
+          path: receipts/six-prop/
+          retention-days: 30
+          if-no-files-found: error
