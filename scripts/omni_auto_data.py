@@ -55,6 +55,9 @@ def main():
     a=p.parse_args()
     if a.trials!=25000: p.error("Certification research contract requires exactly 25000 trials")
     out=pathlib.Path(a.out); props=json.loads(pathlib.Path(a.props).read_text())
+    if not isinstance(props,list) or not props:
+        save(out/"execution_receipt.json",{"full_certification":False,"status":"BLOCKED","reason":"NO_PROPS_SUPPLIED"})
+        raise SystemExit(2)
     reports=[]; failures=[]
     for i,prop in enumerate(props):
         try:
@@ -74,6 +77,8 @@ def main():
             result["opponent_defense"]=opponent_evidence(prop)
             result["projected_role"]=role_evidence(prop)
             result["certified"]=False
+            result["status"]="RESEARCH_ONLY_UNCERTIFIED"
+            result["data_quality"]={"l52_complete":len(games)==52,"opponent_verified":False,"role_verified":False,"blind_ml_certified":False}
             save(out/f"report_{i}.json",result);reports.append({"prop":prop,"direction":result["direction"],"certified":False})
         except Exception as exc:
             failures.append({"prop":prop,"error":str(exc)})
