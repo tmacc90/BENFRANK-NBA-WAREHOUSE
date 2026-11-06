@@ -1,6 +1,22 @@
 {
   "version": "BENFRANK_MULTISPORT_CATALOG_V1",
-  "status": "ARCHITECTURE_ONLY",
+  "status": "EXECUTION_RUNTIME_IMPLEMENTED_NOT_ACCURACY_CERTIFIED",
+  "execution_runtime": {
+    "entrypoint": "python run_framework.py --omni props.json --output omni_runs/new",
+    "module": "benfrank_omni",
+    "version": "OMNI_EXECUTION_1.0.0",
+    "separate_sport_repository_packages": "python scripts/omni_validate.py --mode export --output omni_runs/packages",
+    "model_kind": "OBSERVED_GAME_EMPIRICAL_WORKLOAD_BOOTSTRAP",
+    "baseline_trials_per_prop": 25000,
+    "stress_trials_per_prop": 50000,
+    "play_by_play_physical_simulation_asserted": false,
+    "calibration": "GRADE_PREGAME_RECEIPTS_THEN_CHRONOLOGICAL_HOLDOUT_GATE",
+    "native_book_board_or_ocr_implemented": false,
+    "specialist_live_providers_require_configuration": true,
+    "independent_external_repositories_created": false,
+    "production_router_gates_unchanged": true,
+    "accuracy_certified": false
+  },
   "policy": {
     "separate_repositories": true,
     "separate_databases": true,
