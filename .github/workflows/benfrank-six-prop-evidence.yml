@@ -29,6 +29,12 @@ jobs:
       - name: Capture prior final ESPN player boxes
         continue-on-error: true
         run: python -u benfrank_v51_espn_game_details.py --target-date 2026-11-06 --days 3 --max-events 30 --output receipts/six-prop/espn
+      - name: Build six source-backed exact-line history reports
+        run: |
+          python tools/bridge_captured_game_logs.py \
+            --official receipts/six-prop/official/nba_official_2026_27.sqlite \
+            --espn receipts/six-prop/espn/espn_completed_evidence.sqlite \
+            --out receipts/six-prop/coverage
       - name: Write honest coverage and prediction gate receipt
         if: always()
         run: |
