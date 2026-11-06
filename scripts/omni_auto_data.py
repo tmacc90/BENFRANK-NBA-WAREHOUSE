@@ -1,6 +1,7 @@
 """Additive BENFRANK NBA public-feed execution; no warehouse mutations."""
 import argparse, datetime as dt, hashlib, json, os, pathlib, random, statistics, urllib.request
 from collections import defaultdict
+from omni_evidence import merge_l52, independent_blind, opponent_evidence, role_evidence, windows
 
 BASE="https://site.api.espn.com/apis/site/v2/sports/basketball/nba"
 def fetch(url):
@@ -58,10 +59,21 @@ def main():
     for i,prop in enumerate(props):
         try:
             if prop["market"] not in ("points","rebounds","assists","pra","ra"): raise ValueError("Unsupported market")
-            games,raw=get_games(str(prop["player_id"]),int(prop["season"]))
-            save(out/f"raw_{i}.json",raw)
+            seasons=[int(prop["season"])-1,int(prop["season"])]
+            batches=[]
+            for season in seasons:
+                season_games,raw=get_games(str(prop["player_id"]),season)
+                save(out/f"raw_{i}_{season}.json",raw)
+                batches.append(season_games)
+            games=merge_l52(batches)
             result=model(games,prop["market"],float(prop["line"]),20261105+i,a.trials)
             result["prop"]=prop;result["games"]=games
+            result["historical_windows"]=windows(games,prop["market"],float(prop["line"]))
+            result["l52_coverage"]={"actual_games":len(games),"complete":len(games)==52}
+            result["blind_model"]=independent_blind(games,prop["market"])
+            result["opponent_defense"]=opponent_evidence(prop)
+            result["projected_role"]=role_evidence(prop)
+            result["certified"]=False
             save(out/f"report_{i}.json",result);reports.append({"prop":prop,"direction":result["direction"],"certified":False})
         except Exception as exc:
             failures.append({"prop":prop,"error":str(exc)})
