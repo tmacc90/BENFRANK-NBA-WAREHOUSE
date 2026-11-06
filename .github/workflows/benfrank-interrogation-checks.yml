@@ -1,0 +1,28 @@
+name: BENFRANK 60-question interrogation checks
+on:
+  push:
+    branches:
+      - benfrank-60-question-interrogation-20261106
+  pull_request:
+  workflow_dispatch:
+jobs:
+  interrogation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify interrogation integrity tests
+        run: python -m unittest discover -s tests -p 'test_interrogation_60.py' -v
+      - name: Create six-prop pending-state audit (not prediction execution)
+        run: |
+          echo '{"props":[]}' > /tmp/empty-stage-results.json
+          python benfrank_six_prop_batch.py --inputs /tmp/empty-stage-results.json --output reports/interrogation
+      - name: Upload audit receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: interrogation-audit
+          path: reports/interrogation/
+          if-no-files-found: warn
