@@ -1,0 +1,67 @@
+name: BENFRANK OMNI execution verification
+on:
+  push:
+    paths:
+      - 'benfrank_omni/**'
+      - 'scripts/omni_validate.py'
+      - 'tests/test_omni*.py'
+      - 'docs/OMNI_EXECUTION.md'
+      - '.github/workflows/omni-execution.yml'
+      - 'run_framework.py'
+  pull_request:
+    paths:
+      - 'benfrank_omni/**'
+      - 'scripts/omni_validate.py'
+      - 'tests/test_omni*.py'
+      - 'docs/OMNI_EXECUTION.md'
+      - '.github/workflows/omni-execution.yml'
+      - 'run_framework.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  software-and-isolation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Contract, provenance, calibration and compatibility tests
+        run: |
+          set -o pipefail
+          python -m unittest discover -s tests -p 'test_omni*.py' -v 2>&1 | tee omni-tests.log
+          python -m unittest discover -s tests -p 'test_run_framework_entrypoint.py' -v
+      - name: Execute 19 isolated sport fixtures (not real athlete data)
+        run: python scripts/omni_validate.py --mode software --output omni_runs/software
+      - name: Build 19 independent repository runtime packages
+        run: python scripts/omni_validate.py --mode export --output omni_runs/packages
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: omni-software-and-sport-packages
+          path: |
+            omni-tests.log
+            omni_runs/
+          retention-days: 30
+  live-data-replays:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Capture real histories and execute labelled historical replays
+        run: |
+          set -o pipefail
+          python scripts/omni_validate.py --mode live --output omni_runs/live 2>&1 | tee omni-live.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: omni-live-source-and-replay-receipts
+          path: |
+            omni-live.log
+            omni_runs/live/
+          retention-days: 30

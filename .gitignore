@@ -9,3 +9,5 @@ test-results.log
 .venv/
 private-data/
 receipts/
+omni_state/
+omni_runs/

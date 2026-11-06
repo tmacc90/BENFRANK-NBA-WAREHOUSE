@@ -13,6 +13,14 @@ import sys
 from pathlib import Path
 
 def execute(args):
+    if getattr(args,"omni",None):
+        if args.input or args.config:
+            raise ValueError("OMNI_REQUIRES_EXCLUSIVE_INPUT_MODE")
+        from benfrank_omni.runner import run
+        result,code=run(args.omni,args.output,getattr(args,"state_dir","omni_state"),
+                        getattr(args,"trials",25000),getattr(args,"seed",1729))
+        print(json.dumps(result,indent=2))
+        return code
     if bool(args.input)==bool(args.config):
         raise ValueError("SUPPLY_EXACTLY_ONE_OF_INPUT_OR_CONFIG")
     root=Path(args.output)
@@ -63,5 +71,9 @@ if __name__=="__main__":
     parser=argparse.ArgumentParser()
     parser.add_argument("--input")
     parser.add_argument("--config")
+    parser.add_argument("--omni",help="Execute the isolated multi-sport manifest")
+    parser.add_argument("--state-dir",default="omni_state")
+    parser.add_argument("--trials",type=int,default=25000)
+    parser.add_argument("--seed",type=int,default=1729)
     parser.add_argument("--output",required=True)
     raise SystemExit(execute(parser.parse_args()))
