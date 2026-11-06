@@ -1,0 +1,28 @@
+name: BENFRANK OMNI public data research
+on:
+  workflow_dispatch:
+    inputs:
+      props_json:
+        description: 'Repository-relative JSON file with player IDs, markets and lines'
+        required: true
+        default: 'config/omni_props_example.json'
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test OMNI evidence functions
+        run: python -m unittest discover -s tests -p 'test_omni_evidence.py' -v
+      - name: Execute verified-input bootstrap research
+        run: python scripts/omni_auto_data.py --props "${{ inputs.props_json }}" --out artifacts/omni --trials 25000
+      - name: Preserve raw sources, trials and receipts even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: omni-research-receipts
+          path: artifacts/omni/
+          if-no-files-found: warn
