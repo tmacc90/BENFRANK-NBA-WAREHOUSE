@@ -1,0 +1,10 @@
+FROM python:3.11-slim
+WORKDIR /app
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+COPY requirements.txt mobile/requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt -r ./requirements.txt
+COPY . /app
+RUN mkdir -p /var/lib/benfrank && chmod 700 /var/lib/benfrank
+ENV BENFRANK_MOBILE_RUNS=/var/lib/benfrank/jobs
+EXPOSE 8080
+CMD ["sh", "-c", "uvicorn mobile.api:app --host 0.0.0.0 --port ${PORT:-8080}"]
