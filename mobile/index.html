@@ -14,6 +14,7 @@
 <p class="muted"><small>Research tool, not a guarantee of a profitable bet. Historical rates are not calibrated probabilities. Keep API secrets on the server, never in this page.</small></p></main>
 <script>
 const $=id=>document.getElementById(id);
+$('endpoint').value=location.origin+'/api/run-framework';
 $('run').addEventListener('click',async()=>{
  const endpoint=$('endpoint').value.trim();
  const player=$('player').value.trim(),market=$('market').value.trim();
