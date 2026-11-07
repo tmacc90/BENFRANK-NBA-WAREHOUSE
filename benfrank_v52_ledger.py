@@ -40,6 +40,8 @@ def record_prediction(path,receipt):
         raise ValueError('QUALIFYING_COMPLETE_25000_GAME_RECEIPT_REQUIRED')
     if not instant(receipt['analysis_cutoff_utc'])<=instant(receipt['forecast_completed_at_utc'])<=instant(issued)<instant(prop['tipoff_utc']):
         raise ValueError('ACTUAL_PREDICTION_INSERT_MUST_PRECEDE_TIPOFF')
+    if receipt.get('requested_pregame_cutoff_utc') and instant(issued)>=instant(receipt['requested_pregame_cutoff_utc']):
+        raise ValueError('ACTUAL_PREDICTION_INSERT_MUST_PRECEDE_REQUESTED_CUTOFF')
     payload={k:v for k,v in receipt.items() if k!='receipt_sha256'}
     sha=hashlib.sha256(json.dumps(payload,sort_keys=True,allow_nan=False).encode()).hexdigest()
     if receipt.get('receipt_sha256')!=sha:raise ValueError('PREDICTION_RECEIPT_HASH_CONFLICT')

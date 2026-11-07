@@ -44,6 +44,9 @@ def verify(run_dir, state):
             row = conn.execute('SELECT issued_at,tipoff_utc,receipt_sha256 FROM early_predictions WHERE id=?',(sid,)).fetchone()
             if not row or row[2] != claimed or not instant(row[0]) < instant(row[1]):
                 raise ValueError('FROZEN_PREGAME_LEDGER_CONFLICT')
+            deadline = r.get('requested_pregame_cutoff_utc')
+            if deadline and not cutoff <= instant(r['forecast_completed_at_utc']) <= instant(row[0]) < instant(deadline):
+                raise ValueError('REQUESTED_PREGAME_CUTOFF_VIOLATION')
             main = r['main_simulation']
             # Relocate traces by basename to allow downloading a CI artifact elsewhere.
             for sim in [main, *r['stress_simulations'].values()]:

@@ -41,13 +41,15 @@ def schedule(store, day):
     return games
 
 
-def discover(store, day, max_props=6, max_games=3):
+def discover(store, day, max_props=6, max_games=3, requested_prop=None):
     games = schedule(store, day)
     raw, meta = store.fetch(PP, 'PRIZEPICKS_NATIVE_PUBLIC')
-    return parse_projection_capture(raw, meta, games, max_props, max_games)
+    return parse_projection_capture(raw, meta, games, max_props, max_games,
+                                    requested_prop=requested_prop)
 
 
-def parse_projection_capture(raw, meta, games, max_props=6, max_games=3, observed_at=None):
+def parse_projection_capture(raw, meta, games, max_props=6, max_games=3, observed_at=None,
+                             requested_prop=None):
     data = json.loads(raw)
     included = {(x['type'], str(x['id'])): x for x in data.get('included', [])}
     candidates, rejected = [], collections.Counter()
@@ -92,6 +94,14 @@ def parse_projection_capture(raw, meta, games, max_props=6, max_games=3, observe
             candidates.append(prop)
         except (KeyError, TypeError, ValueError) as error:
             rejected[str(error)] += 1
+    if requested_prop is not None:
+        candidates = [p for p in candidates
+                      if name_key(p['player']) == name_key(requested_prop['player'])
+                      and p['market'] == requested_prop['market']
+                      and p['line'] == requested_prop['line']]
+        if not candidates:
+            raise ValueError('REQUESTED_EXACT_PROP_NOT_ON_CURRENT_NATIVE_BOARD')
+        max_props = 1
     # Predeclared research sampling: earliest games, points then other markets,
     # one exact line per player, at most two players in each game. No model ranking.
     preference = ['points', 'rebounds', 'assists', 'threes', 'pra', 'pr', 'pa', 'ra',

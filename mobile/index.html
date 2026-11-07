@@ -1,46 +1,17 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101827"><title>BENFRANK AI Mobile</title>
-<style>body{margin:0;background:#0b1220;color:#f5f7fc;font:16px system-ui,-apple-system,sans-serif}main{max-width:650px;margin:auto;padding:24px 16px 60px}h1{font-size:26px}section{background:#182438;border:1px solid #344158;border-radius:16px;padding:18px;margin:16px 0}label{display:block;margin:12px 0 6px}input,textarea,button{box-sizing:border-box;width:100%;border-radius:10px;padding:13px;font:inherit}input,textarea{background:#0c1525;color:white;border:1px solid #64748b}button{background:#4f91ff;color:#081427;font-weight:800;border:0;margin-top:14px}button:disabled{opacity:.5}small,.muted{color:#b8c7dc}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px}a{color:#91baff}</style></head>
-<body><main><h1>🧠 BENFRANK AI</h1><p class="muted">Mobile player prop intelligence · evidence first</p>
-<section><h2>🏀 Run Framework</h2><p>Enter the URL of your deployed BENFRANK API. This page never claims a simulation ran without a backend receipt.</p>
-<label for="endpoint">API endpoint (HTTPS)</label><input id="endpoint" placeholder="https://your-server.example/api/run-framework" autocomplete="url">
-<label for="token">API access token</label><input id="token" type="password" autocomplete="off" placeholder="Server-issued token"><label for="player">Player</label><input id="player" placeholder="Full player name">
-<label for="market">Market</label><input id="market" placeholder="points, rebounds, assists...">
-<label for="line">Exact prop line</label><input id="line" type="number" step="0.5" placeholder="22.5">
-<label for="cutoff">Pregame cutoff (ISO 8601 with timezone)</label><input id="cutoff" placeholder="2026-11-07T19:00:00-08:00">
-<label for="screenshot">Optional screenshot (requires server-side extraction)</label><input id="screenshot" type="file" accept="image/*">
-<button id="run">▶ RUN FULL FRAMEWORK</button><p id="status" role="status" aria-live="polite">Not started</p></section>
-<section><h2>📊 Evidence and receipts</h2><pre id="result">No verified run yet.</pre></section>
-<p class="muted"><small>Research tool, not a guarantee of a profitable bet. Historical rates are not calibrated probabilities. Keep API secrets on the server, never in this page.</small></p></main>
-<script>
-const $=id=>document.getElementById(id);
-$('endpoint').value=location.origin+'/api/run-framework';
-$('run').addEventListener('click',async()=>{
- const endpoint=$('endpoint').value.trim();
- const player=$('player').value.trim(),market=$('market').value.trim();
- const line=Number($('line').value),cutoff=$('cutoff').value.trim(),file=$('screenshot').files[0];
- if(!endpoint.startsWith('https://')||!player||!market||!$('line').value||!Number.isFinite(line)||!cutoff||Number.isNaN(Date.parse(cutoff))){$('status').textContent='Provide HTTPS API URL, player, market, exact line and valid timestamp.';return;}
- $('run').disabled=true;$('status').textContent='Submitting request — waiting for backend evidence...';$('result').textContent='No verified result received.';
- try{
-  const form=new FormData();form.append('player',player);form.append('market',market);form.append('line',String(line));form.append('pregame_cutoff',cutoff);if(file)form.append('screenshot',file);
-  const headers={Authorization:'Bearer '+$('token').value};
-  const response=await fetch(endpoint,{method:'POST',headers,body:form});
-  const data=await response.json();
-  if(!response.ok)throw Error(data.detail||data.error||('HTTP '+response.status));
-  $('result').textContent=JSON.stringify(data,null,2);
-  if(!data.poll){$('status').textContent='Response returned without polling URL.';return;}
-  $('status').textContent='Job queued; checking execution status...';
-  const pollUrl=new URL(data.poll,endpoint).href;
-  for(let attempt=0;attempt<120;attempt++){
-    await new Promise(resolve=>setTimeout(resolve,3000));
-    const polled=await fetch(pollUrl,{headers});
-    if(!polled.ok)throw Error('Polling failed: '+polled.status);
-    const job=await polled.json();
-    $('result').textContent=JSON.stringify(job,null,2);
-    $('status').textContent='Framework status: '+job.status;
-    if(['completed','incomplete','failed'].includes(job.status))return;
-  }
-  $('status').textContent='Still processing; check backend job logs.';
- }catch(e){$('status').textContent='Execution unavailable: '+e.message;}finally{$('run').disabled=false;}
-});
-</script></body></html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0c1425"><title>BENFRANK NBA Mobile</title><link rel="stylesheet" href="/mobile.css"><script src="/mobile.js" defer></script></head>
+<body><main>
+<header><span class="eyebrow">🏀 NBA · PLAYER PROP RESEARCH</span><h1>BENFRANK <span>AI</span></h1><p class="muted">Your exact line. Every stage accounted for.</p></header>
+<section aria-labelledby="run-title"><div class="card-top"><h2 id="run-title">🧠 Run Framework</h2><span id="health" class="badge">Checking service…</span></div><p class="muted">Enter a published prop. BENFRANK checks the current board and records the evidence behind its OVER or UNDER.</p>
+<form id="prop-form">
+<label for="token">Private access token</label><input id="token" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" required placeholder="Enter your access token"><small>Your token stays in this page until you close it.</small>
+<label for="player">Full player name</label><input id="player" required maxlength="120" autocomplete="off" placeholder="Aaron Gordon">
+<div class="fields"><div><label for="market">Market</label><select id="market"><option value="points">Points</option><option value="rebounds">Rebounds</option><option value="assists">Assists</option><option value="threes">3-pointers made</option><option value="pra">Points + rebounds + assists</option><option value="pr">Points + rebounds</option><option value="pa">Points + assists</option><option value="ra">Rebounds + assists</option><option value="steals">Steals</option><option value="blocks">Blocks</option><option value="turnovers">Turnovers</option><option value="fantasy_score">Fantasy score</option></select></div><div><label for="line">Exact line</label><input id="line" type="number" inputmode="decimal" min="0" max="10000" step="0.5" required placeholder="13.5"></div></div>
+<label for="cutoff">Finish before <span class="muted">(your local time)</span></label><input id="cutoff" type="datetime-local" required><small>Choose a future time before the game starts. A late result will not qualify as a pregame prediction.</small>
+<button id="run" type="submit">▶ Run full framework</button></form>
+<p id="status" role="status" aria-live="polite">Ready for your prop.</p><p id="job-id" class="muted mono"></p><button id="resume" class="secondary" type="button" hidden>Check last job</button></section>
+<section aria-labelledby="result-title"><div class="card-top"><h2 id="result-title">📊 Result & evidence</h2><span id="verified" class="badge">No verified run</span></div><div id="prediction" hidden><div class="forecast"><strong id="direction"></strong><div><span class="muted">Projected result</span><p id="projection"></p></div></div><p id="comparison" class="muted"></p><div class="table-wrap"><table><caption>Exact-line historical coverage</caption><thead><tr><th>Window</th><th>OVER</th><th>UNDER</th><th>PUSH</th><th>Games</th></tr></thead><tbody id="windows"></tbody></table></div><p id="risk" class="muted"></p></div>
+<p class="muted" id="empty">Submit a prop to see its execution status and saved receipts.</p><div class="fields"><button id="receipt" type="button" class="secondary" hidden>↓ Execution receipt</button><button id="artifacts" type="button" class="secondary" hidden>↓ Evidence ZIP</button></div><details><summary>Inspect execution details</summary><pre id="result">No result received.</pre></details></section>
+<footer><p>🔒 Private runs · 📚 Preserved receipts · 🧪 Research first</p><p class="muted">Execution verification confirms that the recorded steps ran. Model shares are uncalibrated; prediction accuracy has not been certified.</p></footer>
+</main></body></html>

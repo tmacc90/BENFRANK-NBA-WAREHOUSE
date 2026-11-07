@@ -2,14 +2,19 @@ services:
   - type: web
     name: benfrank-nba-mobile
     runtime: docker
+    repo: https://github.com/tmacc90/BENFRANK-NBA-WAREHOUSE
+    branch: benfrank-60-question-interrogation-20261106
+    autoDeployTrigger: "off"
     dockerfilePath: ./Dockerfile.mobile
     plan: starter
     healthCheckPath: /health
     envVars:
       - key: BENFRANK_API_TOKEN
-        sync: false
+        generateValue: true
       - key: BENFRANK_MOBILE_RUNS
         value: /var/lib/benfrank/jobs
+      - key: BENFRANK_REQUIRE_PERSISTENT_STORAGE
+        value: "true"
     disk:
       name: benfrank-receipts
       mountPath: /var/lib/benfrank

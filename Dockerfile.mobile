@@ -8,4 +8,4 @@ COPY . /app
 RUN mkdir -p /var/lib/benfrank && chmod 700 /var/lib/benfrank
 ENV BENFRANK_MOBILE_RUNS=/var/lib/benfrank/jobs
 EXPOSE 8080
-CMD ["sh", "-c", "uvicorn mobile.api:app --host 0.0.0.0 --port ${PORT:-8080}"]
+CMD ["sh", "-c", "exec uvicorn mobile.api:app --host 0.0.0.0 --port ${PORT:-8080} --workers 1"]

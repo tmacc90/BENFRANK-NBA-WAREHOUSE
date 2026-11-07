@@ -13,3 +13,7 @@ omni_state/
 omni_runs/
 auto_state/
 auto_runs/
+mobile_runs/
+mobile-browser-results/
+.env
+.env.*

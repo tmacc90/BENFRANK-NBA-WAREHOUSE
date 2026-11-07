@@ -1,0 +1,17 @@
+.git
+__pycache__
+*.pyc
+*.sqlite
+*.sqlite-*
+.venv
+.env
+.env.*
+private-data
+receipts
+mobile_runs
+auto_runs
+auto_state
+omni_runs
+omni_state
+deployment_evidence
+node_modules

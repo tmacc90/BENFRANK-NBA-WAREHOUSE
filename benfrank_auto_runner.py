@@ -117,9 +117,13 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
             raise
 
     try:
+        requested_deadline = config.get('pregame_cutoff_utc')
+        if requested_deadline and instant(started) >= instant(requested_deadline):
+            raise ValueError('REQUESTED_PREGAME_CUTOFF_ALREADY_PASSED')
         if mode == 'future_discovery':
             board, discovery = stage('native_prop_discovery', lambda: discover(store, day,
-                config.get('max_props', 6), config.get('max_games', 3)))
+                config.get('max_props', 6), config.get('max_games', 3),
+                **({'requested_prop': config['requested_prop']} if config.get('requested_prop') else {})))
             games = discovery['games']; write(root / 'discovery.json', discovery)
         elif mode == 'captured_forward_board':
             board,discovery=stage('supplied_capture_and_current_schedule',lambda:captured_board(store,config))
@@ -145,6 +149,10 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
             if (type(p['line']) not in (int, float) or not math.isfinite(p['line']) or p['line'] < 0
                     or Path(p['snapshot_id']).name != p['snapshot_id'] or p['snapshot_id'] in ('.', '..')):
                 raise ValueError('INVALID_PROP_LINE_OR_SNAPSHOT_PATH')
+            if requested_deadline:
+                if instant(requested_deadline) >= instant(p['tipoff_utc']):
+                    raise ValueError('REQUESTED_PREGAME_CUTOFF_MUST_PRECEDE_TIPOFF')
+                p['requested_pregame_cutoff_utc'] = requested_deadline
         write(root / 'board.json', board)
         teams = sorted({p[k] for p in board for k in ('team', 'opponent')})
         sources, injury, identities = stage('depth_projected_roles_and_availability', lambda: capture_roles(store, teams, day))
@@ -223,6 +231,8 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
                     raise ValueError('; '.join(blockers))
                 if instant(cutoff) >= instant(p['tipoff_utc']):
                     raise ValueError('ACTUAL_INFERENCE_CUTOFF_ALREADY_AFTER_TIPOFF')
+                if requested_deadline and instant(now()) >= instant(requested_deadline):
+                    raise ValueError('REQUESTED_PREGAME_CUTOFF_PASSED_DURING_ACQUISITION')
                 game = next(g for g in games if g['game_id'] == p['game_id'])
                 base = build_context(p, game, sources, history, boxes, cutoff, injury)
                 write(folder / 'base_context.json', base)
@@ -257,9 +267,15 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
                 mark('interrogation_60', total=60, verified=result['interrogation']['verified_count'],
                      certified=result['interrogation']['certified'], receipt=str(folder / 'interrogation_60.json'))
                 result['certified'] = False
+                if requested_deadline:
+                    result['requested_pregame_cutoff_utc'] = requested_deadline
+                    if instant(now()) >= instant(requested_deadline):
+                        result['status'] = 'COMPLETED_AFTER_REQUESTED_CUTOFF_NOT_FORWARD_ELIGIBLE'
                 # Freeze the entire comparison/stress/sensitivity receipt before entering cohort.
                 save_receipt(folder / 'prediction.json', result)
                 frozen = json.loads((folder / 'prediction.json').read_text())
+                if frozen['status'] == 'COMPLETED_AFTER_REQUESTED_CUTOFF_NOT_FORWARD_ELIGIBLE':
+                    raise ValueError('SIMULATION_COMPLETED_AFTER_REQUESTED_PREGAME_CUTOFF')
                 if frozen['status'] != 'FORWARD_TEST_READY':
                     raise ValueError('SIMULATION_COMPLETED_AFTER_TIPOFF_CANNOT_FREEZE_FORWARD')
                 ledger = Path(state_dir).resolve() / 'forward_ledger.sqlite'
