@@ -18,6 +18,7 @@ from benfrank_v52_early import run_one, season_start
 from benfrank_v52_ledger import record_prediction
 from benfrank_v47_run import save_receipt
 from benfrank_v53_core import report as dna_report
+from benfrank_manual_prop import resolve_manual_forward_prop
 
 VERSION = 'BENFRANK_AUTO_ACQUIRE_TO_FREEZE_1'
 STAGES = ('exact_line_schedule', 'player_identity', 'automatic_acquisition', 'source_reconciliation',
@@ -94,7 +95,7 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
     protected = preservation_snapshot()
     started = now(); day = config['game_date']; dt.date.fromisoformat(day)
     mode = config.get('mode', 'future_discovery')
-    if mode not in ('future_discovery', 'captured_forward_board', 'historical_research'):
+    if mode not in ('future_discovery', 'captured_forward_board', 'historical_research', 'manual_forward_prop'):
         raise ValueError('UNKNOWN_AUTOMATIC_RUN_MODE')
     receipt = dict(version=VERSION, started_utc=started, mode=mode, game_date=day, stages=[], props=[],
                    config_sha256=hashlib.sha256(raw_config).hexdigest(), certified=False,
@@ -102,6 +103,7 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
                    old_warehouse_opened_for_writing=False, original_prediction_receipts_modified=False)
     store = Store(Path(state_dir).resolve())
     board = []
+    manual_roles = None
 
     def stage(name, function):
         start = now(); timer = time.monotonic()
@@ -128,6 +130,11 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
         elif mode == 'captured_forward_board':
             board,discovery=stage('supplied_capture_and_current_schedule',lambda:captured_board(store,config))
             games=discovery['games'];write(root/'discovery.json',discovery)
+        elif mode == 'manual_forward_prop':
+            board, discovery, manual_roles = stage('manual_line_with_verified_future_espn_schedule',
+                lambda: resolve_manual_forward_prop(store, config))
+            games = discovery['games']
+            write(root / 'discovery.json', discovery)
         else:
             board = config['props']
             games = stage('historical_schedule_acquisition', lambda: schedule(store, day))
@@ -155,7 +162,9 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
                 p['requested_pregame_cutoff_utc'] = requested_deadline
         write(root / 'board.json', board)
         teams = sorted({p[k] for p in board for k in ('team', 'opponent')})
-        sources, injury, identities = stage('depth_projected_roles_and_availability', lambda: capture_roles(store, teams, day))
+        sources, injury, identities = stage('depth_projected_roles_and_availability',
+            (lambda: manual_roles) if manual_roles is not None
+            else (lambda: capture_roles(store, teams, day)))
         write(root / 'sources.json', sources); write(root / 'injury.json', injury)
         identity_errors = {}
         for p in board:
@@ -204,6 +213,8 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
                 entry['stage_results'][name] = dict(status=status, **extra)
             try:
                 mark('exact_line_schedule', source=p.get('source_url', 'original branch screenshot transcription'),
+                     line_authority=p.get('line_authority', 'UNKNOWN'),
+                     native_platform_line_verified=p.get('line_authority') == 'PUBLIC_NATIVE_PRIZEPICKS_RESPONSE',
                      original_cutoff_known=bool(p.get('original_cutoff_utc')) if mode == 'historical_research' else True)
                 if sid in identity_errors:
                     raise ValueError(identity_errors[sid])
