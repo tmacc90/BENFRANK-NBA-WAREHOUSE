@@ -4,7 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       game_date:
-        description: 'NBA slate date YYYY-MM-DD (must be future for pregame forecast)'
+        default: 'today'
+        description: 'NBA slate date: today (Eastern) or YYYY-MM-DD (pregame only)'
         required: true
         type: string
       player:
@@ -61,7 +62,9 @@ jobs:
           python - <<'PY'
           import datetime as dt,json,math,os,pathlib
           from zoneinfo import ZoneInfo
-          day=dt.date.fromisoformat(os.environ['GAME_DATE'])
+          raw_day=os.environ['GAME_DATE'].strip().lower()
+          day=(dt.datetime.now(ZoneInfo('America/New_York')).date()
+               if raw_day in ('today','') else dt.date.fromisoformat(raw_day))
           if day < dt.datetime.now(ZoneInfo('America/New_York')).date():
               raise SystemExit('PAST_NBA_SLATE_DATE_NOT_ALLOWED_IN_FORWARD_MODE')
           config={'mode':'future_discovery','game_date':day.isoformat(),
