@@ -7,6 +7,18 @@ on:
         description: 'NBA slate date YYYY-MM-DD (must be future for pregame forecast)'
         required: true
         type: string
+      player:
+        description: 'Optional exact player name (enter market and line too)'
+        required: false
+        type: string
+      market:
+        description: 'Optional exact market: points/rebounds/assists/etc.'
+        required: false
+        type: string
+      line:
+        description: 'Optional exact prop line (e.g. 22.5)'
+        required: false
+        type: string
       max_props:
         description: 'Maximum native-board props to analyze (1-6)'
         required: true
@@ -42,17 +54,37 @@ jobs:
           GAME_DATE: ${{ inputs.game_date }}
           MAX_PROPS: ${{ inputs.max_props }}
           MAX_GAMES: ${{ inputs.max_games }}
+          PLAYER: ${{ inputs.player }}
+          MARKET: ${{ inputs.market }}
+          LINE: ${{ inputs.line }}
         run: |
           python - <<'PY'
-          import datetime as dt,json,os,pathlib
+          import datetime as dt,json,math,os,pathlib
+          from zoneinfo import ZoneInfo
           day=dt.date.fromisoformat(os.environ['GAME_DATE'])
-          if day < dt.datetime.now(dt.timezone.utc).date():
-              raise SystemExit('PAST_DATE_NOT_ALLOWED_IN_FORWARD_MODE')
-          pathlib.Path('free-run-config.json').write_text(json.dumps({
-              'mode':'future_discovery','game_date':day.isoformat(),
-              'max_props':int(os.environ['MAX_PROPS']),
-              'max_games':int(os.environ['MAX_GAMES'])
-          },indent=2))
+          if day < dt.datetime.now(ZoneInfo('America/New_York')).date():
+              raise SystemExit('PAST_NBA_SLATE_DATE_NOT_ALLOWED_IN_FORWARD_MODE')
+          config={'mode':'future_discovery','game_date':day.isoformat(),
+                  'max_props':int(os.environ['MAX_PROPS']),
+                  'max_games':int(os.environ['MAX_GAMES'])}
+          player=os.environ.get('PLAYER','').strip()
+          market=os.environ.get('MARKET','').strip().lower()
+          raw_line=os.environ.get('LINE','').strip()
+          if any((player,market,raw_line)):
+              if not all((player,market,raw_line)):
+                  raise SystemExit('EXACT_PROP_REQUIRES_PLAYER_MARKET_LINE')
+              try:
+                  line=float(raw_line)
+              except ValueError:
+                  raise SystemExit('EXACT_PROP_LINE_NOT_NUMERIC')
+              if not math.isfinite(line) or line<0 or line>10000:
+                  raise SystemExit('INVALID_EXACT_PROP_LINE')
+              if market not in ('points','rebounds','assists','threes','pra','pr','pa','ra',
+                                'steals','blocks','turnovers','fantasy_score'):
+                  raise SystemExit('UNSUPPORTED_MARKET')
+              config['requested_prop']={'player':player,'market':market,'line':line}
+          pathlib.Path('free-run-config.json').write_text(json.dumps(config,indent=2))
+
           PY
       - name: Execute original BENFRANK runner (no synthetic success)
         id: run
@@ -82,8 +114,15 @@ jobs:
           name: benfrank-free-run-${{ github.run_id }}
           path: |
             free-run-config.json
-            free-run-output/
-          retention-days: 30
+            free-run-output/readiness_report.md
+            free-run-output/execution_receipt.json
+            free-run-output/board.json
+            free-run-output/discovery.json
+            free-run-output/reconciliation.json
+            free-run-output/source_manifest.json
+            free-run-output/props/**/*.json
+            free-run-output/mobile_report.html
+          retention-days: 3
           if-no-files-found: warn
       - name: Mark incomplete runs as failed
         if: steps.run.outcome != 'success'
