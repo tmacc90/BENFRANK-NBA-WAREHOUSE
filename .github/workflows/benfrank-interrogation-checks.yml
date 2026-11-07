@@ -15,6 +15,8 @@ jobs:
           python-version: '3.11'
       - name: Verify interrogation integrity tests
         run: python -m unittest discover -s tests -p 'test_interrogation_60.py' -v
+      - name: Verify player-first warehouse calculations
+        run: python -m unittest discover -s tests -p 'test_player_first_warehouse.py' -v
       - name: Create six-prop pending-state audit (not prediction execution)
         run: |
           echo '{"props":[]}' > /tmp/empty-stage-results.json
