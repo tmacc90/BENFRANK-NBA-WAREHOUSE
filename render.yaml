@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: benfrank-nba-mobile
+    runtime: docker
+    dockerfilePath: ./Dockerfile.mobile
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: BENFRANK_API_TOKEN
+        sync: false
+      - key: BENFRANK_MOBILE_RUNS
+        value: /var/lib/benfrank/jobs
+    disk:
+      name: benfrank-receipts
+      mountPath: /var/lib/benfrank
+      sizeGB: 5
