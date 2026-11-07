@@ -1,5 +1,5 @@
 name: BENFRANK Free Run Framework (iPhone)
-run-name: "BENFRANK mobile free research | ${{ inputs.game_date }}"
+run-name: "BENFRANK mobile free research | ${{ inputs.game_date || 'today' }}"
 on:
   push:
     paths:
@@ -48,7 +48,7 @@ jobs:
       - name: Confirm free launcher registration
         run: echo 'BENFRANK free launcher registered; manually start Run workflow to execute predictions.'
   forecast:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
@@ -65,8 +65,8 @@ jobs:
       - name: Create source-backed discovery request
         env:
           GAME_DATE: ${{ inputs.game_date }}
-          MAX_PROPS: ${{ inputs.max_props }}
-          MAX_GAMES: ${{ inputs.max_games }}
+          MAX_PROPS: ${{ inputs.max_props || '1' }}
+          MAX_GAMES: ${{ inputs.max_games || '1' }}
           PLAYER: ${{ inputs.player }}
           MARKET: ${{ inputs.market }}
           LINE: ${{ inputs.line }}
