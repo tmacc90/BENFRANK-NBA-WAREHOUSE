@@ -11,7 +11,6 @@ import sqlite3
 import urllib.request
 from pathlib import Path
 from urllib.parse import urlparse
-from benfrank_interrogation_60 import QUESTIONS
 
 ALLOWED_HOSTS = {"site.api.espn.com", "site.web.api.espn.com",
                  "www.basketball-reference.com", "www.nba.com",
@@ -78,17 +77,16 @@ def l52(db, player_id, market, line, cutoff_date):
     if market not in MARKET_FIELDS:
         raise ValueError("UNSUPPORTED_MARKET")
     dt.date.fromisoformat(cutoff_date)
-    rows = db.execute("""SELECT game_id,game_date,points,rebounds,three_pm,
-                       COUNT(DISTINCT source_sha256) FROM player_games
+    rows = db.execute("""SELECT game_id, MAX(game_date) AS game_date FROM player_games
                        WHERE player_id=? AND game_date<?
                        GROUP BY game_id ORDER BY game_date DESC,game_id DESC""",
                        (str(player_id),cutoff_date)).fetchall()
     # Reject conflicting values across sources, rather than silently preferring one.
     valid = []
-    for game_id,date,*rest in rows:
+    for game_id,date in rows:
         variants = db.execute("""SELECT DISTINCT points,rebounds,three_pm
-            FROM player_games WHERE player_id=? AND game_id=?""",
-            (str(player_id),game_id)).fetchall()
+            FROM player_games WHERE player_id=? AND game_id=? AND game_date<?""",
+            (str(player_id),game_id,cutoff_date)).fetchall()
         if len(variants)!=1:
             continue
         stats = dict(zip(("points","rebounds","three_pm"),variants[0]))
