@@ -111,7 +111,11 @@ class Store:
                             (sha(record), record['url'], record['observed_utc'], record['reason']))
 
     def fetch(self, url, family, fetcher=download):
-        raw = fetcher(url)
+        try:
+            raw = fetcher(url)
+        except Exception as error:
+            self.failure(url, error)
+            raise ValueError('SOURCE_FETCH_FAILED:' + url + ':' + type(error).__name__ + ': ' + str(error)) from error
         return raw, self.save(url, raw, family)
 
     def cached(self, url, max_age_hours=6):

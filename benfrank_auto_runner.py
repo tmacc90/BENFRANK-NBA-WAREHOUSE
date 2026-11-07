@@ -12,7 +12,7 @@ from acquire_history import name_key
 from engine import window_summary
 from benfrank_auto_history import Store, acquire_logs, acquire_mirror, write_history, now, sha, encode, instant
 from benfrank_auto_context import (schedule, discover, capture_roles, acquire_recent_boxes,
-                                  ProfileHistory, build_context)
+                                  ProfileHistory, build_context, captured_board)
 from benfrank_auto_evidence import sensitivity, interrogation
 from benfrank_v52_early import run_one, season_start
 from benfrank_v52_ledger import record_prediction
@@ -94,7 +94,7 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
     protected = preservation_snapshot()
     started = now(); day = config['game_date']; dt.date.fromisoformat(day)
     mode = config.get('mode', 'future_discovery')
-    if mode not in ('future_discovery', 'historical_research'):
+    if mode not in ('future_discovery', 'captured_forward_board', 'historical_research'):
         raise ValueError('UNKNOWN_AUTOMATIC_RUN_MODE')
     receipt = dict(version=VERSION, started_utc=started, mode=mode, game_date=day, stages=[], props=[],
                    config_sha256=hashlib.sha256(raw_config).hexdigest(), certified=False,
@@ -121,6 +121,9 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
             board, discovery = stage('native_prop_discovery', lambda: discover(store, day,
                 config.get('max_props', 6), config.get('max_games', 3)))
             games = discovery['games']; write(root / 'discovery.json', discovery)
+        elif mode == 'captured_forward_board':
+            board,discovery=stage('supplied_capture_and_current_schedule',lambda:captured_board(store,config))
+            games=discovery['games'];write(root/'discovery.json',discovery)
         else:
             board = config['props']
             games = stage('historical_schedule_acquisition', lambda: schedule(store, day))
@@ -174,11 +177,11 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
             store.failure(official_url, error)
         cutoff = now()
         recon = stage('source_reconciliation', lambda: store.reconcile(cutoff, day,
-                      strict_observed=mode == 'future_discovery'))
+                      strict_observed=mode != 'historical_research'))
         boxes = stage('complete_prior_team_boxes', lambda: acquire_recent_boxes(store, recon['records'], teams, day))
         cutoff = now()
         recon = stage('reconciliation_after_box_crosscheck', lambda: store.reconcile(cutoff, day,
-                      strict_observed=mode == 'future_discovery'))
+                      strict_observed=mode != 'historical_research'))
         write(root / 'reconciliation.json', recon)
         write(root / 'prior_team_boxes.json', boxes)
         history_db = root / 'derived_history.sqlite'

@@ -1,0 +1,8 @@
+{
+  "family": "PRIZEPICKS_NATIVE_PUBLIC",
+  "file": "raw/eefba1468d6969feed3a62ba4d893c200c30be0694e89dc77a530b81d0a306f1.bin",
+  "id": "61747f62f2e9cfb371d9478ea9f2abdde533af924241fc88c42c2a0b1fb3437b",
+  "retrieved_utc": "2026-11-07T02:55:01.972875+00:00",
+  "sha256": "eefba1468d6969feed3a62ba4d893c200c30be0694e89dc77a530b81d0a306f1",
+  "url": "https://api.prizepicks.com/projections?league_id=7&per_page=250&single_stat=true"
+}

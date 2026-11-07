@@ -103,3 +103,26 @@ career coverage, complete shot/defender tracking or platform-native settlement.
 NBA CDN access failures, partial provider coverage and unresolved disagreements
 are reported with actual source evidence. An expired forward configuration must
 be advanced to a new real future slate, never backdated.
+
+## Supplied captured-board execution in CI
+
+The initial published Actions run retrieved ESPN's schedule but received HTTP
+403 from the native PrizePicks endpoint. The captured-board input route accepts
+the already lawfully acquired public response in `data/board_captures/`, verifies
+the original bytes and receipt hashes, and retains the original retrieval clock.
+The current ESPN schedule, depth, injury and player-history inputs are still
+acquired normally. An actual current import clock and a new revision ID are
+recorded; neither a line capture nor a prediction is backdated. Captures older
+than 24 hours and games already at tipoff are rejected.
+
+`scripts/run_auto_ci.py` attempts live discovery first. It uses the supplied
+capture only for the specifically documented native-provider HTTP 403. Other
+acquisition or model failures remain failures. The CI route receipt explicitly
+retains `BLOCKED_NATIVE_PROVIDER_HTTP_403` and
+`current_native_line_recheck: false`, even if the full captured-board model run
+succeeds. A green captured-board job is not proof of working live discovery.
+
+```bash
+python run_framework.py --auto configs/auto_captured_forward_20261107.json \
+  --state-dir auto_state --output auto_runs/NEW_CAPTURED_BOARD_RUN
+```

@@ -7,6 +7,7 @@ import json
 import sqlite3
 import tempfile
 import unittest
+import urllib.error
 from pathlib import Path
 from unittest.mock import patch
 
@@ -15,7 +16,8 @@ from benfrank_auto_runner import historical_windows, run
 from benfrank_auto_evidence import sensitivity, verify_trace, reproduce_trace_samples
 from benfrank_v52_blind import run as blind_run
 from benfrank_v52_early import simulate, early_context
-from benfrank_auto_context import build_context
+from benfrank_auto_context import build_context, captured_board
+from benfrank_auto_history import PP, sha
 from test_v52_early import fixture
 
 
@@ -34,6 +36,55 @@ def observation(points=15):
 
 
 class AcquisitionTests(unittest.TestCase):
+    def test_single_source_failure_keeps_exact_url_and_http_reason(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            s=Store(tmp)
+            def denied(url):raise urllib.error.HTTPError(url,403,'Forbidden',{},None)
+            with self.assertRaisesRegex(ValueError,'SOURCE_FETCH_FAILED:.*prizepicks.*403'):
+                s.fetch(PP,'PRIZEPICKS_NATIVE_PUBLIC',fetcher=denied)
+            self.assertEqual(s.manifest()['failures'][0]['url'],PP);s.db.close()
+
+    def test_supplied_board_retains_capture_clock_and_rejects_tampering(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            s=Store(Path(tmp)/'state')
+            doc=dict(data=[dict(id='77',attributes=dict(odds_type='standard',status='pre_game',
+                stat_type='Points',description='NYK',start_time='2026-11-01T23:00:00Z',
+                updated_at='2026-11-01T10:00:00Z',line_score=20.5),
+                relationships={'new_player':{'data':{'type':'new_player','id':'9'}}})],
+                included=[dict(type='new_player',id='9',attributes=dict(name='Example Player',team='BOS',league='NBA',combo=False))])
+            raw=json.dumps(doc).encode();meta=s.save(PP,raw,'PRIZEPICKS_NATIVE_PUBLIC','2026-11-01T11:00:00Z')
+            gz=Path(tmp)/'capture.gz';gz.write_bytes(gzip.compress(raw))
+            rp=Path(tmp)/'receipt.json';rp.write_text(json.dumps(meta))
+            cfg=dict(game_date='2026-11-01',capture_gzip=str(gz),capture_receipt=str(rp))
+            games=[dict(home='BOS',away='NYK',game_id='espn:123456789',espn_event_id='123456789',
+                        tipoff_utc='2026-11-01T23:00:00Z',status=dict(state='pre'))]
+            with patch('benfrank_auto_context.now',return_value='2026-11-01T12:00:00Z'),patch('benfrank_auto_context.schedule',return_value=games):
+                board,audit=captured_board(s,cfg)
+                self.assertEqual(board[0]['line_capture_utc'],'2026-11-01T11:00:00Z')
+                self.assertEqual(board[0]['source_capture_imported_utc'],'2026-11-01T12:00:00Z')
+                self.assertFalse(audit['current_native_line_recheck'])
+                gz.write_bytes(gzip.compress(b'{}'))
+                with self.assertRaisesRegex(ValueError,'BYTES_HASH_CONFLICT'):captured_board(s,cfg)
+            s.db.close()
+
+    def test_ci_fallback_only_accepts_the_exact_native_provider_403(self):
+        from scripts.run_auto_ci import execute
+        with tempfile.TemporaryDirectory() as tmp:
+            live=dict(status='INCOMPLETE',fatal_blocker='ValueError: SOURCE_FETCH_FAILED:'+PP+':HTTPError: HTTP Error 403: Forbidden')
+            captured=dict(status='FORWARD_RESEARCH_EXECUTED')
+            with patch('scripts.run_auto_ci.run',side_effect=[(live,2),(captured,0)]) as mocked,patch('scripts.run_auto_ci.verify',return_value=dict(predictions=4)):
+                self.assertEqual(execute('live.json','capture.json',Path(tmp)/'ok',Path(tmp)/'state'),0)
+                self.assertEqual(mocked.call_count,2)
+            with patch('scripts.run_auto_ci.run',return_value=(dict(status='INCOMPLETE',fatal_blocker='MODEL_ERROR'),2)) as mocked:
+                self.assertEqual(execute('live.json','capture.json',Path(tmp)/'blocked',Path(tmp)/'state'),2)
+                self.assertEqual(mocked.call_count,1)
+
+    def test_stale_or_post_tipoff_source_capture_is_not_forward_input(self):
+        from benfrank_auto_context import parse_projection_capture
+        meta=dict(retrieved_utc='2026-11-01T11:00:00Z')
+        with self.assertRaisesRegex(ValueError,'STALE_OR_FUTURE'):
+            parse_projection_capture(b'{}',meta,[],observed_at='2026-11-02T12:00:00Z')
+
     def test_end_year_regular_season_and_shooting_conservation(self):
         rows, rejected = parse_gamelog(log_document(), 'Example Player', '12', 2027)
         self.assertEqual(rejected, []); self.assertEqual(len(rows), 1)

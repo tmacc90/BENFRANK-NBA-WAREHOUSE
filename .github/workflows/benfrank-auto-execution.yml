@@ -9,6 +9,8 @@ on:
       - 'run_framework.py'
       - 'configs/auto_*.json'
       - 'tests/test_auto_workflow.py'
+      - 'scripts/run_auto_ci.py'
+      - 'data/board_captures/**'
       - '.github/workflows/benfrank-auto-execution.yml'
   workflow_dispatch:
     inputs:
@@ -50,14 +52,12 @@ jobs:
           python-version: '3.11'
           cache: pip
       - run: python -m pip install -r requirements.txt
-      - name: Acquire, reconcile, simulate and freeze native future lines
+      - name: Execute live discovery or explicitly supplied captured-board research
         env:
           FORWARD_CONFIG: ${{ inputs.forward_config || 'configs/auto_future_20261107.json' }}
         run: |
           set -o pipefail
-          python -u run_framework.py --auto "$FORWARD_CONFIG" --state-dir auto_state --output auto_runs/forward-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} 2>&1 | tee forward-execution.log
-      - name: Independently inspect trace and pregame ledger receipts
-        run: python scripts/verify_auto_run.py --run auto_runs/forward-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} --state auto_state
+          python -u scripts/run_auto_ci.py --config "$FORWARD_CONFIG" --capture-config configs/auto_captured_forward_20261107.json --state auto_state --output auto_runs/forward-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT} 2>&1 | tee forward-execution.log
       - name: Retain raw sources, failures, histories, all trials and frozen ledger
         if: always()
         uses: actions/upload-artifact@v4

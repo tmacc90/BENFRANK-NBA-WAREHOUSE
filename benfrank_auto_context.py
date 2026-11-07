@@ -3,6 +3,9 @@ import collections
 import datetime as dt
 import json
 import statistics
+import gzip
+import hashlib
+from pathlib import Path
 
 from acquire_history import name_key, team_key
 from benfrank_auto_history import BASE, PP, ET, now, sha, instant, season_for_date
@@ -41,10 +44,17 @@ def schedule(store, day):
 def discover(store, day, max_props=6, max_games=3):
     games = schedule(store, day)
     raw, meta = store.fetch(PP, 'PRIZEPICKS_NATIVE_PUBLIC')
+    return parse_projection_capture(raw, meta, games, max_props, max_games)
+
+
+def parse_projection_capture(raw, meta, games, max_props=6, max_games=3, observed_at=None):
     data = json.loads(raw)
     included = {(x['type'], str(x['id'])): x for x in data.get('included', [])}
     candidates, rejected = [], collections.Counter()
     clock = instant(meta['retrieved_utc'])
+    actual_clock = instant(observed_at or now())
+    if not 0 <= (actual_clock - clock).total_seconds() <= 24 * 3600:
+        raise ValueError('STALE_OR_FUTURE_CAPTURED_BOARD')
     for projection in data.get('data', []):
         try:
             a = projection['attributes']
@@ -64,13 +74,13 @@ def discover(store, day, max_props=6, max_games=3):
             team, opponent = team_key(player['team']), team_key(a['description'])
             matches = [g for g in games if {g['home'], g['away']} == {team, opponent}
                        and abs((instant(g['tipoff_utc']) - instant(a['start_time'])).total_seconds()) <= 60
-                       and instant(g['tipoff_utc']) > clock and g['status'].get('state') == 'pre']
+                       and instant(g['tipoff_utc']) > actual_clock and g['status'].get('state') == 'pre']
             if len(matches) != 1:
                 rejected['NO_UNIQUE_FUTURE_SCHEDULE_MATCH'] += 1
                 continue
             game = matches[0]
             prop = dict(player=player['name'], market=market, line=a['line_score'], team=team,
-                        opponent=opponent, game_date=day, tipoff_utc=game['tipoff_utc'],
+                        opponent=opponent, game_date=instant(game['tipoff_utc']).astimezone(ET).date().isoformat(), tipoff_utc=game['tipoff_utc'],
                         game_id=game['game_id'], espn_event_id=game['espn_event_id'], platform='PrizePicks',
                         line_capture_utc=meta['retrieved_utc'], native_platform_line_capture_utc=meta['retrieved_utc'],
                         source_url=meta['url'], source_document=meta['id'], source_sha256=meta['sha256'],
@@ -100,6 +110,34 @@ def discover(store, day, max_props=6, max_games=3):
     return selected, dict(source=meta, eligible=len(candidates), selected=len(selected),
                           rejected=dict(rejected), sampling='EARLIEST_GAMES_TWO_DISTINCT_PLAYERS_POINTS_PRIORITY',
                           games=games)
+
+
+def captured_board(store, config):
+    """Import a supplied source capture. This never claims a current API recheck."""
+    day=config['game_date'];imported_at=now()
+    receipt=json.loads(Path(config['capture_receipt']).read_text())
+    if receipt['url']!=PP or receipt['family']!='PRIZEPICKS_NATIVE_PUBLIC':
+        raise ValueError('CAPTURE_SOURCE_IDENTITY_CONFLICT')
+    raw=gzip.decompress(Path(config['capture_gzip']).read_bytes())
+    if len(raw)>25_000_000 or hashlib.sha256(raw).hexdigest()!=receipt['sha256']:
+        raise ValueError('CAPTURED_BOARD_BYTES_HASH_CONFLICT')
+    original={k:receipt[k] for k in ('url','family','retrieved_utc','sha256','file')}
+    if sha(original)!=receipt['id']:
+        raise ValueError('CAPTURE_RECEIPT_HASH_CONFLICT')
+    # The original clock belongs to the supplied capture. Import and prediction
+    # clocks stay current and are retained separately; nothing is backdated.
+    meta=store.save(PP,raw,receipt['family'],receipt['retrieved_utc'])
+    games=schedule(store,day)
+    board,report=parse_projection_capture(raw,meta,games,config.get('max_props',6),
+                                           config.get('max_games',3),observed_at=imported_at)
+    for prop in board:
+        prop['source_capture_snapshot_id']=prop['snapshot_id']
+        prop['snapshot_id']='captured_'+sha([prop['snapshot_id'],imported_at])[:24]
+        prop['line_authority']='CAPTURED_NATIVE_BOARD_NOT_CURRENT_LINE_RECHECK'
+        prop['source_capture_imported_utc']=imported_at
+    report.update(source_route='SUPPLIED_HASH_VERIFIED_CAPTURE',actual_imported_utc=imported_at,
+                  original_capture_utc=receipt['retrieved_utc'],current_native_line_recheck=False)
+    return board,report
 
 
 def capture_roles(store, teams, day):

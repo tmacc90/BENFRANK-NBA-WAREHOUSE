@@ -1,0 +1,10 @@
+{
+  "mode": "captured_forward_board",
+  "game_date": "2026-11-07",
+  "max_props": 6,
+  "max_games": 3,
+  "max_seasons": 3,
+  "capture_gzip": "data/board_captures/native_public_20261107.json.gz",
+  "capture_receipt": "data/board_captures/native_public_20261107.receipt.json",
+  "purpose": "Source-hashed supplied pregame board research, never a current PrizePicks line recheck"
+}
