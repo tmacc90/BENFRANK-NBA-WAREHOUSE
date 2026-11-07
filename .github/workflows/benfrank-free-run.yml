@@ -9,16 +9,16 @@ on:
         required: true
         type: string
       player:
-        description: 'Optional exact player name (enter market and line too)'
-        required: false
+        description: 'Player name (copy from your prop screenshot)'
+        required: true
         type: string
       market:
-        description: 'Optional exact market: points/rebounds/assists/etc.'
-        required: false
+        description: 'Market: points/rebounds/assists/etc.'
+        required: true
         type: string
       line:
-        description: 'Optional exact prop line (e.g. 22.5)'
-        required: false
+        description: 'Exact line copied from screenshot (e.g. 22.5)'
+        required: true
         type: string
       max_props:
         description: 'Maximum native-board props to analyze (1-6)'
@@ -67,15 +67,15 @@ jobs:
                if raw_day in ('today','') else dt.date.fromisoformat(raw_day))
           if day < dt.datetime.now(ZoneInfo('America/New_York')).date():
               raise SystemExit('PAST_NBA_SLATE_DATE_NOT_ALLOWED_IN_FORWARD_MODE')
-          config={'mode':'future_discovery','game_date':day.isoformat(),
+          config={'mode':'manual_forward_prop','game_date':day.isoformat(),
                   'max_props':int(os.environ['MAX_PROPS']),
                   'max_games':int(os.environ['MAX_GAMES'])}
           player=os.environ.get('PLAYER','').strip()
           market=os.environ.get('MARKET','').strip().lower()
           raw_line=os.environ.get('LINE','').strip()
-          if any((player,market,raw_line)):
-              if not all((player,market,raw_line)):
-                  raise SystemExit('EXACT_PROP_REQUIRES_PLAYER_MARKET_LINE')
+          if not all((player,market,raw_line)):
+              raise SystemExit('MANUAL_EXACT_PROP_REQUIRED_PRIZEPICKS_PUBLIC_ENDPOINT_RETURNED_403')
+          if all((player,market,raw_line)):
               try:
                   line=float(raw_line)
               except ValueError:
@@ -85,7 +85,7 @@ jobs:
               if market not in ('points','rebounds','assists','threes','pra','pr','pa','ra',
                                 'steals','blocks','turnovers','fantasy_score'):
                   raise SystemExit('UNSUPPORTED_MARKET')
-              config['requested_prop']={'player':player,'market':market,'line':line}
+              config['manual_prop']={'player':player,'market':market,'line':line}
           pathlib.Path('free-run-config.json').write_text(json.dumps(config,indent=2))
 
           PY
