@@ -128,9 +128,13 @@ jobs:
             free-run-output/execution_receipt.json
             free-run-output/board.json
             free-run-output/discovery.json
-            free-run-output/reconciliation.json
+
             free-run-output/source_manifest.json
-            free-run-output/props/**/*.json
+            free-run-output/props/*/stage_receipt.json
+            free-run-output/props/*/historical_windows.json
+            free-run-output/props/*/interrogation_60.json
+            free-run-output/props/*/blocked_interrogation_60.json
+            free-run-output/props/*/prediction.json
             free-run-output/mobile_report.html
           retention-days: 3
           if-no-files-found: warn
