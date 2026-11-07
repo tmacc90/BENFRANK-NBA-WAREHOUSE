@@ -8,7 +8,7 @@ The existing Python engine runs inside a standard GitHub-hosted `ubuntu-latest` 
 1. Sign into GitHub.com in **Safari** (use **Request Desktop Website** if the Actions controls are hidden).
 2. Open https://github.com/tmacc90/BENFRANK-NBA-WAREHOUSE/actions/workflows/benfrank-free-launcher.yml
 3. Choose **Run workflow**. The launcher runs the preserved BENFRANK prediction engine from branch `benfrank-60-question-interrogation-20261106`, **without merging** that branch into `main`.
-4. Enter the **NBA slate date (Eastern Time)** using YYYY-MM-DD.
+4. Leave **NBA slate date = today** for the current Eastern-time slate, or enter YYYY-MM-DD for a later slate.
 5. Optional: Enter **Player**, **Market**, and **Exact line** together. Example: `Example Player`, `points`, `22.5`. Omit all three to use native-board discovery with the max props/game options.
 6. Tap **Run workflow**.
 7. Open the run to read executed steps. A blocked source or missing model receipt is a *failed/incomplete* execution, not a successful prediction.
