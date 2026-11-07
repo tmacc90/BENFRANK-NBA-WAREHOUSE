@@ -9,7 +9,7 @@ The existing Python engine runs inside a standard GitHub-hosted `ubuntu-latest` 
 2. Open https://github.com/tmacc90/BENFRANK-NBA-WAREHOUSE/actions/workflows/benfrank-free-launcher.yml
 3. Choose **Run workflow**. The launcher runs the preserved BENFRANK prediction engine from branch `benfrank-60-question-interrogation-20261106`, **without merging** that branch into `main`.
 4. Leave **NBA slate date = today** for the current Eastern-time slate, or enter YYYY-MM-DD for a later slate.
-5. Optional: Enter **Player**, **Market**, and **Exact line** together. Example: `Example Player`, `points`, `22.5`. Omit all three to use native-board discovery with the max props/game options.
+5. Required: Enter **Player**, **Market**, and **Exact line** together. Example: `Example Player`, `points`, `22.5`. Omit all three to use native-board discovery with the max props/game options.
 6. Tap **Run workflow**.
 7. Open the run to read executed steps. A blocked source or missing model receipt is a *failed/incomplete* execution, not a successful prediction.
 8. Under **Artifacts**, download `benfrank-free-run-...`. Open `free-run-output/mobile_report.html` on your iPhone, and keep `execution_receipt.json` for an auditable outcome.
@@ -18,9 +18,9 @@ The report is rendered strictly from real engine execution receipts. It never ma
 
 ## What the workflow does
 
-- Uses the **existing** `run_framework.py --auto` engine, not a replacement mock predictor.
-- Selects a future NBA slate, automatically captures the public native prop board and requests free ESPN / independent historical data according to the existing source pipeline.
-- When an exact player/market/line is provided, it must be found on the **current public native board** or the run fails with `REQUESTED_EXACT_PROP_NOT_ON_CURRENT_NATIVE_BOARD`. It never silently substitutes another line.
+- Uses the **existing** `run_framework.py --auto` engine in `manual_forward_prop` mode, not a replacement mock predictor.
+- Selects a future NBA slate and resolves your manually entered player against ESPN scheduled games and published depth charts. It then requests free ESPN / independent historical data through the existing source pipeline.
+- The PrizePicks public API returned HTTP 403 in a verified GitHub Actions run on November 7, 2026. The manual path **does not call that endpoint**. The submitted line is user-entered, **not independently verified as an available PrizePicks line**. Team, player and future matchup must resolve from ESPN or the run fails without guessing.
 - Attempts the existing L5/L10/L15/L20/L25/L32/L52 histories, player identity reconciliation, matchup/role evidence, **25,000 main trials per prop**, separate stress runs, Blind model, 60-question check, and pregame freeze.
 - Writes an execution receipt with specific blockers and stage evidence, plus an offline phone-readable HTML report.
 - Uses `workflow_dispatch` only. It does **not** auto-run every day or incur scheduled resource consumption.
