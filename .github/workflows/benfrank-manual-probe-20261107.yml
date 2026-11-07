@@ -41,6 +41,12 @@ jobs:
         continue-on-error: true
         run: |
           python run_framework.py --auto probe-request.json --output probe-output --state-dir probe-state --trials 25000 --stress-trials 2000
+      - name: Independently verify source bytes, trace chains, and frozen ledger
+        id: verify
+        if: steps.predict.outcome == 'success'
+        run: |
+          python scripts/verify_auto_run.py --run probe-output --state probe-state > probe-output/verification.json
+          cat probe-output/verification.json
       - name: Print actual stage-by-stage result and blockers
         if: always()
         run: |
@@ -83,6 +89,11 @@ jobs:
             probe-output/gamelog_acquisition.json
             probe-output/archive_acquisition.json
             probe-output/source_manifest.json
+            probe-output/reconciliation.json
+            probe-output/verification.json
+            probe-output/props/*/trials/*.jsonl.gz
+            probe-output/props/*/interrogation_60.json
+            probe-output/props/*/dna_100.json
             probe-output/props/*/stage_receipt.json
             probe-output/props/*/historical_windows.json
             probe-output/props/*/prediction.json
@@ -90,5 +101,5 @@ jobs:
           retention-days: 3
           if-no-files-found: warn
       - name: Fail incomplete pipelines without hiding exact blocker
-        if: steps.predict.outcome != 'success'
+        if: steps.predict.outcome != 'success' || steps.verify.outcome != 'success'
         run: exit 1
