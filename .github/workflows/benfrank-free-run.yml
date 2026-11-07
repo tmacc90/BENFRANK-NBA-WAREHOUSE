@@ -1,0 +1,90 @@
+name: BENFRANK Free Run Framework
+run-name: "BENFRANK free research | ${{ inputs.game_date }}"
+on:
+  workflow_dispatch:
+    inputs:
+      game_date:
+        description: 'NBA slate date YYYY-MM-DD (must be future for pregame forecast)'
+        required: true
+        type: string
+      max_props:
+        description: 'Maximum native-board props to analyze (1-6)'
+        required: true
+        default: '2'
+        type: choice
+        options: ['1', '2', '4', '6']
+      max_games:
+        description: 'Maximum NBA games (1-3)'
+        required: true
+        default: '2'
+        type: choice
+        options: ['1', '2', '3']
+permissions:
+  contents: read
+concurrency:
+  group: benfrank-free-run
+  cancel-in-progress: false
+jobs:
+  forecast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install existing free-source framework dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Create source-backed discovery request
+        env:
+          GAME_DATE: ${{ inputs.game_date }}
+          MAX_PROPS: ${{ inputs.max_props }}
+          MAX_GAMES: ${{ inputs.max_games }}
+        run: |
+          python - <<'PY'
+          import datetime as dt,json,os,pathlib
+          day=dt.date.fromisoformat(os.environ['GAME_DATE'])
+          if day < dt.datetime.now(dt.timezone.utc).date():
+              raise SystemExit('PAST_DATE_NOT_ALLOWED_IN_FORWARD_MODE')
+          pathlib.Path('free-run-config.json').write_text(json.dumps({
+              'mode':'future_discovery','game_date':day.isoformat(),
+              'max_props':int(os.environ['MAX_PROPS']),
+              'max_games':int(os.environ['MAX_GAMES'])
+          },indent=2))
+          PY
+      - name: Execute original BENFRANK runner (no synthetic success)
+        id: run
+        continue-on-error: true
+        run: |
+          python run_framework.py --auto free-run-config.json --output free-run-output --state-dir free-run-state --trials 25000 --stress-trials 2000
+      - name: Print exact blockers and evidence summary
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,pathlib
+          p=pathlib.Path('free-run-output/execution_receipt.json')
+          if not p.exists():
+              print('NO_EXECUTION_RECEIPT: runner failed before creating receipt')
+          else:
+              r=json.loads(p.read_text())
+              print('STATUS:',r.get('status'))
+              print('FATAL:',r.get('fatal_blocker'))
+              print('FROZEN:',r.get('predictions_frozen_before_tipoff'))
+              for x in r.get('props',[]):
+                  print(x.get('prop',{}).get('player'),x.get('direction'),x.get('status'),x.get('exact_blocker'))
+          PY
+      - name: Upload report, receipts, sources, and model evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benfrank-free-run-${{ github.run_id }}
+          path: |
+            free-run-config.json
+            free-run-output/
+          retention-days: 30
+          if-no-files-found: warn
+      - name: Mark incomplete runs as failed
+        if: steps.run.outcome != 'success'
+        run: exit 1
