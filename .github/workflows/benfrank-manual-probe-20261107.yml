@@ -1,0 +1,94 @@
+name: BENFRANK manual free-source forward pipeline probe
+on:
+  push:
+    paths:
+      - '.github/workflows/benfrank-manual-probe-20261107.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  one-prop-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install free-source dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Prepare explicitly unverified research line
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          Path("probe-request.json").write_text(json.dumps({
+            "mode": "manual_forward_prop",
+            "game_date": "2026-11-07",
+            "max_seasons": 3,
+            "manual_prop": {
+              "player": "Aaron Gordon",
+              "market": "points",
+              "line": 13.5,
+              "team": "DEN",
+              "opponent": "IND"
+            },
+            "research_note": "Historic local sample input; this is NOT a currently verified PrizePicks offer."
+          }, indent=2))
+          PY
+      - name: Run actual BENFRANK automatic historical and 25K pipeline
+        id: predict
+        continue-on-error: true
+        run: |
+          python run_framework.py --auto probe-request.json --output probe-output --state-dir probe-state --trials 25000 --stress-trials 2000
+      - name: Print actual stage-by-stage result and blockers
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('probe-output/execution_receipt.json')
+          if not p.exists():
+              print('NO_EXECUTION_RECEIPT')
+          else:
+              d=json.loads(p.read_text())
+              print('STATUS:',d.get('status'))
+              print('FATAL:',d.get('fatal_blocker'))
+              print('FROZEN:',d.get('predictions_frozen_before_tipoff'))
+              for prop in d.get('props',[]):
+                  print('PROP:',prop.get('prop'))
+                  print('STATUS:',prop.get('status'))
+                  print('BLOCKER:',prop.get('exact_blocker'))
+                  for name,stage in prop.get('stage_results',{}).items():
+                      print('STAGE:',name,stage.get('status'),stage.get('exact_reason'))
+          PY
+      - name: Build receipt-only mobile page
+        if: always()
+        run: |
+          if [ -f probe-output/execution_receipt.json ]; then
+            python scripts/build_free_mobile_report.py --input probe-output/execution_receipt.json --output probe-output/mobile_report.html
+          fi
+      - name: Upload evidence and blocked report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benfrank-manual-probe-${{ github.run_id }}
+          path: |
+            probe-request.json
+            probe-output/readiness_report.md
+            probe-output/execution_receipt.json
+            probe-output/board.json
+            probe-output/resolved_board.json
+            probe-output/discovery.json
+            probe-output/gamelog_acquisition.json
+            probe-output/archive_acquisition.json
+            probe-output/source_manifest.json
+            probe-output/props/*/stage_receipt.json
+            probe-output/props/*/historical_windows.json
+            probe-output/props/*/prediction.json
+            probe-output/mobile_report.html
+          retention-days: 3
+          if-no-files-found: warn
+      - name: Fail incomplete pipelines without hiding exact blocker
+        if: steps.predict.outcome != 'success'
+        run: exit 1
