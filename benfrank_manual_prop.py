@@ -56,8 +56,7 @@ def resolve_manual_forward_prop(store, config):
     if not upcoming:
         raise ValueError('NO_FUTURE_SCHEDULE_MATCH_FOR_TEAM_HINTS')
 
-    lookup_teams = sorted({team for g in upcoming for team in ('home', 'away')
-                           for team in (g[team],)})
+    lookup_teams = sorted({g[side] for g in upcoming for side in ('home', 'away')})
     sources, injury, identities = capture_roles(store, lookup_teams, day)
     matches = []
     for game in upcoming:
