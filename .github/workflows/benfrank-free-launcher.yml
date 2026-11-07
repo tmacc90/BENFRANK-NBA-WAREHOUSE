@@ -1,6 +1,9 @@
 name: BENFRANK Free Run Framework (iPhone)
 run-name: "BENFRANK mobile free research | ${{ inputs.game_date }}"
 on:
+  push:
+    paths:
+      - '.github/workflows/benfrank-free-launcher.yml'
   workflow_dispatch:
     inputs:
       game_date:
@@ -38,7 +41,14 @@ concurrency:
   group: benfrank-free-run
   cancel-in-progress: false
 jobs:
+  registration:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm free launcher registration
+        run: echo 'BENFRANK free launcher registered; manually start Run workflow to execute predictions.'
   forecast:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
