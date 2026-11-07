@@ -107,6 +107,14 @@ jobs:
               for x in r.get('props',[]):
                   print(x.get('prop',{}).get('player'),x.get('direction'),x.get('status'),x.get('exact_blocker'))
           PY
+      - name: Produce offline iPhone and iPad report from receipts
+        if: always()
+        run: |
+          if [ -f free-run-output/execution_receipt.json ]; then
+            python scripts/build_free_mobile_report.py --input free-run-output/execution_receipt.json --output free-run-output/mobile_report.html
+          else
+            echo "No receipt available to render; the workflow remains failed."
+          fi
       - name: Upload report, receipts, sources, and model evidence
         if: always()
         uses: actions/upload-artifact@v4
