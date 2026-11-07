@@ -1,0 +1,784 @@
+{
+  "schema": "BENFRANK_MOBILE_DEPLOYMENT_VALIDATION_1",
+  "generated_utc": "2026-11-07T17:54:06.618594+00:00",
+  "repository": "tmacc90/BENFRANK-NBA-WAREHOUSE",
+  "branch": "benfrank-60-question-interrogation-20261106",
+  "code_commit": "d4297a3100fb5b1318728be893451d534372cce3",
+  "main_merged": false,
+  "deployment": {
+    "status": "BLOCKED_NOT_CREATED",
+    "working_url": null,
+    "render_secret_present_in_session": false,
+    "paid_plan_approved": false,
+    "requested_service": "benfrank-nba-mobile",
+    "blueprint": "render.yaml",
+    "blueprint_official_json_schema_valid": true,
+    "compute_plan": "starter",
+    "compute_base_usd_month": 7,
+    "disk_gb": 5,
+    "disk_base_usd_month": 1.25,
+    "total_base_usd_month": 8.25,
+    "price_excludes": "Taxes, workspace charges and usage beyond included allowances",
+    "persistent_mount": "/var/lib/benfrank",
+    "authentication": "Generated 256-bit bearer token; API auth before body parsing; browser same origin",
+    "remaining_deployment_checks": [
+      "Render account access",
+      "Owner paid-hosting approval",
+      "Render build and live HTTPS URL",
+      "Real device opening of deployed URL",
+      "Authenticated future prop execution on Render",
+      "Render disk restart persistence"
+    ],
+    "render_tools_enabled_in_session": false,
+    "render_api_probe_without_credentials_http_status": 401
+  },
+  "software_tests": {
+    "local_python": "3.12",
+    "local_suite_count": 377,
+    "local_suite_passed": true,
+    "baseline_preserved_suite_count": 361,
+    "new_api_tests": 16,
+    "browser_emulation": "PASSED_IN_GITHUB_ACTIONS",
+    "physical_apple_hardware_tested": false,
+    "local_browser_blocker": "Required WebKit system libraries unavailable; root installation denied",
+    "browser_receipt": {
+      "status": "PASSED",
+      "checks": [
+        {
+          "device": "iPhone 13",
+          "browser": "WebKit",
+          "mode": "EMULATION_ONLY",
+          "layout_no_horizontal_overflow": true,
+          "authentication_rejection": true,
+          "job_submission_and_terminal_status": true,
+          "receipt_and_zip_download": true,
+          "token_not_retained_after_reload": true,
+          "job_resume": true,
+          "actual_verified_prediction_displayed": false,
+          "javascript_errors": []
+        },
+        {
+          "device": "iPad Pro 11",
+          "browser": "WebKit",
+          "mode": "EMULATION_ONLY",
+          "layout_no_horizontal_overflow": true,
+          "authentication_rejection": true,
+          "job_submission_and_terminal_status": true,
+          "receipt_and_zip_download": true,
+          "token_not_retained_after_reload": true,
+          "job_resume": true,
+          "actual_verified_prediction_displayed": false,
+          "javascript_errors": []
+        }
+      ],
+      "render_deployment_tested": false,
+      "physical_iphone_or_ipad_tested": false
+    },
+    "github_python": "3.11",
+    "docker_image_build": "PASSED_IN_GITHUB_ACTIONS",
+    "container_persistent_mount_and_authenticated_routes": "PASSED_IN_GITHUB_ACTIONS"
+  },
+  "actual_future_prop": {
+    "job_id": "9592a26a5a0e45df92409dbaaa04531a",
+    "player": "Aaron Gordon",
+    "sport": "NBA",
+    "market": "points",
+    "line": 13.5,
+    "teams": "DEN at IND",
+    "espn_event_id": "401909938",
+    "tipoff_utc": "2026-11-07T22:00Z",
+    "tipoff_pacific": "2026-11-07T14:00:00-08:00",
+    "submitted_utc": "2026-11-07T17:41:17.467470+00:00",
+    "completed_utc": "2026-11-07T17:43:26.799771+00:00",
+    "analysis_cutoff_utc": "2026-11-07T17:42:51.523858+00:00",
+    "requested_cutoff_utc": "2026-11-07T21:45:00+00:00",
+    "execution_status": "FORWARD_RESEARCH_EXECUTED",
+    "receipt_verified": true,
+    "served_from": "LOCAL_API_NOT_RENDER",
+    "execution_receipt_sha256": "a31617834cae29162fe2b1abe780af00e2245aa260ea961a5dc9b5f4010d5ec5",
+    "prediction_receipt_sha256": "de1f55500a4f6970a3f5ab8ac30e0bcfe1d42a35d97bf1bf7bb004e89b99fd16",
+    "preservation_verified": true,
+    "main_trials": 25000,
+    "stress_trials": {
+      "HIGH_MINUTES_HOT_CONVERSION_PROXY": 2000,
+      "P25_MINUTES_CONVERSION_PROXY": 2000
+    },
+    "total_complete_simulated_games": 29000,
+    "trial_evidence": {
+      "main": {
+        "compressed_file_sha256": "7587fe023a38f3e3e6090cea2affeb35c75c1bbe522ac9b5960b9dc79210d1a3",
+        "counts": {
+          "OVER": 13570,
+          "UNDER": 7147,
+          "VOID": 4283
+        },
+        "input_sha256": "544a1bf110af62c780d700b6480de1f2cb47812f8d69b4864259423b833de93c",
+        "meaning": "Trace sequence, seeds, outcomes and final-score integrity reproduced; not accuracy certification",
+        "seed": 2625412471,
+        "trace_file": "/workspace/scratch/4772bcf711ad/deployment_evidence/actual_mobile_jobs/9592a26a5a0e45df92409dbaaa04531a/execution/props/auto_ffaeeb654003ee93761ec70a/trials/main.jsonl.gz",
+        "trials_executed": 25000,
+        "trials_sha256": "5266590a9b13c7b2580d71f9d776cc8079d0580204a2dd718ed36464fd29e9cd",
+        "verified": true
+      },
+      "HIGH_MINUTES_HOT_CONVERSION_PROXY": {
+        "compressed_file_sha256": "adf0be65feb82f6ae8100260e9c7f6b5ce4d616471782b26878837154aa410cd",
+        "counts": {
+          "OVER": 1349,
+          "UNDER": 244,
+          "VOID": 407
+        },
+        "input_sha256": "8502de3a4ad0c46b6d71ad1116a4137fceebbb0778d74b130241e8bae0f27230",
+        "meaning": "Trace sequence, seeds, outcomes and final-score integrity reproduced; not accuracy certification",
+        "seed": 2625425190,
+        "trace_file": "/workspace/scratch/4772bcf711ad/deployment_evidence/actual_mobile_jobs/9592a26a5a0e45df92409dbaaa04531a/execution/props/auto_ffaeeb654003ee93761ec70a/trials/HIGH_MINUTES_HOT_CONVERSION_PROXY.jsonl.gz",
+        "trials_executed": 2000,
+        "trials_sha256": "ffb8f2f4a24fbf16644343f939ead5c281d28f50acaee1c75f3e566723ad4f8a",
+        "verified": true
+      },
+      "P25_MINUTES_CONVERSION_PROXY": {
+        "compressed_file_sha256": "fdde1873e8064bfc48d4a75dead2bfc6e9d6604a620994e63c32a7c8378f0528",
+        "counts": {
+          "OVER": 594,
+          "UNDER": 974,
+          "VOID": 432
+        },
+        "input_sha256": "3d506defce24ca9de2756e646529c9012a5a6c9a9f45fe87a8ecda729b71d9a0",
+        "meaning": "Trace sequence, seeds, outcomes and final-score integrity reproduced; not accuracy certification",
+        "seed": 2625425191,
+        "trace_file": "/workspace/scratch/4772bcf711ad/deployment_evidence/actual_mobile_jobs/9592a26a5a0e45df92409dbaaa04531a/execution/props/auto_ffaeeb654003ee93761ec70a/trials/P25_MINUTES_CONVERSION_PROXY.jsonl.gz",
+        "trials_executed": 2000,
+        "trials_sha256": "b162c0a83ad328f805ace41de076c49eaa35e8f20c5a19645485863b6945ac90",
+        "verified": true
+      }
+    },
+    "artifact_verification": {
+      "verified": true,
+      "proof": {
+        "status": "ACTUAL_ARTIFACTS_VERIFIED",
+        "predictions": 1,
+        "complete_simulated_games": 29000,
+        "source_documents": 121,
+        "deterministic_game_replay_samples": [
+          {
+            "verified": true,
+            "complete_games_reexecuted": 5,
+            "trial_indices": [
+              0,
+              6250,
+              12500,
+              18750,
+              24999
+            ],
+            "meaning": "Independent full-game reexecution of predeclared trace samples, not accuracy validation"
+          },
+          {
+            "verified": true,
+            "complete_games_reexecuted": 5,
+            "trial_indices": [
+              0,
+              500,
+              1000,
+              1500,
+              1999
+            ],
+            "meaning": "Independent full-game reexecution of predeclared trace samples, not accuracy validation"
+          },
+          {
+            "verified": true,
+            "complete_games_reexecuted": 5,
+            "trial_indices": [
+              0,
+              500,
+              1000,
+              1500,
+              1999
+            ],
+            "meaning": "Independent full-game reexecution of predeclared trace samples, not accuracy validation"
+          }
+        ],
+        "calibration_certified": false
+      },
+      "reason": null
+    },
+    "historical_windows": {
+      "L10": {
+        "expected": 13.0,
+        "mean": 13.0,
+        "median": 15.0,
+        "minutes_avg": 30.05,
+        "n": 10,
+        "over_count": 6,
+        "over_rate": 0.6,
+        "push_count": 0,
+        "requested": 10,
+        "status": "COMPLETE",
+        "stdev": 6.342,
+        "under_count": 4,
+        "under_rate": 0.4
+      },
+      "L15": {
+        "expected": 13.133,
+        "mean": 13.133,
+        "median": 15.0,
+        "minutes_avg": 29.52,
+        "n": 15,
+        "over_count": 9,
+        "over_rate": 0.6,
+        "push_count": 0,
+        "requested": 15,
+        "status": "COMPLETE",
+        "stdev": 5.643,
+        "under_count": 6,
+        "under_rate": 0.4
+      },
+      "L20": {
+        "expected": 13.1,
+        "mean": 13.1,
+        "median": 15.0,
+        "minutes_avg": 28.45,
+        "n": 20,
+        "over_count": 11,
+        "over_rate": 0.55,
+        "push_count": 0,
+        "requested": 20,
+        "status": "COMPLETE",
+        "stdev": 7.297,
+        "under_count": 9,
+        "under_rate": 0.45
+      },
+      "L25": {
+        "expected": 13.56,
+        "mean": 13.56,
+        "median": 15.0,
+        "minutes_avg": 28.49,
+        "n": 25,
+        "over_count": 14,
+        "over_rate": 0.56,
+        "push_count": 0,
+        "requested": 25,
+        "status": "COMPLETE",
+        "stdev": 6.905,
+        "under_count": 11,
+        "under_rate": 0.44
+      },
+      "L32": {
+        "expected": 14.031,
+        "mean": 14.031,
+        "median": 15.0,
+        "minutes_avg": 27.45,
+        "n": 32,
+        "over_count": 19,
+        "over_rate": 0.5938,
+        "push_count": 0,
+        "requested": 32,
+        "status": "COMPLETE",
+        "stdev": 7.055,
+        "under_count": 13,
+        "under_rate": 0.4062
+      },
+      "L5": {
+        "expected": 11.8,
+        "mean": 11.8,
+        "median": 15.0,
+        "minutes_avg": 28.0,
+        "n": 5,
+        "over_count": 3,
+        "over_rate": 0.6,
+        "push_count": 0,
+        "requested": 5,
+        "status": "COMPLETE",
+        "stdev": 5.404,
+        "under_count": 2,
+        "under_rate": 0.4
+      },
+      "L52": {
+        "expected": 15.692,
+        "mean": 15.692,
+        "median": 16.0,
+        "minutes_avg": 29.02,
+        "n": 52,
+        "over_count": 33,
+        "over_rate": 0.6346,
+        "push_count": 0,
+        "requested": 52,
+        "status": "COMPLETE",
+        "stdev": 8.728,
+        "under_count": 19,
+        "under_rate": 0.3654
+      },
+      "available_archive": {
+        "expected": 15.064,
+        "mean": 15.064,
+        "median": 15.0,
+        "minutes_avg": 28.27,
+        "n": 94,
+        "over_count": 52,
+        "over_rate": 0.5532,
+        "push_count": 0,
+        "requested": null,
+        "status": "COMPLETE",
+        "stdev": 8.456,
+        "under_count": 42,
+        "under_rate": 0.4468
+      },
+      "current_season": {
+        "expected": 12.286,
+        "mean": 12.286,
+        "median": 15.0,
+        "minutes_avg": 29.43,
+        "n": 7,
+        "over_count": 4,
+        "over_rate": 0.5714,
+        "push_count": 0,
+        "requested": null,
+        "status": "COMPLETE",
+        "stdev": 5.851,
+        "under_count": 3,
+        "under_rate": 0.4286
+      },
+      "previous_season": {
+        "expected": 16.167,
+        "mean": 16.167,
+        "median": 16.0,
+        "minutes_avg": 27.92,
+        "n": 36,
+        "over_count": 24,
+        "over_rate": 0.6667,
+        "push_count": 0,
+        "requested": null,
+        "status": "COMPLETE",
+        "stdev": 8.882,
+        "under_count": 12,
+        "under_rate": 0.3333
+      }
+    },
+    "source_reconciliation": {
+      "independently_agreeing_games": 87,
+      "original_stat_publication_vintage_verified": false,
+      "quarantined_games": 0,
+      "status": "EXECUTED"
+    },
+    "source_document_count": 121,
+    "source_failures": [
+      {
+        "id": "006a2a3fd71a285eefac8d3d79293d73543a4ffd5f020de5ced5da1d91128a62",
+        "observed_utc": "2026-11-07T17:42:41.394124+00:00",
+        "reason": "HTTPError: HTTP Error 403: Forbidden",
+        "url": "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json"
+      },
+      {
+        "id": "b5f654da1c1a248c8cd9a13a438dc9b753da481e6eb25d6c9c5c191fde02ff14",
+        "observed_utc": "2026-11-07T17:42:41.398180+00:00",
+        "reason": "ValueError: SOURCE_FETCH_FAILED:https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json:HTTPError: HTTP Error 403: Forbidden",
+        "url": "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json"
+      }
+    ],
+    "blind_process_proof": {
+      "accuracy_independently_validated": false,
+      "feature_manifest_sha256": "1c6f0e053feafc1b9eda49c7867a9bc1508d3508a51f9f8077fc714cc50a0195",
+      "line_excluded": true,
+      "meaning": "Verified numerical payload/process separation, not validated predictive accuracy",
+      "model_id": "BENFRANK_V52_POOLED_LAGGED_RIDGE_1",
+      "player_identity_excluded": true,
+      "primary_prediction_excluded": true,
+      "separate_process": true,
+      "subprocess_exit_code": 0,
+      "training_cutoff_utc": "2026-11-07T00:00:00+00:00",
+      "verified": true,
+      "worker_payload_keys": [
+        "candidate",
+        "ridge",
+        "train"
+      ]
+    },
+    "primary_direction": "OVER",
+    "projection": 16.738813534778203,
+    "p_over_raw_conditional_played_nonpush": 0.6550176183810398,
+    "main_void_count": 4283,
+    "blind_projection": 13.4246,
+    "blind_direction": "UNDER",
+    "model_disagreement": true,
+    "scenario_side_flip": true,
+    "adversarial": {
+      "limitation": "Assumption stresses, not empirically measured tracking opportunity/conversion",
+      "model_disagreement": true,
+      "opposing_side": "UNDER",
+      "scenario_side_flip": true,
+      "selected_side": "OVER",
+      "tested_cases": {
+        "HIGH_MINUTES_HOT_CONVERSION_PROXY": {
+          "p_over_raw": 0.8468298807281858,
+          "proof": {
+            "compressed_file_sha256": "adf0be65feb82f6ae8100260e9c7f6b5ce4d616471782b26878837154aa410cd",
+            "counts": {
+              "OVER": 1349,
+              "UNDER": 244,
+              "VOID": 407
+            },
+            "input_sha256": "8502de3a4ad0c46b6d71ad1116a4137fceebbb0778d74b130241e8bae0f27230",
+            "meaning": "Trace sequence, seeds, outcomes and final-score integrity reproduced; not accuracy certification",
+            "seed": 2625425190,
+            "trace_file": "/workspace/scratch/4772bcf711ad/deployment_evidence/actual_mobile_jobs/9592a26a5a0e45df92409dbaaa04531a/execution/props/auto_ffaeeb654003ee93761ec70a/trials/HIGH_MINUTES_HOT_CONVERSION_PROXY.jsonl.gz",
+            "trials_executed": 2000,
+            "trials_sha256": "ffb8f2f4a24fbf16644343f939ead5c281d28f50acaee1c75f3e566723ad4f8a",
+            "verified": true
+          },
+          "trace_sha256": "ffb8f2f4a24fbf16644343f939ead5c281d28f50acaee1c75f3e566723ad4f8a",
+          "trials": 2000
+        },
+        "P25_MINUTES_CONVERSION_PROXY": {
+          "p_over_raw": 0.3788265306122449,
+          "proof": {
+            "compressed_file_sha256": "fdde1873e8064bfc48d4a75dead2bfc6e9d6604a620994e63c32a7c8378f0528",
+            "counts": {
+              "OVER": 594,
+              "UNDER": 974,
+              "VOID": 432
+            },
+            "input_sha256": "3d506defce24ca9de2756e646529c9012a5a6c9a9f45fe87a8ecda729b71d9a0",
+            "meaning": "Trace sequence, seeds, outcomes and final-score integrity reproduced; not accuracy certification",
+            "seed": 2625425191,
+            "trace_file": "/workspace/scratch/4772bcf711ad/deployment_evidence/actual_mobile_jobs/9592a26a5a0e45df92409dbaaa04531a/execution/props/auto_ffaeeb654003ee93761ec70a/trials/P25_MINUTES_CONVERSION_PROXY.jsonl.gz",
+            "trials_executed": 2000,
+            "trials_sha256": "b162c0a83ad328f805ace41de076c49eaa35e8f20c5a19645485863b6945ac90",
+            "verified": true
+          },
+          "trace_sha256": "b162c0a83ad328f805ace41de076c49eaa35e8f20c5a19645485863b6945ac90",
+          "trials": 2000
+        }
+      }
+    },
+    "sensitivity": {
+      "calibration_applied": false,
+      "first_under_line_in_simulated_support": {
+        "line": 16.5,
+        "over": 9851,
+        "p_over_raw": 0.47550320992421685,
+        "push": 0,
+        "side": "UNDER",
+        "under": 10866,
+        "void": 4283
+      },
+      "ladder": [
+        {
+          "line": 11.5,
+          "over": 15886,
+          "p_over_raw": 0.7668098662933822,
+          "push": 0,
+          "side": "OVER",
+          "under": 4831,
+          "void": 4283
+        },
+        {
+          "line": 12.5,
+          "over": 14764,
+          "p_over_raw": 0.712651445672636,
+          "push": 0,
+          "side": "OVER",
+          "under": 5953,
+          "void": 4283
+        },
+        {
+          "line": 13.0,
+          "over": 13570,
+          "p_over_raw": 0.6950776007785688,
+          "push": 1194,
+          "side": "OVER",
+          "under": 5953,
+          "void": 4283
+        },
+        {
+          "line": 13.5,
+          "over": 13570,
+          "p_over_raw": 0.6550176183810398,
+          "push": 0,
+          "side": "OVER",
+          "under": 7147,
+          "void": 4283
+        },
+        {
+          "line": 14.0,
+          "over": 12325,
+          "p_over_raw": 0.6329601479046837,
+          "push": 1245,
+          "side": "OVER",
+          "under": 7147,
+          "void": 4283
+        },
+        {
+          "line": 14.5,
+          "over": 12325,
+          "p_over_raw": 0.5949220446975914,
+          "push": 0,
+          "side": "OVER",
+          "under": 8392,
+          "void": 4283
+        },
+        {
+          "line": 15.5,
+          "over": 11053,
+          "p_over_raw": 0.5335231935125743,
+          "push": 0,
+          "side": "OVER",
+          "under": 9664,
+          "void": 4283
+        }
+      ],
+      "method": "RETHRESHOLD_THE_SAME_EXECUTED_MAIN_TRIALS; NO_EXTRA_TRIALS_CLAIMED",
+      "most_favorable_alternative_requires_payout_comparison": true
+    },
+    "interrogation_questions": 60,
+    "interrogation_verified": 27,
+    "dna_tests": 100,
+    "dna_available": 5,
+    "accuracy_certified": false,
+    "calibration_applied": false,
+    "postgame_grading": {
+      "exact_reason": "GAME_NOT_FINAL; scheduled grading reads immutable frozen receipt",
+      "ledger": "/workspace/scratch/4772bcf711ad/deployment_evidence/actual_mobile_jobs/state/forward_ledger.sqlite",
+      "status": "PREPARED_PENDING_FINAL"
+    },
+    "stage_statuses": {
+      "adversarial_stress": "EXECUTED",
+      "automatic_acquisition": "EXECUTED",
+      "exact_line_schedule": "EXECUTED",
+      "historical_windows": "EXECUTED",
+      "independent_blind_process": "EXECUTED",
+      "interrogation_60": "EXECUTED",
+      "player_dna_100": "EXECUTED",
+      "player_identity": "EXECUTED",
+      "player_profiles_matchup_roles": "EXECUTED",
+      "postgame_grading": "PREPARED_PENDING_FINAL",
+      "pregame_freeze": "EXECUTED",
+      "sensitivity": "EXECUTED",
+      "sequential_25000": "EXECUTED",
+      "source_reconciliation": "EXECUTED"
+    },
+    "analytical_limits": [
+      "Independent model accuracy/calibration on a new forward cohort",
+      "Native current-line recheck when not provided; uploaded line stays the tested hypothesis",
+      "Observed defender/zone/contest/potential-assist/rebound-chance tracking where absent",
+      "Genuine complete career and translated college/G League history where absent"
+    ]
+  },
+  "process_restart_and_receipt_storage": {
+    "status": "PASSED",
+    "new_process_restored_terminal_job": "completed",
+    "original_job_index_preserved": true,
+    "authenticated_receipt_download": 200,
+    "receipt_sha256": "a31617834cae29162fe2b1abe780af00e2245aa260ea961a5dc9b5f4010d5ec5",
+    "authenticated_artifacts_download": 200,
+    "bundle_crc_verified": true,
+    "bundle_file_count": 29,
+    "real_prediction_summary_available": true,
+    "render_disk_restart_tested": false
+  },
+  "local_versions": {
+    "fastapi": "0.141.1",
+    "starlette": "1.6.0",
+    "uvicorn": "0.52.1",
+    "python-multipart": "0.0.32",
+    "httpx": "0.28.1",
+    "nba_api": "1.12.0",
+    "pandas": "2.2.3",
+    "pyarrow": "26.0.1"
+  },
+  "github_actions": {
+    "latest_mobile_run_id": 42398250017,
+    "latest_tests_run_id": 42398250044,
+    "first_mobile_run_id": 42398107868,
+    "first_mobile_run_conclusion": "success",
+    "initial_general_suite_failure": "Missing fastapi after mobile tests joined full-suite discovery; fixed in root requirements",
+    "latest_status": "SUCCESS",
+    "verified_runs": {
+      "mobile": {
+        "id": 42398250017,
+        "url": "https://github.com/tmacc90/BENFRANK-NBA-WAREHOUSE/actions/runs/42398250017",
+        "head_sha": "d4297a3100fb5b1318728be893451d534372cce3",
+        "status": "completed",
+        "conclusion": "success",
+        "jobs": [
+          {
+            "id": 128480201607,
+            "run_id": 42398250017,
+            "workflow_name": "BENFRANK mobile API smoke",
+            "head_branch": "benfrank-60-question-interrogation-20261106",
+            "run_url": "https://api.github.com/repos/tmacc90/BENFRANK-NBA-WAREHOUSE/actions/runs/42398250017",
+            "run_attempt": 1,
+            "node_id": "CR_kwDOVWORJ88AAAAd6gRLhw",
+            "head_sha": "d4297a3100fb5b1318728be893451d534372cce3",
+            "url": "https://api.github.com/repos/tmacc90/BENFRANK-NBA-WAREHOUSE/actions/jobs/128480201607",
+            "html_url": "https://github.com/tmacc90/BENFRANK-NBA-WAREHOUSE/actions/runs/42398250017/job/128480201607",
+            "status": "completed",
+            "conclusion": "success",
+            "created_at": "2026-11-07T17:50:09Z",
+            "started_at": "2026-11-07T17:50:12Z",
+            "completed_at": "2026-11-07T17:52:09Z",
+            "name": "mobile-smoke",
+            "steps": [
+              {
+                "name": "Set up job",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 1,
+                "started_at": "2026-11-07T17:50:12Z",
+                "completed_at": "2026-11-07T17:50:13Z"
+              },
+              {
+                "name": "Run actions/checkout@v4",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 2,
+                "started_at": "2026-11-07T17:50:13Z",
+                "completed_at": "2026-11-07T17:50:14Z"
+              },
+              {
+                "name": "Run actions/setup-python@v5",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 3,
+                "started_at": "2026-11-07T17:50:14Z",
+                "completed_at": "2026-11-07T17:50:14Z"
+              },
+              {
+                "name": "Compile new mobile code",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 4,
+                "started_at": "2026-11-07T17:50:14Z",
+                "completed_at": "2026-11-07T17:50:14Z"
+              },
+              {
+                "name": "Install API and runner dependencies",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 5,
+                "started_at": "2026-11-07T17:50:14Z",
+                "completed_at": "2026-11-07T17:50:32Z"
+              },
+              {
+                "name": "Verify ASGI import",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 6,
+                "started_at": "2026-11-07T17:50:32Z",
+                "completed_at": "2026-11-07T17:50:33Z"
+              },
+              {
+                "name": "Run preserved regression tests",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 7,
+                "started_at": "2026-11-07T17:50:33Z",
+                "completed_at": "2026-11-07T17:50:43Z"
+              },
+              {
+                "name": "Install mobile test browsers",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 8,
+                "started_at": "2026-11-07T17:50:43Z",
+                "completed_at": "2026-11-07T17:51:15Z"
+              },
+              {
+                "name": "Verify iPhone and iPad browser layouts and API interactions",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 9,
+                "started_at": "2026-11-07T17:51:15Z",
+                "completed_at": "2026-11-07T17:51:21Z"
+              },
+              {
+                "name": "Build the deployment Docker image",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 10,
+                "started_at": "2026-11-07T17:51:21Z",
+                "completed_at": "2026-11-07T17:52:02Z"
+              },
+              {
+                "name": "Verify the container and authenticated routes",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 11,
+                "started_at": "2026-11-07T17:52:02Z",
+                "completed_at": "2026-11-07T17:52:05Z"
+              },
+              {
+                "name": "Save mobile test receipts",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 12,
+                "started_at": "2026-11-07T17:52:05Z",
+                "completed_at": "2026-11-07T17:52:06Z"
+              },
+              {
+                "name": "Post Run actions/setup-python@v5",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 23,
+                "started_at": "2026-11-07T17:52:06Z",
+                "completed_at": "2026-11-07T17:52:06Z"
+              },
+              {
+                "name": "Post Run actions/checkout@v4",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 24,
+                "started_at": "2026-11-07T17:52:06Z",
+                "completed_at": "2026-11-07T17:52:07Z"
+              },
+              {
+                "name": "Complete job",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 25,
+                "started_at": "2026-11-07T17:52:07Z",
+                "completed_at": "2026-11-07T17:52:07Z"
+              }
+            ],
+            "check_run_url": "https://api.github.com/repos/tmacc90/BENFRANK-NBA-WAREHOUSE/check-runs/128480201607",
+            "labels": [
+              "ubuntu-latest"
+            ],
+            "runner_id": 1000000619,
+            "runner_name": "GitHub Actions 1000000619",
+            "runner_group_id": 0,
+            "runner_group_name": "GitHub Actions"
+          }
+        ]
+      },
+      "tests": {
+        "id": 42398250044,
+        "url": "https://github.com/tmacc90/BENFRANK-NBA-WAREHOUSE/actions/runs/42398250044",
+        "conclusion": "success",
+        "tests": 377
+      },
+      "interrogation": {
+        "id": 42398250161,
+        "url": "https://github.com/tmacc90/BENFRANK-NBA-WAREHOUSE/actions/runs/42398250161",
+        "conclusion": "success"
+      },
+      "artifact": {
+        "id": 13583469846,
+        "node_id": "MDg6QXJ0aWZhY3QxMzU4MzQ2OTg0Ng==",
+        "name": "benfrank-mobile-validation",
+        "size_in_bytes": 746357,
+        "url": "https://api.github.com/repos/tmacc90/BENFRANK-NBA-WAREHOUSE/actions/artifacts/13583469846",
+        "archive_download_url": "https://api.github.com/repos/tmacc90/BENFRANK-NBA-WAREHOUSE/actions/artifacts/13583469846/zip",
+        "expired": false,
+        "digest": "sha256:490d2e23e4381d6a5d29d821410df92f41d42581676a27858cc5f331c920395b",
+        "created_at": "2026-11-07T17:52:06Z",
+        "updated_at": "2026-11-07T17:52:06Z",
+        "expires_at": "2027-02-05T17:50:09Z",
+        "workflow_run": {
+          "id": 42398250017,
+          "repository_id": 1432588583,
+          "head_repository_id": 1432588583,
+          "head_branch": "benfrank-60-question-interrogation-20261106",
+          "head_sha": "d4297a3100fb5b1318728be893451d534372cce3"
+        }
+      }
+    }
+  }
+}
