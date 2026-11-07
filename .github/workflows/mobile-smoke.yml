@@ -1,0 +1,31 @@
+name: BENFRANK mobile API smoke
+on:
+  push:
+    paths:
+      - 'mobile/**'
+      - 'Dockerfile.mobile'
+      - 'render.yaml'
+      - '.github/workflows/mobile-smoke.yml'
+  pull_request:
+    paths:
+      - 'mobile/**'
+      - 'Dockerfile.mobile'
+      - 'render.yaml'
+      - '.github/workflows/mobile-smoke.yml'
+  workflow_dispatch:
+jobs:
+  mobile-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile new mobile code
+        run: python -m compileall -q mobile
+      - name: Install API and runner dependencies
+        run: pip install -r requirements.txt -r mobile/requirements.txt
+      - name: Verify ASGI import
+        run: python -c "from mobile.api import app; assert app.title == 'BENFRANK mobile API'"
+      - name: Run preserved regression tests
+        run: python -m unittest discover -s tests -v
