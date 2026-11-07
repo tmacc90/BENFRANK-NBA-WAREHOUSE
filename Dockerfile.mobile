@@ -2,8 +2,8 @@ FROM python:3.11-slim
 WORKDIR /app
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 COPY requirements.txt ./requirements.txt
-COPY mobile/requirements.txt ./mobile-requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt -r mobile-requirements.txt
+COPY mobile/requirements.txt ./mobile/requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 COPY . /app
 RUN mkdir -p /var/lib/benfrank && chmod 700 /var/lib/benfrank
 ENV BENFRANK_MOBILE_RUNS=/var/lib/benfrank/jobs
