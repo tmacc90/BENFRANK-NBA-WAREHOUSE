@@ -1,0 +1,15 @@
+{
+  "mode": "historical_research",
+  "game_date": "2026-11-06",
+  "max_seasons": 3,
+  "original_input_authority": "Existing branch benfrank_six_prop_batch.py PROPS; original cutoff absent from provided screenshots/history",
+  "historical_cutoff_policy": "Do not invent or backdate missing original cutoff or pregame role/availability snapshots. Acquire historical records and publish exact blockers.",
+  "props": [
+    {"player": "Luka Doncic", "market": "threes", "line": 4.5, "opponent": "POR", "original_cutoff_utc": null},
+    {"player": "Tyrese Maxey", "market": "points", "line": 25.5, "opponent": "CLE", "original_cutoff_utc": null},
+    {"player": "Ziaire Williams", "market": "pr", "line": 10.5, "opponent": "POR", "original_cutoff_utc": null},
+    {"player": "Isaiah Hartenstein", "market": "rebounds", "line": 10.5, "opponent": "MEM", "original_cutoff_utc": null},
+    {"player": "Ajay Mitchell", "market": "pr", "line": 24.5, "opponent": "MEM", "original_cutoff_utc": null},
+    {"player": "Donovan Mitchell", "market": "points", "line": 24.5, "opponent": "PHI", "original_cutoff_utc": null}
+  ]
+}

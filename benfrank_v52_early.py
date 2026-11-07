@@ -14,6 +14,8 @@ import math
 import random
 import re
 import statistics
+import gzip
+from contextlib import nullcontext
 from pathlib import Path
 
 from acquire_history import name_key
@@ -93,8 +95,11 @@ def early_context(base,prop,sources,history,injury,cutoff):
     if len(prior_source)<7:raise ValueError('OBSERVED_PEER_PRIOR_POOL_REQUIRED')
     regularizers=[]
     for team,roster in ctx['rosters'].items():
-        depth=sources['depths'][team];out=set()
+        depth=sources['depths'][team]
         team_status=injury['teams'].get(team,{})
+        # Depth can contain inactive players beyond the trimmed profile roster.
+        # All explicit source Out statuses must affect the projected five.
+        out={key for key,obs in team_status.items() if obs.get('status')=='Out'}
         for p in roster:
             obs=team_status.get(name_key(p['player']))
             p['availability_status']=obs['status'] if obs else 'UNKNOWN_NOT_CLEARED'
@@ -193,27 +198,35 @@ def scenarios(context,seed,count=256,forced=None):
         cases.append((c,prepare_game(c)))
     return cases
 
-def simulate(context,player,market,line,trials,seed,minimum=25000):
+def simulate(context,player,market,line,trials,seed,minimum=25000,trace_path=None):
     if isinstance(trials,bool) or not minimum<=trials<=50000:raise ValueError('ACTUAL_TRIAL_COUNT_OUT_OF_RANGE')
     cases=scenarios(context,seed^0x5200);rng=random.Random(seed);values=[];voids=0;counts=collections.Counter();groups={};chain=hashlib.sha256();checkpoints=[]
-    for i in range(trials):
-        c,prepared=cases[rng.randrange(len(cases))]
-        game=simulate_game(c,seed+i*7919,prepared=prepared,max_overtimes=12,max_shooting_sequences=32,last_player_exception=True)
-        if game['score_tied_after_overtime_limit'] or game['shot_sequence_ceiling_hit']:raise ValueError('INCOMPLETE_GAME_TAIL_GUARD')
-        if game['regulation_team_minutes']!={context['home']:240,context['away']:240}:raise ValueError('REGULATION_MINUTE_CONSERVATION_FAILURE')
-        target=game['stats'].get(player);v=market_value(target,market) if target and target['minutes']>0 else None
-        label='VOID' if v is None else 'OVER' if v>line else 'UNDER' if v<line else 'PUSH';counts[label]+=1
-        if v is None:voids+=1
-        else:values.append(v)
-        for name,active in c['scenario_material_availability'].items():
-            key=name+'|'+('IN' if active else 'OUT');g=groups.setdefault(key,collections.Counter());g[label]+=1
-        chain.update(json.dumps([i,seed+i*7919,game['score'],v],sort_keys=True).encode()+b'\n')
-        if (i+1)%5000==0:checkpoints.append({'complete_games':i+1,'counts':dict(counts),'chain_sha256':chain.hexdigest()})
+    if trace_path:Path(trace_path).parent.mkdir(parents=True,exist_ok=True)
+    with (gzip.open(trace_path,'xt',encoding='utf8') if trace_path else nullcontext(None)) as trace:
+        for i in range(trials):
+            c,prepared=cases[rng.randrange(len(cases))]
+            game=simulate_game(c,seed+i*7919,prepared=prepared,max_overtimes=12,max_shooting_sequences=32,last_player_exception=True)
+            if game['score_tied_after_overtime_limit'] or game['shot_sequence_ceiling_hit']:raise ValueError('INCOMPLETE_GAME_TAIL_GUARD')
+            if game['regulation_team_minutes']!={context['home']:240,context['away']:240}:raise ValueError('REGULATION_MINUTE_CONSERVATION_FAILURE')
+            target=game['stats'].get(player);v=market_value(target,market) if target and target['minutes']>0 else None
+            label='VOID' if v is None else 'OVER' if v>line else 'UNDER' if v<line else 'PUSH';counts[label]+=1
+            if v is None:voids+=1
+            else:values.append(v)
+            for name,active in c['scenario_material_availability'].items():
+                key=name+'|'+('IN' if active else 'OUT');g=groups.setdefault(key,collections.Counter());g[label]+=1
+            line_bytes=json.dumps([i,seed+i*7919,game['score'],v],sort_keys=True).encode()+b'\n'
+            chain.update(line_bytes)
+            if trace:trace.write(line_bytes.decode())
+            if (i+1)%5000==0:
+                checkpoints.append({'complete_games':i+1,'counts':dict(counts),'chain_sha256':chain.hexdigest()})
+                if trace:
+                    trace.flush()
+                    print(json.dumps({'stage':'sequential_simulation','player':player,'complete_games':i+1,'seed':seed}),flush=True)
     total=counts['OVER']+counts['UNDER'];p=counts['OVER']/total if total else None
     conditional={}
     for key,g in groups.items():
         n=g['OVER']+g['UNDER'];conditional[key]={'counts':dict(g),'played_nonpush_n':n,'p_over_raw':g['OVER']/n if n else None}
-    return {'model':VERSION,'trials_executed':trials,'over_count':counts['OVER'],'under_count':counts['UNDER'],
+    result={'model':VERSION,'trials_executed':trials,'over_count':counts['OVER'],'under_count':counts['UNDER'],
         'push_count':counts['PUSH'],'void_count':voids,'played_trials':len(values),'p_over_raw':p,
         'mean':statistics.mean(values) if values else None,'quantiles':{str(q):quantile(values,q) for q in (.05,.25,.5,.75,.95)},
         'histogram':{str(k):n for k,n in sorted(collections.Counter(values).items())},
@@ -222,6 +235,10 @@ def simulate(context,player,market,line,trials,seed,minimum=25000):
         'context_sha256':hashlib.sha256(json.dumps(context,sort_keys=True).encode()).hexdigest(),
         'model_source_sha256':digest(__file__),'physics_source_sha256':digest(Path(__file__).with_name('benfrank_v44_twon.py')),
         'executed_at':now(),'probability_calibration_applied':False}
+    if trace_path:
+        from benfrank_auto_evidence import verify_trace
+        result['trial_evidence']=verify_trace(trace_path,result,line)
+    return result
 
 def stress(context,player,side,kind):
     c=copy.deepcopy(context)
@@ -241,8 +258,8 @@ def stress(context,player,side,kind):
             p['shooting_beta']={key:[25*p[key],25*(1-p[key])] for key in PCTS}
     return c
 
-def run_one(prop,base,sources,injury,db,trials=25000,stress_trials=2000):
-    cutoff=now();check_sources(prop,base,sources,cutoff)
+def run_one(prop,base,sources,injury,db,trials=25000,stress_trials=2000,*,trace_dir=None,cutoff_utc=None):
+    cutoff=cutoff_utc or now();check_sources(prop,base,sources,cutoff)
     conn=readonly(db)
     try:rows=[dict(r) for r in conn.execute('SELECT * FROM games WHERE date<? ORDER BY date,player',(prop['game_date'],))]
     finally:conn.close()
@@ -251,14 +268,16 @@ def run_one(prop,base,sources,injury,db,trials=25000,stress_trials=2000):
     context=early_context(base,prop,sources,history,injury,cutoff)
     blind=run_blind(db,prop['player'],prop['market'],prop['game_date'])
     seed=int(hashlib.sha256(('V52|'+prop['snapshot_id']).encode()).hexdigest()[:8],16)
-    main=simulate(context,prop['player'],prop['market'],prop['line'],trials,seed)
+    main=simulate(context,prop['player'],prop['market'],prop['line'],trials,seed,
+        trace_path=Path(trace_dir)/'main.jsonl.gz' if trace_dir else None)
     if main['p_over_raw'] is None:raise ValueError('NO_CONDITIONAL_PLAYED_DISTRIBUTION')
     direction='OVER' if main['p_over_raw']>=.5 else 'UNDER'
     bside='OVER' if blind['projection']>prop['line'] else 'UNDER' if blind['projection']<prop['line'] else 'AT_LINE'
     stresses={}
     for j,kind in enumerate(('P25_MINUTES_CONVERSION_PROXY','HIGH_MINUTES_HOT_CONVERSION_PROXY')):
         modified=stress(context,prop['player'],direction,kind)
-        r=simulate(modified,prop['player'],prop['market'],prop['line'],stress_trials,seed^(0x5250+j),minimum=1000)
+        r=simulate(modified,prop['player'],prop['market'],prop['line'],stress_trials,seed^(0x5250+j),minimum=1000,
+            trace_path=Path(trace_dir)/(kind+'.jsonl.gz') if trace_dir else None)
         r['limitation']='Assumption stress using observed minutes and rate/efficiency proxies; not measured P25 opportunity x conversion.'
         stresses[kind]=r
     tested=[r['p_over_raw'] for r in stresses.values() if r['p_over_raw'] is not None]

@@ -45,6 +45,17 @@ def run(db,player,market,day):
                          text=True,capture_output=True,cwd=tmp,timeout=90,check=False)
     if r.returncode:raise ValueError('EARLY_BLIND_PROCESS_FAILURE: '+r.stdout[-300:])
     result=json.loads(r.stdout)
+    expected=hashlib.sha256(json.dumps(data,sort_keys=True).encode()).hexdigest()
+    if result.get('input_sha256')!=expected or result.get('line_received') is not False:
+        raise ValueError('BLIND_WORKER_PAYLOAD_RECEIPT_CONFLICT')
+    result['independence_evidence']={
+        'verified':True,'model_id':'BENFRANK_V52_POOLED_LAGGED_RIDGE_1',
+        'training_cutoff_utc':day+'T00:00:00+00:00',
+        'feature_manifest_sha256':expected,'line_excluded':True,
+        'primary_prediction_excluded':True,'player_identity_excluded':True,
+        'worker_payload_keys':sorted(data),'separate_process':True,
+        'subprocess_exit_code':r.returncode,'accuracy_independently_validated':False,
+        'meaning':'Verified numerical payload/process separation, not validated predictive accuracy'}
     result.update(model='BENFRANK_V52_POOLED_LAGGED_RIDGE_1',
         algorithm='Pooled chronological peer ridge with 3/10/20 available-game features; missing target games are never invented',
         target_observed_appearances=n,thin_target_history=n<20,

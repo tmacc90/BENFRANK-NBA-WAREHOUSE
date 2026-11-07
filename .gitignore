@@ -11,3 +11,5 @@ private-data/
 receipts/
 omni_state/
 omni_runs/
+auto_state/
+auto_runs/

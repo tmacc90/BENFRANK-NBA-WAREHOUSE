@@ -13,6 +13,13 @@ import sys
 from pathlib import Path
 
 def execute(args):
+    if getattr(args,"auto",None):
+        if args.input or args.config or getattr(args,"omni",None):
+            raise ValueError("AUTO_REQUIRES_EXCLUSIVE_INPUT_MODE")
+        from benfrank_auto_runner import run
+        result,code=run(args.auto,args.output,getattr(args,"state_dir","auto_state"),
+            getattr(args,"trials",25000),getattr(args,"stress_trials",2000))
+        return code
     if getattr(args,"omni",None):
         if args.input or args.config:
             raise ValueError("OMNI_REQUIRES_EXCLUSIVE_INPUT_MODE")
@@ -72,8 +79,10 @@ if __name__=="__main__":
     parser.add_argument("--input")
     parser.add_argument("--config")
     parser.add_argument("--omni",help="Execute the isolated multi-sport manifest")
+    parser.add_argument("--auto",help="Acquire and reconcile real player histories, run v5.2 and freeze a forward slate")
     parser.add_argument("--state-dir",default="omni_state")
     parser.add_argument("--trials",type=int,default=25000)
     parser.add_argument("--seed",type=int,default=1729)
+    parser.add_argument("--stress-trials",type=int,default=2000)
     parser.add_argument("--output",required=True)
     raise SystemExit(execute(parser.parse_args()))

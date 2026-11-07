@@ -1,0 +1,42 @@
+name: BENFRANK append-only postgame grading
+on:
+  workflow_dispatch:
+    inputs:
+      forward_run_id:
+        description: Verified automatic forward workflow run ID containing frozen ledger
+        required: true
+        type: string
+      artifact_name:
+        description: Exact benfrank-auto-forward artifact name from that run
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+jobs:
+  grade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Restore original frozen forward evidence
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.forward_run_id }}
+          name: ${{ inputs.artifact_name }}
+          path: restored
+      - name: Grade completed games against unchanged predictions
+        run: python scripts/grade_auto_predictions.py --state restored/auto_state --output grading/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}
+      - name: Retain appended settlements and source responses
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benfrank-auto-grading-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            grading/
+            restored/auto_state/
+          retention-days: 90
