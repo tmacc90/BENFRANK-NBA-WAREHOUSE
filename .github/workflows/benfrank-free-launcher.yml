@@ -106,6 +106,12 @@ jobs:
         continue-on-error: true
         run: |
           python run_framework.py --auto free-run-config.json --output free-run-output --state-dir free-run-state --trials 25000 --stress-trials 2000
+      - name: Verify source hashes, 29K simulation trace chain and pregame ledger
+        id: verify
+        if: steps.run.outcome == 'success'
+        run: |
+          python scripts/verify_auto_run.py --run free-run-output --state free-run-state > free-run-output/verification.json
+          cat free-run-output/verification.json
       - name: Print exact blockers and evidence summary
         if: always()
         run: |
@@ -143,6 +149,8 @@ jobs:
             free-run-output/discovery.json
 
             free-run-output/source_manifest.json
+            free-run-output/verification.json
+            free-run-output/props/*/trials/*.jsonl.gz
             free-run-output/props/*/stage_receipt.json
             free-run-output/props/*/historical_windows.json
             free-run-output/props/*/interrogation_60.json
@@ -152,5 +160,5 @@ jobs:
           retention-days: 3
           if-no-files-found: warn
       - name: Mark incomplete runs as failed
-        if: steps.run.outcome != 'success'
+        if: steps.run.outcome != 'success' || steps.verify.outcome != 'success'
         run: exit 1
