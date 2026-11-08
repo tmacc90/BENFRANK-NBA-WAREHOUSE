@@ -45,10 +45,27 @@ def record_prediction(path,receipt):
     payload={k:v for k,v in receipt.items() if k!='receipt_sha256'}
     sha=hashlib.sha256(json.dumps(payload,sort_keys=True,allow_nan=False).encode()).hexdigest()
     if receipt.get('receipt_sha256')!=sha:raise ValueError('PREDICTION_RECEIPT_HASH_CONFLICT')
+    primary_id=prop['snapshot_id']
     c=connect(path)
     try:
+        existing=c.execute('SELECT * FROM early_predictions WHERE id=?',(primary_id,)).fetchone()
+        ledger_id=primary_id
+        status='PRIMARY_FROZEN'
+        if existing is not None:
+            previous=json.loads(existing['payload_json']);old=previous.get('prop',{})
+            identity_keys=('game_id','player','market','line','platform','tipoff_utc')
+            if any(old.get(k)!=prop.get(k) for k in identity_keys):
+                raise ValueError('SNAPSHOT_ID_IDENTITY_CONFLICT')
+            ledger_id=primary_id+'::revision::'+sha[:16]
+            status='REVISION_FROZEN_PRIMARY_PRESERVED'
+            duplicate=c.execute('SELECT receipt_sha256 FROM early_predictions WHERE id=?',(ledger_id,)).fetchone()
+            if duplicate is not None:
+                if duplicate['receipt_sha256']!=sha:raise ValueError('REVISION_ID_HASH_CONFLICT')
+                return {'status':'REVISION_ALREADY_FROZEN','ledger_id':ledger_id,'primary_id':primary_id,
+                        'receipt_sha256':sha}
         with c:c.execute('INSERT INTO early_predictions VALUES(?,?,?,?,?)',
-            (prop['snapshot_id'],issued,prop['tipoff_utc'],sha,json.dumps(receipt,sort_keys=True,allow_nan=False)))
+            (ledger_id,issued,prop['tipoff_utc'],sha,json.dumps(receipt,sort_keys=True,allow_nan=False)))
+        return {'status':status,'ledger_id':ledger_id,'primary_id':primary_id,'receipt_sha256':sha}
     finally:c.close()
 
 def settle(path,fetch=fetch_json):
