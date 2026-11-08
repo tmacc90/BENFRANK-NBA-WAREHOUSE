@@ -75,6 +75,75 @@ jobs:
           if validation["quality"] not in ("FULL", "FALLBACK"):
               raise SystemExit(2)
           PY
+      - name: Build frozen-ten Stage 33-35 evidence from pregame mirror snapshot
+        shell: bash
+        env:
+          BENFRANK_SDV_REF: "9678c0083ae7859132e556781b77c01e3d5b2750"
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from benfrank_lineup_mirror import load_season, history_context, name_key
+
+          players = [
+              "Luka Dončić",
+              "Jake LaRavia",
+              "Walker Kessler",
+              "Tyler Herro",
+              "Ausar Thompson",
+              "Duncan Robinson",
+              "Jaime Jaquez Jr.",
+              "Ryan Rollins",
+              "Domantas Sabonis",
+              "Derrick White",
+          ]
+          cache = Path("lineup_cache")
+          frames = load_season(cache, 2027)
+          box = frames["player_box"]
+          id_col = "person_id" if "person_id" in box.columns else "player_id"
+          output = cache / "frozen_ten"
+          output.mkdir(parents=True, exist_ok=True)
+          summary = []
+          for player in players:
+              names = (
+                  box.get("first_name", "").fillna("").astype(str)
+                  + " "
+                  + box.get("family_name", "").fillna("").astype(str)
+              ).str.strip()
+              mask = names.map(name_key) == name_key(player)
+              rows = box.loc[mask].copy()
+              game_ids = sorted(
+                  {str(x).zfill(10) for x in rows["game_id"].tolist()},
+                  reverse=True
+              )[:12]
+              specs = [{"game_id": gid, "season": 2027} for gid in game_ids]
+              result = history_context(
+                  player, specs, cache, max_games=12,
+                  commit="9678c0083ae7859132e556781b77c01e3d5b2750"
+              )
+              slug = name_key(player)
+              (output / f"{slug}.json").write_text(json.dumps(result, indent=2) + "\n")
+              summary.append({
+                  "player": player,
+                  "requested_games": result["requested_games"],
+                  "usable_games": result["usable_games"],
+                  "full_games": result["full_games"],
+                  "fallback_games": result["fallback_games"],
+                  "quarantined_games": result["quarantined_games"],
+                  "possessions": result.get("target", {}).get("possessions"),
+                  "closing_share": result.get("target", {}).get("closing_share"),
+                  "five_man_units": len(result.get("five_man_units", {})),
+                  "teammates": len(result.get("teammates", {})),
+                  "quality": result.get("quality"),
+                  "stage_33": result.get("stage_receipts", {}).get("33", {}).get("quality"),
+                  "stage_34": result.get("stage_receipts", {}).get("34", {}).get("quality"),
+                  "stage_35": result.get("stage_receipts", {}).get("35", {}).get("quality"),
+              })
+          (output / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+          print(json.dumps(summary, indent=2))
+          if not any(x["quality"] in ("FULL", "FALLBACK") for x in summary):
+              raise SystemExit(2)
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
