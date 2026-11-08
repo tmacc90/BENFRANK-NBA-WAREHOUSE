@@ -284,34 +284,34 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
                      original_stat_publication_vintage_verified=False)
                 mark('historical_windows', receipt=str(folder / 'historical_windows.json'),
                      l52_available=windows['L52']['n'], l52_complete=windows['L52']['n'] == 52)
-                # Additive Stage 33-35 evidence. Direct NBA/CDN is preferred; the
-                # pinned public possession/lineup mirror is the automatic cloud-runner fallback.
+                # Additive Stage 33-35 evidence. The validated public possession
+                # mirror is preferred in cloud runners; direct NBA/CDN remains a fallback.
                 # Neither route may impersonate FULL when its validation/sample gate fails.
                 lineup_root = Path(state_dir).resolve() / 'lineup_cache'
                 lineup_attempts = []
                 lineup_evidence = None
                 try:
-                    direct = acquire_history_context(
-                        p['player'], target, lineup_root,
+                    specs = lineup_game_specs(target)
+                    mirror = mirror_history_context(
+                        p['player'], specs, lineup_root,
                         max_games=int(config.get('lineup_history_games', 12)))
-                    lineup_attempts.append({'route': 'NBA_CDN_OR_STATS_DIRECT',
-                                            'quality': direct.get('quality')})
-                    lineup_evidence = direct
+                    lineup_attempts.append({'route': 'SPORTSDATAVERSE_NBA_STATS_MIRROR',
+                                            'quality': mirror.get('quality'),
+                                            'upstream_commit': mirror.get('upstream_commit')})
+                    lineup_evidence = mirror
                 except Exception as error:
-                    lineup_attempts.append({'route': 'NBA_CDN_OR_STATS_DIRECT',
+                    lineup_attempts.append({'route': 'SPORTSDATAVERSE_NBA_STATS_MIRROR',
                                             'error': type(error).__name__ + ': ' + str(error)})
                 if not lineup_evidence or lineup_evidence.get('quality') not in ('FULL', 'FALLBACK'):
                     try:
-                        specs = lineup_game_specs(target)
-                        mirror = mirror_history_context(
-                            p['player'], specs, lineup_root,
+                        direct = acquire_history_context(
+                            p['player'], target, lineup_root,
                             max_games=int(config.get('lineup_history_games', 12)))
-                        lineup_attempts.append({'route': 'SPORTSDATAVERSE_NBA_STATS_MIRROR',
-                                                'quality': mirror.get('quality'),
-                                                'upstream_commit': mirror.get('upstream_commit')})
-                        lineup_evidence = mirror
+                        lineup_attempts.append({'route': 'NBA_CDN_OR_STATS_DIRECT',
+                                                'quality': direct.get('quality')})
+                        lineup_evidence = direct
                     except Exception as error:
-                        lineup_attempts.append({'route': 'SPORTSDATAVERSE_NBA_STATS_MIRROR',
+                        lineup_attempts.append({'route': 'NBA_CDN_OR_STATS_DIRECT',
                                                 'error': type(error).__name__ + ': ' + str(error)})
                 if not lineup_evidence:
                     lineup_evidence = {'player': p['player'], 'quality': 'LIMITED'}
