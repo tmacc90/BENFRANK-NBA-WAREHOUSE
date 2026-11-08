@@ -1,0 +1,67 @@
+name: BENFRANK frozen ten lineup-enhanced run
+on:
+  push:
+    branches:
+      - benfrank-lineup-wowy-reconstruction-20261107
+    paths:
+      - "configs/frozen_ten_20261108.json"
+      - "benfrank_auto_runner.py"
+      - "benfrank_v52_early.py"
+      - "benfrank_lineup_acquisition.py"
+      - "benfrank_lineup_mirror.py"
+      - "benfrank_stage24_calibration.py"
+      - "benfrank_v52_ledger.py"
+      - "tests/test_stage24_calibration.py"
+      - "tests/test_v52_early.py"
+      - ".github/workflows/benfrank-frozen-ten-enhanced.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: benfrank-forward-ledger-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  enhanced-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Prepare persistent forward state
+        run: mkdir -p auto_state_enhanced
+      - name: Restore BENFRANK forward ledger
+        id: forward-ledger-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: auto_state_enhanced/forward_ledger.sqlite
+          key: benfrank-forward-ledger-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            benfrank-forward-ledger-${{ github.ref_name }}-
+      - name: Verify software suite
+        run: python -m unittest discover -s tests -v
+      - name: Execute frozen ten with lineup/WOWY evidence
+        shell: bash
+        run: |
+          set -o pipefail
+          python -u run_framework.py             --auto configs/frozen_ten_20261108.json             --state-dir auto_state_enhanced             --trials 25000             --stress-trials 2000             --output enhanced_runs/frozen-ten-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}             2>&1 | tee enhanced-frozen-ten.log
+      - name: Save BENFRANK forward ledger
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: auto_state_enhanced/forward_ledger.sqlite
+          key: benfrank-forward-ledger-${{ github.ref_name }}-${{ github.run_id }}
+      - name: Upload complete evidence and receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benfrank-frozen-ten-enhanced-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            enhanced_runs/
+            auto_state_enhanced/
+            enhanced-frozen-ten.log
+          retention-days: 90
+          if-no-files-found: warn

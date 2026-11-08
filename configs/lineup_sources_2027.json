@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "purpose": "BENFRANK Stage 33-35 cloud-safe possession/lineup acquisition",
+  "provider": "SportsDataverse NBA Stats mirror",
+  "repository": "sportsdataverse/hoopR-nba-stats-data",
+  "pinned_commit": "9678c0083ae7859132e556781b77c01e3d5b2750",
+  "commit_date": "2026-11-07T15:20:54Z",
+  "season_end": 2027,
+  "source_family": "NBA_STATS_DERIVED_MIRROR",
+  "independence_family": "LINEUP_PBP_CORRELATED_WITH_ROLE_OPPORTUNITY",
+  "assets": [
+    {
+      "kind": "pbp",
+      "path": "nba_stats/pbp/parquet/nba_play_by_play_2027.parquet",
+      "git_blob_sha": "d41224f4421e1db4432d6cc13c1efbff4557f627",
+      "size_bytes": 1961928
+    },
+    {
+      "kind": "possessions",
+      "path": "nba_stats/possessions/parquet/nba_possessions_2027.parquet",
+      "git_blob_sha": "2d34af254a7378a77aab7e8dd13647d26dffa7b8",
+      "size_bytes": 371014
+    },
+    {
+      "kind": "game_lineups",
+      "path": "nba_stats/game_lineups/parquet/nba_lineups_2027.parquet",
+      "git_blob_sha": "2fd3ed0e705a7d84a411ec5992117e013cdd612a",
+      "size_bytes": 114166
+    },
+    {
+      "kind": "player_box",
+      "path": "nba_stats/player_boxscores/parquet/player_boxscores_2027.parquet",
+      "git_blob_sha": "2ca64e3346beb5a9acd4e4cdf3821907d8914094",
+      "size_bytes": 103017
+    }
+  ],
+  "policy": {
+    "exact_game_ids_only": true,
+    "pregame_cutoff_enforced_by_history_game_ids": true,
+    "cache_raw_parquets": true,
+    "resolve_moving_ref_to_exact_commit": true,
+    "full_requires_minute_reconciliation": true
+  }
+}
