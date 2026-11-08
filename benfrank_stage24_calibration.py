@@ -128,10 +128,11 @@ def live_maturity(ledger_path: str | Path) -> dict[str, Any]:
             first[key] = rid
             cohort_ids.add(rid)
 
+    primary_settlements = [label for label in settlements if label.get("prediction_id") in cohort_ids]
     groups: dict[tuple[str, str, tuple[int, int]], list[dict[str, Any]]] = {}
-    for label in settlements:
+    for label in primary_settlements:
         rid = label.get("prediction_id")
-        if rid not in cohort_ids or label.get("outcome") == "PUSH":
+        if label.get("outcome") == "PUSH":
             continue
         receipt = predictions[rid]
         prop = receipt["prop"]
@@ -171,7 +172,10 @@ def live_maturity(ledger_path: str | Path) -> dict[str, Any]:
         "quality": "FULL" if any(s["mature_for_calibration_research"] for s in strata) else "LIMITED",
         "predictions_frozen": len(predictions),
         "settlements": len(settlements),
+        "primary_settlements": len(primary_settlements),
+        "revision_settlements_excluded": len(settlements) - len(primary_settlements),
         "unique_primary_forecasts": len(cohort_ids),
+        "pre_tipoff_revisions_excluded": len(predictions) - len(cohort_ids),
         "strata": strata,
         "maturity_threshold": {
             "settled_nonpush_per_stratum": LIVE_MIN_SETTLED,
@@ -199,7 +203,9 @@ def stage24_receipt(prop: dict[str, Any], raw_probability: float | None,
         "stratum": live_stratum,
         "cohort_snapshot": {
             k: ledger_snapshot.get(k) for k in
-            ("status", "predictions_frozen", "settlements", "unique_primary_forecasts", "ledger_sha256")
+            ("status", "predictions_frozen", "settlements", "primary_settlements",
+             "revision_settlements_excluded", "unique_primary_forecasts",
+             "pre_tipoff_revisions_excluded", "ledger_sha256")
         },
         "maturity_threshold": ledger_snapshot.get("maturity_threshold"),
     }
