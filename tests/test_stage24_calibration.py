@@ -63,6 +63,11 @@ class Stage24CalibrationTests(unittest.TestCase):
             self.assertFalse(receipt["24A_historical_calibration"]["applicable_to_current_simulator"])
             self.assertEqual(receipt["raw_p_over"], 0.71)
             self.assertEqual(receipt["decision_effect"], "NONE")
+            self.assertEqual(receipt["direction"], "NEUTRAL")
+            self.assertEqual(receipt["source_grade"], "C")
+            self.assertEqual(receipt["engine"], "BENFRANK_STAGE24_CALIBRATION_1")
+            self.assertEqual(len(receipt["receipt_id"]), 64)
+            self.assertIn("CURRENT_SIMULATOR_VALIDATED_CALIBRATION_MODEL", receipt["missing"])
 
     def test_missing_live_ledger_is_explicit_limited_not_failure(self):
         with tempfile.TemporaryDirectory() as tmp:
