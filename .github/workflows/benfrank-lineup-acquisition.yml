@@ -12,7 +12,7 @@ on:
       game_ids:
         description: "Comma-separated 10-digit completed NBA game IDs"
         required: true
-        default: "0022400001"
+        default: "0022600032"
 permissions:
   contents: read
 jobs:
@@ -33,7 +33,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             IDS="${{ inputs.game_ids }}"
           else
-            IDS="0022400001"
+            IDS="0022600032"
           fi
           ARGS=""
           IFS=',' read -ra GAME_IDS <<< "$IDS"
