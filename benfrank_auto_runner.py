@@ -16,7 +16,7 @@ from benfrank_auto_context import (schedule, discover, capture_roles, acquire_re
                                   ProfileHistory, build_context, captured_board)
 from benfrank_auto_evidence import sensitivity, interrogation
 from benfrank_v52_early import run_one, season_start
-from benfrank_v52_ledger import record_prediction
+from benfrank_v52_ledger import record_prediction, settle as settle_forward_ledger
 from benfrank_v47_run import save_receipt
 from benfrank_v53_core import report as dna_report
 from benfrank_manual_prop import resolve_manual_forward_prop
@@ -312,6 +312,11 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
         stage('v52_history_read_model', lambda: write_history(recon['records'], history_db))
         history = ProfileHistory(recon['records'], boxes)
         ledger = Path(state_dir).resolve() / 'forward_ledger.sqlite'
+        if ledger.is_file():
+            settlement_update = settle_forward_ledger(ledger)
+        else:
+            settlement_update = []
+        write(root / 'prior_forward_settlement_update.json', settlement_update)
         live_calibration_snapshot = live_maturity(ledger)
         write(root / 'stage_24_live_cohort_snapshot.json', live_calibration_snapshot)
         for p in board:
