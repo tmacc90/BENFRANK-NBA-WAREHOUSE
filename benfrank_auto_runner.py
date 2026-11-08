@@ -4,6 +4,7 @@ import datetime as dt
 import hashlib
 import json
 import math
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -20,6 +21,7 @@ from benfrank_v47_run import save_receipt
 from benfrank_v53_core import report as dna_report
 from benfrank_manual_prop import resolve_manual_forward_prop
 from benfrank_lineup_acquisition import acquire_history_context
+from benfrank_lineup_mirror import history_context as mirror_history_context, season_end_for_date
 
 VERSION = 'BENFRANK_AUTO_ACQUIRE_TO_FREEZE_1'
 STAGES = ('exact_line_schedule', 'player_identity', 'automatic_acquisition', 'source_reconciliation',
@@ -74,6 +76,26 @@ def dna_input(prop, rows, result):
                            blind_projection=result['blind_model']['projection']))
 
 
+def lineup_game_specs(rows):
+    """Exact NBA game IDs from reconciled pre-cutoff observations for mirror fallback."""
+    specs = []
+    seen = set()
+    ordered = sorted(rows, key=lambda r: (r.get('date', ''), r.get('game_id', '')), reverse=True)
+    for row in ordered:
+        candidates = []
+        direct = row.get('source_game_id')
+        if direct:
+            candidates.append(str(direct))
+        for values in (row.get('source_game_ids') or {}).values():
+            candidates.extend(map(str, values or []))
+        for gid in candidates:
+            if not re.fullmatch(r'\d{10}', gid) or gid in seen:
+                continue
+            specs.append({'game_id': gid, 'season': season_end_for_date(row['date'])})
+            seen.add(gid)
+    return specs
+
+
 def preservation_snapshot():
     root = Path(__file__).parent
     paths = list(root.glob('*.sqlite'))
@@ -96,7 +118,8 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
     protected = preservation_snapshot()
     started = now(); day = config['game_date']; dt.date.fromisoformat(day)
     mode = config.get('mode', 'future_discovery')
-    if mode not in ('future_discovery', 'captured_forward_board', 'historical_research', 'manual_forward_prop'):
+    if mode not in ('future_discovery', 'captured_forward_board', 'historical_research',
+                     'manual_forward_prop', 'manual_forward_board'):
         raise ValueError('UNKNOWN_AUTOMATIC_RUN_MODE')
     receipt = dict(version=VERSION, started_utc=started, mode=mode, game_date=day, stages=[], props=[],
                    config_sha256=hashlib.sha256(raw_config).hexdigest(), certified=False,
@@ -136,6 +159,37 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
                 lambda: resolve_manual_forward_prop(store, config))
             games = discovery['games']
             write(root / 'discovery.json', discovery)
+        elif mode == 'manual_forward_board':
+            board = [dict(p) for p in config.get('props', [])]
+            games = stage('manual_board_verified_future_schedule', lambda: schedule(store, day))
+            if not board:
+                raise ValueError('MANUAL_FORWARD_BOARD_REQUIRES_PROPS')
+            for i, p in enumerate(board):
+                for required in ('player', 'market', 'line', 'team', 'opponent', 'line_capture_utc'):
+                    if required not in p:
+                        raise ValueError('MANUAL_FORWARD_BOARD_MISSING_' + required.upper())
+                matches = [g for g in games
+                           if {g['home'], g['away']} == {p['team'], p['opponent']}
+                           and instant(g['tipoff_utc']) > instant(started)
+                           and g.get('status', {}).get('state') == 'pre']
+                if len(matches) != 1:
+                    raise ValueError('MANUAL_FORWARD_BOARD_SCHEDULE_AMBIGUOUS:' + p['player'])
+                g = matches[0]
+                if instant(p['line_capture_utc']) >= instant(g['tipoff_utc']):
+                    raise ValueError('MANUAL_LINE_CAPTURE_NOT_PREGAME:' + p['player'])
+                p.setdefault('snapshot_id', 'manual_board_' + str(i + 1))
+                p.setdefault('platform', 'PrizePicks')
+                p.setdefault('line_authority', 'USER_SUPPLIED_SCREENSHOT_FROZEN_LINE')
+                p.setdefault('source_url', 'user_supplied_screenshot')
+                p.setdefault('source_document', p['snapshot_id'])
+                p.update(game_id=g['game_id'], espn_event_id=g['espn_event_id'],
+                         tipoff_utc=g['tipoff_utc'], game_date=day)
+            write(root / 'discovery.json', {
+                'mode': 'manual_forward_board',
+                'games': games,
+                'line_authority': 'USER_SUPPLIED_SCREENSHOT_FROZEN_LINE',
+                'native_platform_line_recheck': False,
+            })
         else:
             board = config['props']
             games = stage('historical_schedule_acquisition', lambda: schedule(store, day))
@@ -230,28 +284,53 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
                      original_stat_publication_vintage_verified=False)
                 mark('historical_windows', receipt=str(folder / 'historical_windows.json'),
                      l52_available=windows['L52']['n'], l52_complete=windows['L52']['n'] == 52)
-                # Additive Stage 33-35 evidence. Network/source failures degrade to LIMITED;
-                # they never impersonate FULL evidence or erase the base prediction path.
+                # Additive Stage 33-35 evidence. Direct NBA/CDN is preferred; the
+                # pinned public possession/lineup mirror is the automatic cloud-runner fallback.
+                # Neither route may impersonate FULL when its validation/sample gate fails.
+                lineup_root = Path(state_dir).resolve() / 'lineup_cache'
+                lineup_attempts = []
+                lineup_evidence = None
                 try:
-                    lineup_evidence = acquire_history_context(
-                        p['player'], target, Path(state_dir).resolve() / 'lineup_cache',
+                    direct = acquire_history_context(
+                        p['player'], target, lineup_root,
                         max_games=int(config.get('lineup_history_games', 12)))
+                    lineup_attempts.append({'route': 'NBA_CDN_OR_STATS_DIRECT',
+                                            'quality': direct.get('quality')})
+                    lineup_evidence = direct
                 except Exception as error:
-                    reason = type(error).__name__ + ': ' + str(error)
-                    lineup_evidence = {
-                        'player': p['player'], 'quality': 'LIMITED',
-                        'requested_games': 0, 'usable_games': 0,
-                        'games': [], 'teammates': {}, 'five_man_units': {},
-                        'target': {'closing_share': None},
-                        'stage_receipts': {
+                    lineup_attempts.append({'route': 'NBA_CDN_OR_STATS_DIRECT',
+                                            'error': type(error).__name__ + ': ' + str(error)})
+                if not lineup_evidence or lineup_evidence.get('quality') not in ('FULL', 'FALLBACK'):
+                    try:
+                        specs = lineup_game_specs(target)
+                        mirror = mirror_history_context(
+                            p['player'], specs, lineup_root,
+                            max_games=int(config.get('lineup_history_games', 12)))
+                        lineup_attempts.append({'route': 'SPORTSDATAVERSE_NBA_STATS_MIRROR',
+                                                'quality': mirror.get('quality'),
+                                                'upstream_commit': mirror.get('upstream_commit')})
+                        lineup_evidence = mirror
+                    except Exception as error:
+                        lineup_attempts.append({'route': 'SPORTSDATAVERSE_NBA_STATS_MIRROR',
+                                                'error': type(error).__name__ + ': ' + str(error)})
+                if not lineup_evidence:
+                    lineup_evidence = {'player': p['player'], 'quality': 'LIMITED'}
+                lineup_evidence['acquisition_routes_attempted'] = lineup_attempts
+                if lineup_evidence.get('quality') not in ('FULL', 'FALLBACK', 'LIMITED'):
+                    lineup_evidence['quality'] = 'LIMITED'
+                if not lineup_evidence.get('stage_receipts'):
+                    reason = '; '.join(x.get('error', x.get('route', 'UNKNOWN')) for x in lineup_attempts)
+                    lineup_evidence.update(
+                        requested_games=0, usable_games=0, games=[], teammates={}, five_man_units={},
+                        target={'closing_share': None},
+                        stage_receipts={
                             '33': {'stage': 'Teammate WOWY', 'execution': 'EXECUTED',
                                    'quality': 'LIMITED', 'exact_reason': reason},
                             '34': {'stage': 'Five-Man Lineups', 'execution': 'EXECUTED',
                                    'quality': 'LIMITED', 'exact_reason': reason},
                             '35': {'stage': 'Closing Lineup', 'execution': 'EXECUTED',
                                    'quality': 'LIMITED', 'exact_reason': reason},
-                        },
-                    }
+                        })
                 write(folder / 'lineup_evidence.json', lineup_evidence)
                 for number, key in (('33', 'stage_33_teammate_wowy'),
                                     ('34', 'stage_34_five_man_lineups'),
