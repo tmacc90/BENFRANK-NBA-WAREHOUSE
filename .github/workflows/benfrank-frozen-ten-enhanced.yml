@@ -17,6 +17,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: benfrank-forward-ledger-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   enhanced-run:
     runs-on: ubuntu-latest
