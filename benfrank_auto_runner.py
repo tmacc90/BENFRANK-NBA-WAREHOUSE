@@ -470,9 +470,11 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
                     raise ValueError('SIMULATION_COMPLETED_AFTER_REQUESTED_PREGAME_CUTOFF')
                 if frozen['status'] != 'FORWARD_TEST_READY':
                     raise ValueError('SIMULATION_COMPLETED_AFTER_TIPOFF_CANNOT_FREEZE_FORWARD')
-                record_prediction(ledger, frozen)
+                freeze_result = record_prediction(ledger, frozen)
                 mark('pregame_freeze', ledger=str(ledger), receipt_sha256=frozen['receipt_sha256'],
-                     issued_before_tipoff=True)
+                     issued_before_tipoff=True, ledger_status=freeze_result['status'],
+                     ledger_id=freeze_result['ledger_id'],
+                     primary_snapshot_id=freeze_result['primary_id'])
                 mark('postgame_grading', 'PREPARED_PENDING_FINAL', ledger=str(ledger),
                      exact_reason='GAME_NOT_FINAL; scheduled grading reads immutable frozen receipt')
                 entry.update(status='FORWARD_TEST_READY_UNCALIBRATED', direction=result['direction'],
