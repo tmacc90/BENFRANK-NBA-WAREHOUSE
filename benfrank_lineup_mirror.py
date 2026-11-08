@@ -512,14 +512,18 @@ def recent_team_boxes(teams: list[str] | set[str], day: str, cache_root: str | P
         missing = sorted(required_schedule - set(schedule.columns))
         raise ValueError("MIRROR_SCHEDULE_SCHEMA_MISSING:" + ",".join(missing))
 
+    schedule = schedule.copy()
+    schedule["_date"] = pd.to_datetime(
+        schedule["game_date"], errors="coerce"
+    ).dt.strftime("%Y-%m-%d")
     schedule = schedule.loc[
         (pd.to_numeric(schedule["season"], errors="coerce") == season)
         & (schedule["season_type_id"].astype(str) == "2")
         & (pd.to_numeric(schedule["game_status"], errors="coerce") == 3)
-        & (schedule["game_date"].astype(str).str[:10] < day)
+        & schedule["_date"].notna()
+        & (schedule["_date"] < day)
     ].copy()
     schedule["game_id"] = schedule["game_id"].astype(str).str.zfill(10)
-    schedule["_date"] = schedule["game_date"].astype(str).str[:10]
 
     wanted = set(teams)
     selected: dict[str, dict[str, Any]] = {}
