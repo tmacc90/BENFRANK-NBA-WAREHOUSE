@@ -23,6 +23,7 @@ from collections import defaultdict
 from pathlib import Path
 
 import requests
+from benfrank_lineup_mirror import history_context as mirror_history_context, season_end_for_date
 
 CDN = "https://cdn.nba.com/static/json/liveData"
 STATS = "https://stats.nba.com/stats"
@@ -556,6 +557,38 @@ def _rate(stats, possessions):
 
 
 def acquire_history_context(player, records, cache_root, max_games=12):
+    # Cloud-safe primary route: GitHub-hosted SportsDataverse season parquets.
+    # Only exact NBA game IDs already present in pre-cutoff reconciled history
+    # are requested, so newer mirror rows cannot leak future games into a run.
+    mirror_specs = []
+    for record in sorted(records, key=lambda r: (r.get("date", ""), r.get("game_id", "")), reverse=True):
+        date_text = str(record.get("date") or "")
+        if not date_text:
+            continue
+        for gid in _nba_game_ids(record):
+            mirror_specs.append({"game_id": gid, "season": season_end_for_date(date_text)})
+        if len({x["game_id"] for x in mirror_specs}) >= max_games:
+            break
+    mirror_error = None
+    if mirror_specs:
+        try:
+            mirrored = mirror_history_context(
+                player, mirror_specs, cache_root, max_games=max_games
+            )
+            # A valid mirror result is preferred whenever it has enough usable
+            # history to earn at least FALLBACK. LIMITED continues through to
+            # direct NBA routes so another source still gets a chance.
+            if mirrored.get("quality") in ("FULL", "FALLBACK"):
+                mirrored["source_route"] = "SPORTSDATAVERSE_GITHUB_MIRROR"
+                return mirrored
+            mirror_error = "MIRROR_LIMITED:" + json.dumps({
+                "usable_games": mirrored.get("usable_games"),
+                "requested_games": mirrored.get("requested_games"),
+                "games": mirrored.get("games", [])[:5],
+            }, sort_keys=True)
+        except Exception as error:
+            mirror_error = type(error).__name__ + ":" + str(error)
+
     ordered = sorted(records, key=lambda r: (r.get("date", ""), r.get("game_id", "")), reverse=True)
     game_ids = []
     for record in ordered:
@@ -567,6 +600,7 @@ def acquire_history_context(player, records, cache_root, max_games=12):
 
     result = {
         "player": player,
+        "mirror_attempt": {"status": "FAILED_OR_LIMITED", "reason": mirror_error},
         "requested_games": len(game_ids),
         "games": [],
         "usable_games": 0,
