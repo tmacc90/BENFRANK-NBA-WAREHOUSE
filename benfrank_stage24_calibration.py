@@ -203,11 +203,47 @@ def stage24_receipt(prop: dict[str, Any], raw_probability: float | None,
         },
         "maturity_threshold": ledger_snapshot.get("maturity_threshold"),
     }
-    return {
+    missing = ["CURRENT_SIMULATOR_VALIDATED_CALIBRATION_MODEL"]
+    if live_stratum is None:
+        missing.append("SETTLED_LIVE_ROWS_FOR_EXACT_STRATUM")
+    elif not live_stratum["mature_for_calibration_research"]:
+        missing.append("MATURE_LIVE_FORWARD_SAMPLE")
+    if historical.get("quality") != "FULL":
+        missing.append("SUFFICIENT_HISTORICAL_BASELINE_STRATUM")
+    sample_n = {
+        "historical_train_n": historical.get("train_n"),
+        "historical_holdout_n": historical.get("holdout_n"),
+        "live_settled_nonpush_n": live_stratum.get("settled_nonpush_n") if live_stratum else 0,
+        "live_unique_games": live_stratum.get("unique_games") if live_stratum else 0,
+    }
+    receipt = {
         "stage": 24,
         "name": "Projection Error & Calibration",
+        "engine": "BENFRANK_STAGE24_CALIBRATION_1",
         "execution": "EXECUTED",
         "quality": "LIMITED",
+        "sources": [
+            {
+                "family": "HISTORICAL_BASELINE_RESEARCH",
+                "artifact": str(Path(baseline_path)),
+                "sha256": historical.get("baseline_sha256"),
+                "applicable_to_current_simulator": False,
+            },
+            {
+                "family": "APPEND_ONLY_FORWARD_LEDGER",
+                "sha256": ledger_snapshot.get("ledger_sha256"),
+                "predictions_frozen": ledger_snapshot.get("predictions_frozen", 0),
+                "settlements": ledger_snapshot.get("settlements", 0),
+            },
+        ],
+        "source_grade": "C",
+        "input_timestamp": prop.get("line_capture_utc") or prop.get("captured_at"),
+        "pregame_cutoff": prop.get("requested_pregame_cutoff_utc") or prop.get("tipoff_utc"),
+        "method": "HISTORICAL_BASELINE_CONTEXT_PLUS_FORWARD_LEDGER_MATURITY_NO_CROSS_MODEL_CALIBRATION",
+        "sample_n": sample_n,
+        "output": "RAW_CURRENT_SIMULATOR_PROBABILITY_ONLY",
+        "direction": "NEUTRAL",
+        "strength": 0,
         "24A_historical_calibration": historical,
         "24B_live_benfrank_calibration": live,
         "raw_p_over": raw_probability,
@@ -215,6 +251,9 @@ def stage24_receipt(prop: dict[str, Any], raw_probability: float | None,
         "calibration_applied": False,
         "accuracy_certified": False,
         "current_simulator_calibration_model_present": False,
+        "conflicts": [],
+        "missing": missing,
+        "fallback": "Historical baseline metrics retained as descriptive context only.",
         "decision_effect": "NONE",
         "exact_reason": (
             "Historical calibration evidence is retained as research context only. "
@@ -223,3 +262,7 @@ def stage24_receipt(prop: dict[str, Any], raw_probability: float | None,
         ),
         "independence_family": "CALIBRATION_EVALUATION_NOT_DIRECTIONAL_EVIDENCE",
     }
+    receipt["receipt_id"] = hashlib.sha256(
+        json.dumps(receipt, sort_keys=True, allow_nan=False, default=str).encode()
+    ).hexdigest()
+    return receipt
