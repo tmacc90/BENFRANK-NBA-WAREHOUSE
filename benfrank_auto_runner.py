@@ -23,11 +23,13 @@ from benfrank_manual_prop import resolve_manual_forward_prop
 from benfrank_lineup_acquisition import acquire_history_context
 from benfrank_lineup_mirror import (history_context as mirror_history_context, season_end_for_date,
                                      recent_team_boxes)
+from benfrank_stage24_calibration import live_maturity, stage24_receipt
 
 VERSION = 'BENFRANK_AUTO_ACQUIRE_TO_FREEZE_1'
 STAGES = ('exact_line_schedule', 'player_identity', 'automatic_acquisition', 'source_reconciliation',
           'historical_windows', 'player_profiles_matchup_roles', 'sequential_25000', 'independent_blind_process',
-          'adversarial_stress', 'sensitivity', 'player_dna_100', 'interrogation_60', 'pregame_freeze', 'postgame_grading')
+          'adversarial_stress', 'sensitivity', 'stage_24_calibration', 'player_dna_100', 'interrogation_60',
+          'pregame_freeze', 'postgame_grading')
 
 
 def write(path, value):
@@ -309,6 +311,9 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
         history_db = root / 'derived_history.sqlite'
         stage('v52_history_read_model', lambda: write_history(recon['records'], history_db))
         history = ProfileHistory(recon['records'], boxes)
+        ledger = Path(state_dir).resolve() / 'forward_ledger.sqlite'
+        live_calibration_snapshot = live_maturity(ledger)
+        write(root / 'stage_24_live_cohort_snapshot.json', live_calibration_snapshot)
         for p in board:
             entry = dict(prop=p, status='BLOCKED', direction=None, certified=False,
                          stage_results={s: dict(status='BLOCKED', exact_reason='UPSTREAM_INPUTS_NOT_READY') for s in STAGES})
@@ -428,6 +433,15 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
                     limitation='Assumption stresses, not empirically measured tracking opportunity/conversion')
                 mark('adversarial_stress', receipt=result['adversarial'])
                 mark('sensitivity', receipt=result['sensitivity'])
+                result['stage_24_calibration'] = stage24_receipt(
+                    p, result['main_simulation'].get('p_over_raw'), live_calibration_snapshot)
+                write(folder / 'stage_24_calibration.json', result['stage_24_calibration'])
+                mark('stage_24_calibration',
+                     quality=result['stage_24_calibration']['quality'],
+                     calibration_applied=result['stage_24_calibration']['calibration_applied'],
+                     accuracy_certified=result['stage_24_calibration']['accuracy_certified'],
+                     receipt=str(folder / 'stage_24_calibration.json'),
+                     exact_reason=result['stage_24_calibration']['exact_reason'])
                 dna = dna_report(dna_input(p, target, result)); write(folder / 'dna_100.json', dna)
                 mark('player_dna_100', tested=len(dna['dna_100_test_results']),
                      available=sum(t['status'] != 'UNAVAILABLE' for t in dna['dna_100_test_results']),
@@ -451,7 +465,6 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
                     raise ValueError('SIMULATION_COMPLETED_AFTER_REQUESTED_PREGAME_CUTOFF')
                 if frozen['status'] != 'FORWARD_TEST_READY':
                     raise ValueError('SIMULATION_COMPLETED_AFTER_TIPOFF_CANNOT_FREEZE_FORWARD')
-                ledger = Path(state_dir).resolve() / 'forward_ledger.sqlite'
                 record_prediction(ledger, frozen)
                 mark('pregame_freeze', ledger=str(ledger), receipt_sha256=frozen['receipt_sha256'],
                      issued_before_tipoff=True)
@@ -508,7 +521,8 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
             report_lines += ['', '**Fatal blocker:** ' + receipt['fatal_blocker']]
         report_lines += ['', 'Original warehouse writes: **0**. Protected governing/data/receipt hash check: **' + str(receipt['preservation_verified']) + '**.',
                          'Every raw capture, provider failure, quarantined disagreement and simulated trial is retained in the run/state artifacts.',
-                         'Unmeasured tracking inputs, independently validated Blind AI accuracy, complete career coverage and new forward calibration remain unverified.']
+                         'Unmeasured tracking inputs, independently validated Blind AI accuracy and complete career coverage remain unverified.',
+                         'Stage 24 now executes as a two-part receipt: historical calibration research is descriptive only; live BENFRANK calibration remains LIMITED until its exact stratum matures and a separately validated current-simulator calibration model exists.']
         (root / 'readiness_report.md').write_text('\n'.join(report_lines) + '\n')
     print(encode(dict(status=receipt['status'], frozen=receipt['predictions_frozen_before_tipoff'],
                       fatal_blocker=receipt.get('fatal_blocker'))), flush=True)
