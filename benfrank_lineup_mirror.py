@@ -471,6 +471,148 @@ def _game_scoring_context(game: dict[str, pd.DataFrame], target: dict[str, Any])
     }
 
 
+def _download_schedule_master(cache_root: str | Path, commit: str) -> Path:
+    root = Path(cache_root) / "sportsdataverse" / commit
+    root.mkdir(parents=True, exist_ok=True)
+    dest = root / "nba_stats_schedule_master.parquet"
+    meta = dest.with_suffix(".parquet.meta.json")
+    if dest.exists() and meta.exists():
+        return dest
+    rel = "nba_stats/nba_stats_schedule_master.parquet"
+    url = f"{RAW_BASE}/{commit}/{rel}"
+    response = _request(url, timeout=90)
+    raw = response.content
+    if len(raw) < 1000:
+        raise RuntimeError("MIRROR_SCHEDULE_MASTER_TOO_SMALL")
+    dest.write_bytes(raw)
+    meta.write_text(json.dumps({
+        "provider": "SportsDataverse NBA Stats mirror",
+        "upstream_commit": commit,
+        "family": "schedule_master",
+        "url": url,
+        "bytes": len(raw),
+        "sha256": _sha256(raw),
+        "retrieved_unix": time.time(),
+    }, indent=2) + "\n")
+    return dest
+
+
+def recent_team_boxes(teams: list[str] | set[str], day: str, cache_root: str | Path,
+                      *, max_games: int = 5, commit: str | None = None) -> dict[str, Any]:
+    """Last N completed regular-season team boxes from the pinned public mirror."""
+    root = Path(cache_root)
+    commit = commit or resolve_upstream_commit(root)
+    season = season_end_for_date(day)
+    schedule = pd.read_parquet(_download_schedule_master(root, commit))
+    required_schedule = {
+        "game_id", "game_date", "game_status", "season", "season_type_id",
+        "home_team_tricode", "away_team_tricode",
+    }
+    if not required_schedule <= set(schedule.columns):
+        missing = sorted(required_schedule - set(schedule.columns))
+        raise ValueError("MIRROR_SCHEDULE_SCHEMA_MISSING:" + ",".join(missing))
+
+    schedule = schedule.loc[
+        (pd.to_numeric(schedule["season"], errors="coerce") == season)
+        & (schedule["season_type_id"].astype(str) == "2")
+        & (pd.to_numeric(schedule["game_status"], errors="coerce") == 3)
+        & (schedule["game_date"].astype(str).str[:10] < day)
+    ].copy()
+    schedule["game_id"] = schedule["game_id"].astype(str).str.zfill(10)
+    schedule["_date"] = schedule["game_date"].astype(str).str[:10]
+
+    wanted = set(teams)
+    selected: dict[str, dict[str, Any]] = {}
+    counts = {team: 0 for team in wanted}
+    ordered = schedule.sort_values(["_date", "game_id"], ascending=[False, False])
+    for _, row in ordered.iterrows():
+        home = str(row["home_team_tricode"])
+        away = str(row["away_team_tricode"])
+        relevant = wanted.intersection({home, away})
+        if not relevant:
+            continue
+        gid = str(row["game_id"])
+        needed = [team for team in relevant if counts[team] < max_games]
+        if not needed:
+            continue
+        selected.setdefault(gid, {
+            "game_id": gid, "date": str(row["_date"]), "home": home, "away": away,
+        })
+        for team in needed:
+            counts[team] += 1
+        if all(v >= max_games for v in counts.values()):
+            break
+
+    box_path = _download_dataset(root, season, "team_box", commit)
+    frame = pd.read_parquet(box_path)
+    if "game_id" not in frame.columns:
+        raise ValueError("MIRROR_TEAM_BOX_SCHEMA_MISSING_GAME_ID")
+    frame = frame.copy()
+    frame["game_id"] = frame["game_id"].astype(str).str.zfill(10)
+
+    outputs = {}
+    rejected = []
+    for gid, spec in sorted(selected.items(), key=lambda kv: (kv[1]["date"], kv[0]), reverse=True):
+        try:
+            rows = frame.loc[frame["game_id"] == gid].copy()
+            if "season_type_id" in rows.columns:
+                rows = rows.loc[rows["season_type_id"].astype(str) == "2"]
+            if len(rows) != 2:
+                raise ValueError(f"MIRROR_TEAM_BOX_EXPECTED_TWO_ROWS:{gid}:{len(rows)}")
+            parsed = {}
+            for _, row in rows.iterrows():
+                team = str(row.get("team_tricode") or "")
+                minutes = _parse_minutes(row.get("minutes"))
+                if not team or minutes < 239.0:
+                    raise ValueError(f"MIRROR_TEAM_BOX_INVALID_ROW:{gid}:{team}:{minutes}")
+                parsed[team] = {
+                    "fgm": _to_int(row.get("field_goals_made")),
+                    "fga": _to_int(row.get("field_goals_attempted")),
+                    "fta": _to_int(row.get("free_throws_attempted")),
+                    "orb": _to_int(row.get("rebounds_offensive")),
+                    "drb": _to_int(row.get("rebounds_defensive")),
+                    "tov": _to_int(row.get("turnovers")),
+                    "ast": _to_int(row.get("assists")),
+                    "blk": _to_int(row.get("blocks")),
+                    "minutes": minutes,
+                }
+            if set(parsed) != {spec["home"], spec["away"]}:
+                raise ValueError(
+                    f"MIRROR_TEAM_BOX_SCHEDULE_CONFLICT:{gid}:{sorted(parsed)}:"
+                    f"{spec['away']}@{spec['home']}"
+                )
+            outputs["nba:" + gid] = {
+                "event": {
+                    "event_id": gid, "date": spec["date"],
+                    "home": spec["home"], "away": spec["away"],
+                },
+                "boxes": parsed,
+                "source_document": {
+                    "id": f"sdv_team_box:{commit}:{season}:{gid}",
+                    "family": "NBA_STATS_TEAM_BOX_MIRROR",
+                    "provider": "SportsDataverse NBA Stats mirror",
+                    "upstream_commit": commit,
+                },
+                "authority": "SPORTSDATAVERSE_NBA_STATS_TEAM_BOX_MIRROR",
+            }
+        except Exception as exc:
+            rejected.append({"game_id": gid, "reason": f"{type(exc).__name__}:{exc}"})
+
+    actual_counts = {
+        team: sum(1 for item in outputs.values() if team in item["boxes"])
+        for team in wanted
+    }
+    return {
+        "boxes": outputs,
+        "counts": actual_counts,
+        "scheduled_counts": counts,
+        "rejected": rejected,
+        "upstream_commit": commit,
+        "season": season,
+        "source": "SPORTSDATAVERSE_NBA_STATS_TEAM_BOX_MIRROR",
+    }
+
+
 def team_boxes_from_records(records: list[dict[str, Any]], teams: list[str] | set[str],
                             day: str, cache_root: str | Path, *, max_games: int = 5,
                             commit: str | None = None) -> dict[str, Any]:
