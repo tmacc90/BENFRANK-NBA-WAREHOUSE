@@ -19,6 +19,7 @@ from benfrank_v52_ledger import record_prediction
 from benfrank_v47_run import save_receipt
 from benfrank_v53_core import report as dna_report
 from benfrank_manual_prop import resolve_manual_forward_prop
+from benfrank_lineup_acquisition import acquire_history_context
 
 VERSION = 'BENFRANK_AUTO_ACQUIRE_TO_FREEZE_1'
 STAGES = ('exact_line_schedule', 'player_identity', 'automatic_acquisition', 'source_reconciliation',
@@ -229,6 +230,37 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
                      original_stat_publication_vintage_verified=False)
                 mark('historical_windows', receipt=str(folder / 'historical_windows.json'),
                      l52_available=windows['L52']['n'], l52_complete=windows['L52']['n'] == 52)
+                # Additive Stage 33-35 evidence. Network/source failures degrade to LIMITED;
+                # they never impersonate FULL evidence or erase the base prediction path.
+                try:
+                    lineup_evidence = acquire_history_context(
+                        p['player'], target, Path(state_dir).resolve() / 'lineup_cache',
+                        max_games=int(config.get('lineup_history_games', 12)))
+                except Exception as error:
+                    reason = type(error).__name__ + ': ' + str(error)
+                    lineup_evidence = {
+                        'player': p['player'], 'quality': 'LIMITED',
+                        'requested_games': 0, 'usable_games': 0,
+                        'games': [], 'teammates': {}, 'five_man_units': {},
+                        'target': {'closing_share': None},
+                        'stage_receipts': {
+                            '33': {'stage': 'Teammate WOWY', 'execution': 'EXECUTED',
+                                   'quality': 'LIMITED', 'exact_reason': reason},
+                            '34': {'stage': 'Five-Man Lineups', 'execution': 'EXECUTED',
+                                   'quality': 'LIMITED', 'exact_reason': reason},
+                            '35': {'stage': 'Closing Lineup', 'execution': 'EXECUTED',
+                                   'quality': 'LIMITED', 'exact_reason': reason},
+                        },
+                    }
+                write(folder / 'lineup_evidence.json', lineup_evidence)
+                for number, key in (('33', 'stage_33_teammate_wowy'),
+                                    ('34', 'stage_34_five_man_lineups'),
+                                    ('35', 'stage_35_closing_lineup')):
+                    stage_receipt = dict(lineup_evidence['stage_receipts'][number])
+                    stage_receipt.pop('execution', None)
+                    entry['stage_results'][key] = dict(
+                        status='EXECUTED', receipt=str(folder / 'lineup_evidence.json'),
+                        **stage_receipt)
                 blockers = []
                 if windows['L52']['n'] < 52:
                     blockers.append('L52_INCOMPLETE_REAL_APPEARANCES:' + str(windows['L52']['n']))
@@ -246,6 +278,7 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
                     raise ValueError('REQUESTED_PREGAME_CUTOFF_PASSED_DURING_ACQUISITION')
                 game = next(g for g in games if g['game_id'] == p['game_id'])
                 base = build_context(p, game, sources, history, boxes, cutoff, injury)
+                base['lineup_evidence'] = lineup_evidence
                 write(folder / 'base_context.json', base)
                 mark('player_profiles_matchup_roles', receipt=str(folder / 'base_context.json'))
                 print(encode(dict(stage='start_prop', player=p['player'], market=p['market'], line=p['line'])), flush=True)
