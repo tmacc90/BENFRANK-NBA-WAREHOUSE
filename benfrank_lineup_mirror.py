@@ -42,6 +42,7 @@ DATASETS = {
     "possessions": "nba_stats/possessions/parquet/nba_possessions_{season}.parquet",
     "lineups": "nba_stats/game_lineups/parquet/nba_lineups_{season}.parquet",
     "player_box": "nba_stats/player_boxscores/parquet/player_boxscores_{season}.parquet",
+    "team_box": "nba_stats/team_boxscores/parquet/team_boxscores_{season}.parquet",
 }
 
 ISO_CLOCK = re.compile(r"PT(?:(\d+)M)?([0-9.]+)S")
@@ -467,6 +468,137 @@ def _game_scoring_context(game: dict[str, pd.DataFrame], target: dict[str, Any])
         "stats": total_stats,
         "teammates": teammate,
         "units": units,
+    }
+
+
+def team_boxes_from_records(records: list[dict[str, Any]], teams: list[str] | set[str],
+                            day: str, cache_root: str | Path, *, max_games: int = 5,
+                            commit: str | None = None) -> dict[str, Any]:
+    """Build complete prior team-box inputs from exact NBA game IDs already reconciled.
+
+    This never guesses a game identity. It uses only 10-digit NBA IDs present in
+    the pre-cutoff historical records, then requires exactly two regular-season
+    team-box rows from the pinned SportsDataverse NBA Stats mirror.
+    """
+    root = Path(cache_root)
+    commit = commit or resolve_upstream_commit(root)
+    wanted = set(teams)
+    candidates: dict[str, dict[str, Any]] = {}
+    per_team: dict[str, set[str]] = {team: set() for team in wanted}
+
+    ordered = sorted(
+        (r for r in records if r.get("date") and r["date"] < day),
+        key=lambda r: (r["date"], r.get("game_id", "")),
+        reverse=True,
+    )
+    for row in ordered:
+        team = str(row.get("team") or "")
+        opp = str(row.get("opponent") or "")
+        relevant = wanted.intersection({team, opp})
+        if not relevant:
+            continue
+        ids = []
+        direct = row.get("source_game_id")
+        if direct:
+            ids.append(str(direct))
+        for values in (row.get("source_game_ids") or {}).values():
+            ids.extend(map(str, values or []))
+        gid = next((x for x in ids if re.fullmatch(r"\d{10}", x)), None)
+        if not gid:
+            continue
+        home, away = ((team, opp) if row.get("home") else (opp, team))
+        spec = candidates.setdefault(gid, {
+            "game_id": gid,
+            "date": row["date"],
+            "home": home,
+            "away": away,
+            "season": season_end_for_date(row["date"]),
+        })
+        if (spec["date"], spec["home"], spec["away"]) != (row["date"], home, away):
+            raise ValueError(f"MIRROR_TEAM_BOX_GAME_IDENTITY_CONFLICT:{gid}")
+        for code in relevant:
+            if len(per_team[code]) < max_games:
+                per_team[code].add(gid)
+        if all(len(v) >= max_games for v in per_team.values()):
+            break
+
+    selected_ids = set().union(*per_team.values()) if per_team else set()
+    specs = [candidates[gid] for gid in selected_ids if gid in candidates]
+    seasons = sorted({s["season"] for s in specs})
+    frames = {}
+    for season in seasons:
+        loaded = load_season(root, season, commit)
+        frames[season] = loaded["team_box"]
+
+    outputs = {}
+    rejected = []
+    for spec in sorted(specs, key=lambda x: (x["date"], x["game_id"]), reverse=True):
+        gid = spec["game_id"]
+        try:
+            frame = frames[spec["season"]]
+            rows = frame.loc[frame["game_id"].astype(str).str.zfill(10) == gid].copy()
+            if "season_type_id" in rows.columns:
+                rows = rows.loc[rows["season_type_id"].astype(str) == "2"]
+            if len(rows) != 2:
+                raise ValueError(f"MIRROR_TEAM_BOX_EXPECTED_TWO_ROWS:{gid}:{len(rows)}")
+            parsed = {}
+            for _, row in rows.iterrows():
+                team = str(row.get("team_tricode") or "")
+                if not team:
+                    raise ValueError(f"MIRROR_TEAM_BOX_TEAM_CODE_MISSING:{gid}")
+                minutes = _parse_minutes(row.get("minutes"))
+                if minutes < 239.0:
+                    raise ValueError(f"MIRROR_TEAM_BOX_MINUTES_INVALID:{gid}:{team}:{minutes}")
+                parsed[team] = {
+                    "fgm": _to_int(row.get("field_goals_made")),
+                    "fga": _to_int(row.get("field_goals_attempted")),
+                    "fta": _to_int(row.get("free_throws_attempted")),
+                    "orb": _to_int(row.get("rebounds_offensive")),
+                    "drb": _to_int(row.get("rebounds_defensive")),
+                    "tov": _to_int(row.get("turnovers")),
+                    "ast": _to_int(row.get("assists")),
+                    "blk": _to_int(row.get("blocks")),
+                    "minutes": minutes,
+                }
+            if set(parsed) != {spec["home"], spec["away"]}:
+                raise ValueError(
+                    f"MIRROR_TEAM_BOX_SCHEDULE_CONFLICT:{gid}:{sorted(parsed)}:"
+                    f"{spec['away']}@{spec['home']}"
+                )
+            doc_id = f"sdv_team_box:{commit}:{spec['season']}:{gid}"
+            outputs["nba:" + gid] = {
+                "event": {
+                    "event_id": gid,
+                    "date": spec["date"],
+                    "home": spec["home"],
+                    "away": spec["away"],
+                },
+                "boxes": parsed,
+                "source_document": {
+                    "id": doc_id,
+                    "family": "NBA_STATS_TEAM_BOX_MIRROR",
+                    "provider": "SportsDataverse NBA Stats mirror",
+                    "upstream_commit": commit,
+                },
+                "authority": "SPORTSDATAVERSE_NBA_STATS_TEAM_BOX_MIRROR",
+            }
+        except Exception as exc:
+            rejected.append({"game_id": gid, "reason": f"{type(exc).__name__}:{exc}"})
+
+    counts = {
+        team: sum(
+            1 for item in outputs.values()
+            if team in item["boxes"] and item["event"]["date"] < day
+        )
+        for team in wanted
+    }
+    return {
+        "boxes": outputs,
+        "counts": counts,
+        "requested_team_games": {k: len(v) for k, v in per_team.items()},
+        "rejected": rejected,
+        "upstream_commit": commit,
+        "source": "SPORTSDATAVERSE_NBA_STATS_TEAM_BOX_MIRROR",
     }
 
 
