@@ -9,6 +9,8 @@ on:
       - "benfrank_v52_early.py"
       - "benfrank_lineup_acquisition.py"
       - "benfrank_lineup_mirror.py"
+      - "benfrank_stage24_calibration.py"
+      - "tests/test_stage24_calibration.py"
       - ".github/workflows/benfrank-frozen-ten-enhanced.yml"
   workflow_dispatch:
 permissions:
