@@ -21,7 +21,8 @@ from benfrank_v47_run import save_receipt
 from benfrank_v53_core import report as dna_report
 from benfrank_manual_prop import resolve_manual_forward_prop
 from benfrank_lineup_acquisition import acquire_history_context
-from benfrank_lineup_mirror import history_context as mirror_history_context, season_end_for_date
+from benfrank_lineup_mirror import (history_context as mirror_history_context, season_end_for_date,
+                                     recent_team_boxes)
 
 VERSION = 'BENFRANK_AUTO_ACQUIRE_TO_FREEZE_1'
 STAGES = ('exact_line_schedule', 'player_identity', 'automatic_acquisition', 'source_reconciliation',
@@ -94,6 +95,33 @@ def lineup_game_specs(rows):
             specs.append({'game_id': gid, 'season': season_end_for_date(row['date'])})
             seen.add(gid)
     return specs
+
+
+def box_signature(item):
+    event = item['event']
+    return (event['date'], tuple(sorted((event['home'], event['away']))))
+
+
+def team_box_counts(boxes, teams, day):
+    return {
+        team: sum(1 for item in boxes.values()
+                  if team in item['boxes'] and item['event']['date'] < day)
+        for team in teams
+    }
+
+
+def merge_team_boxes(primary, fallback):
+    merged = dict(primary)
+    signatures = {box_signature(item) for item in primary.values()}
+    added = 0
+    for key, item in fallback.items():
+        signature = box_signature(item)
+        if signature in signatures:
+            continue
+        merged[key] = item
+        signatures.add(signature)
+        added += 1
+    return merged, added
 
 
 def preservation_snapshot():
@@ -251,6 +279,28 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
         recon = stage('source_reconciliation', lambda: store.reconcile(cutoff, day,
                       strict_observed=mode != 'historical_research'))
         boxes = stage('complete_prior_team_boxes', lambda: acquire_recent_boxes(store, recon['records'], teams, day))
+        primary_counts = team_box_counts(boxes, teams, day)
+        deficient = sorted(team for team, count in primary_counts.items() if count < 5)
+        mirror_box_audit = {
+            'needed_teams': deficient, 'primary_counts': primary_counts,
+            'status': 'NOT_NEEDED' if not deficient else 'PENDING',
+        }
+        if deficient:
+            try:
+                mirror_boxes = stage('mirror_prior_team_boxes_fallback',
+                    lambda: recent_team_boxes(deficient, day,
+                        Path(state_dir).resolve() / 'lineup_cache', max_games=5))
+                boxes, added = merge_team_boxes(boxes, mirror_boxes['boxes'])
+                mirror_box_audit = dict(mirror_boxes)
+                mirror_box_audit.update(status='EXECUTED', added_games=added,
+                                        final_counts=team_box_counts(boxes, teams, day))
+            except Exception as error:
+                mirror_box_audit = {
+                    'status': 'FAILED', 'needed_teams': deficient,
+                    'primary_counts': primary_counts,
+                    'exact_reason': type(error).__name__ + ': ' + str(error),
+                }
+        write(root / 'team_box_mirror_acquisition.json', mirror_box_audit)
         cutoff = now()
         recon = stage('reconciliation_after_box_crosscheck', lambda: store.reconcile(cutoff, day,
                       strict_observed=mode != 'historical_research'))
