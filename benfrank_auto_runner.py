@@ -25,7 +25,7 @@ from benfrank_lineup_mirror import (history_context as mirror_history_context, s
                                      recent_team_boxes)
 from benfrank_stage24_calibration import live_maturity, stage24_receipt
 
-VERSION = 'BENFRANK_AUTO_ACQUIRE_TO_FREEZE_1'
+VERSION = 'BENFRANK_AUTO_ACQUIRE_TO_FREEZE_2_STAGE24'
 STAGES = ('exact_line_schedule', 'player_identity', 'automatic_acquisition', 'source_reconciliation',
           'historical_windows', 'player_profiles_matchup_roles', 'sequential_25000', 'independent_blind_process',
           'adversarial_stress', 'sensitivity', 'stage_24_calibration', 'player_dna_100', 'interrogation_60',
