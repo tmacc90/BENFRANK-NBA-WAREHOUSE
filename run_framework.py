@@ -13,6 +13,24 @@ import sys
 from pathlib import Path
 
 def execute(args):
+    if getattr(args,'dna',None) or getattr(args,'screenshots',None):
+        if args.input or args.config or getattr(args,'auto',None) or getattr(args,'omni',None):
+            raise ValueError('DNA_REQUIRES_EXCLUSIVE_INPUT_MODE')
+        from benfrank_auto_runner import run
+        if getattr(args,'dna',None):
+            config_path=args.dna
+        else:
+            import tempfile
+            from zoneinfo import ZoneInfo
+            import datetime as dt
+            config=dict(mode='uploaded_props',game_date=args.game_date or dt.datetime.now(ZoneInfo('America/Los_Angeles')).date().isoformat(),
+                        screenshots=[str(Path(p).resolve()) for p in args.screenshots],max_seasons=3)
+            with tempfile.NamedTemporaryFile(mode='w',suffix='.json',delete=False) as stream:
+                json.dump(config,stream);config_path=stream.name
+        result,code=run(config_path,args.output,getattr(args,'state_dir','auto_state'),
+                        getattr(args,'trials',25000),getattr(args,'stress_trials',2000))
+        print(json.dumps(dict(status=result['status'],props=len(result['props']),certified=False)))
+        return code
     if getattr(args,"auto",None):
         if args.input or args.config or getattr(args,"omni",None):
             raise ValueError("AUTO_REQUIRES_EXCLUSIVE_INPUT_MODE")
@@ -76,6 +94,9 @@ def execute(args):
 
 if __name__=="__main__":
     parser=argparse.ArgumentParser()
+    parser.add_argument('--dna',help='Run every prop in a DNA batch manifest')
+    parser.add_argument('--screenshots',nargs='+',help='Extract and run every unambiguous uploaded screenshot prop')
+    parser.add_argument('--game-date',help='NBA slate date (America/Los_Angeles default: today)')
     parser.add_argument("--input")
     parser.add_argument("--config")
     parser.add_argument("--omni",help="Execute the isolated multi-sport manifest")

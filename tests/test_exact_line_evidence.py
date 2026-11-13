@@ -11,8 +11,8 @@ class ExactLineTests(unittest.TestCase):
     def test_windows_both_sides_and_analog(self):
         x=analyze_exact_line(**BASE,games=[game(1,21),game(2,19),game(3,21)],
                              current_features={"workload":0.8})
-        self.assertEqual(x["windows"]["L5"]["over"],2)
-        self.assertEqual(x["windows"]["L5"]["under"],1)
+        self.assertEqual(x["windows"]["current_season"]["over"],2)
+        self.assertEqual(x["windows"]["current_season"]["under"],1)
         self.assertEqual(len(x["matched_analogs"]),3)
     def test_cutoff_rejected(self):
         g=game(1,22);g["game_utc"]="2026-11-02T00:00:00Z"

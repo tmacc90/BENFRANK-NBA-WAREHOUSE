@@ -103,3 +103,27 @@ fetch('/health').then(async response => {
   const health = await response.json();
   $('health').textContent = response.ok && health.status === 'ok' ? 'Service ready' : 'Service needs setup';
 }).catch(() => { $('health').textContent = 'Service unavailable'; });
+
+$('batch-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  if (polling) return;
+  const cutoff = new Date($('batch-cutoff').value);
+  if (!Number.isFinite(cutoff.getTime()) || cutoff <= new Date()) {
+    setStatus('Choose a future batch cutoff before tipoff.'); return;
+  }
+  $('batch-run').disabled = true;
+  try {
+    const form = new FormData();
+    form.append('game_date', $('batch-date').value);
+    form.append('pregame_cutoff', cutoff.toISOString());
+    form.append('props_json', $('batch-props').value.trim() || '[]');
+    for (const file of $('batch-images').files) form.append('screenshots', file);
+    setStatus('Saving every submitted screenshot and exact line…');
+    const result = await request('/api/run-framework-batch', {method:'POST',body:form});
+    lastJob(result.job_id); $('resume').hidden = false;
+    await poll(result.job_id);
+  } catch (error) { setStatus('Unable to start batch: ' + error.message); }
+  finally { $('batch-run').disabled = false; }
+});
+const today = new Date();
+$('batch-date').value = [today.getFullYear(), String(today.getMonth()+1).padStart(2,'0'), String(today.getDate()).padStart(2,'0')].join('-');
