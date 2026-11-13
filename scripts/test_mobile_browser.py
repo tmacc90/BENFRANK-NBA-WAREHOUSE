@@ -92,6 +92,26 @@ def main():
                     page.locator('#token').fill(token)
                     page.get_by_role('button', name='Check last job').click()
                     expect(page.locator('#status')).to_contain_text('BROWSER_SOFTWARE_TEST_NO_MODEL_RUN')
+                    # The batch form submits all eight categories and both files
+                    # in one job; the fixture deliberately executes no forecasts.
+                    from PIL import Image
+                    images=[]
+                    for index in range(2):
+                        image=Path(tmp)/f'browser_fixture_{index}.png'
+                        Image.new('RGB',(30,30),'white').save(image);images.append(str(image))
+                    batch=[dict(player='Example Player',market=m,line=10.5) for m in
+                           ('points','rebounds','assists','pr','pa','ra','pra','fantasy_score')]
+                    old_job=page.locator('#job-id').inner_text()
+                    page.locator('#batch-props').fill(json.dumps(batch))
+                    page.locator('#batch-date').fill('2031-01-01')
+                    page.locator('#batch-cutoff').fill('2031-01-01T16:00')
+                    page.locator('#batch-images').set_input_files(images)
+                    page.locator('#batch-run').click()
+                    expect(page.locator('#job-id')).not_to_have_text(old_job)
+                    expect(page.locator('#status')).to_contain_text('BROWSER_SOFTWARE_TEST_NO_MODEL_RUN')
+                    batch_id=page.locator('#job-id').inner_text().split(': ',1)[1]
+                    submitted=json.loads((api.ROOT/batch_id/'request.json').read_text())
+                    assert submitted['props']==batch and len(submitted['screenshots'])==2
                     real_displayed = False
                     if args.actual_job:
                         page.evaluate('(id) => sessionStorage.setItem("benfrank-last-job", id)', actual.name)
@@ -112,6 +132,7 @@ def main():
                         'layout_no_horizontal_overflow': True, 'authentication_rejection': True,
                         'job_submission_and_terminal_status': True, 'receipt_and_zip_download': True,
                         'token_not_retained_after_reload': True, 'job_resume': True,
+                        'all_eight_categories_in_one_batch':True,'two_screenshots_in_one_batch':True,
                         'actual_verified_prediction_displayed': real_displayed, 'javascript_errors': errors})
                     context.close()
                 browser.close()
