@@ -140,6 +140,21 @@ class IntakeTests(unittest.TestCase):
 
 
 class ResilienceTests(unittest.TestCase):
+    def test_outage_retains_append_only_checkpoint_and_final_failure_receipt(self):
+        from benfrank_auto_runner import run
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp=Path(tmp);config=tmp/'request.json'
+            config.write_text(json.dumps(dict(mode='future_discovery',game_date='2031-01-01')))
+            with patch('benfrank_auto_runner.discover',side_effect=ValueError('TEST_PROVIDER_OUTAGE')):
+                result,code=run(config,tmp/'run',tmp/'state')
+            self.assertEqual(code,2)
+            snapshots=list((tmp/'run'/'checkpoints').glob('*.json'))
+            self.assertEqual(len(snapshots),1)
+            checkpoint=json.loads(snapshots[0].read_text())
+            self.assertEqual(checkpoint['stages'][0]['status'],'BLOCKED')
+            self.assertTrue((tmp/'run'/'execution_receipt.json').is_file())
+            self.assertIn('TEST_PROVIDER_OUTAGE',result['fatal_blocker'])
+
     def test_new_config_does_not_invalidate_preservation_of_originals(self):
         from benfrank_auto_runner import preservation_check
         self.assertTrue(preservation_check({'original':'abc'},{'original':'abc','new_config':'def'})['verified'])

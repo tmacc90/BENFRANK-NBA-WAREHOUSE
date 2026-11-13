@@ -108,6 +108,14 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
     store = Store(Path(state_dir).resolve())
     board = []
     manual_roles = None
+    checkpoint_number=0
+
+    def checkpoint():
+        nonlocal checkpoint_number
+        checkpoint_number+=1
+        write(root/'checkpoints'/f'{checkpoint_number:04d}.json',
+              dict(receipt,checkpoint_utc=now(),checkpoint_is_final=False,
+                   limitation='Interrupted runs remain incomplete; completed per-prop receipts are retained verbatim'))
 
     def stage(name, function):
         start = now(); timer = time.monotonic()
@@ -122,12 +130,14 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
                 completed_utc=now(), timestamp=now(), source='Retained run inputs and source_manifest.json',
                 execution_details='Function returned; data-specific limitations are retained in its receipt',
                 limitations=[], duration_seconds=round(time.monotonic()-timer, 3)))
+            checkpoint()
             print(encode(dict(stage=name, status=state)), flush=True)
             return value
         except Exception as error:
             receipt['stages'].append(dict(stage=name, status='BLOCKED', started_utc=start, completed_utc=now(),
                 timestamp=now(), source='Retained inputs and source_manifest.json', execution_details='Function raised',
                 limitations=[str(error)], exact_reason=type(error).__name__ + ': ' + str(error)))
+            checkpoint()
             raise
 
     try:
@@ -235,6 +245,7 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
         history_db = root / 'derived_history.sqlite'
         stage('v52_history_read_model', lambda: write_history(recon['records'], history_db))
         history = ProfileHistory(recon['records'], boxes)
+        write(root/'source_manifest_before_models.json',store.manifest())
         for p in board:
             entry = dict(prop=p, status='BLOCKED', direction=None, certified=False,
                          stage_results={s: dict(status='BLOCKED', exact_reason='UPSTREAM_INPUTS_NOT_READY',
@@ -398,6 +409,7 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
                     entry['stage_results']['interrogation_60'].update(
                         audit_executed=True, questions=60, verified=0, receipt=str(folder / 'blocked_interrogation_60.json'))
             write(folder / 'stage_receipt.json', entry)
+            checkpoint()
             print(encode(dict(player=p['player'], status=entry['status'], direction=entry['direction'],
                               exact_blocker=entry.get('exact_blocker'))), flush=True)
     except Exception as error:
