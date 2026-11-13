@@ -49,7 +49,7 @@ def discover(store, day, max_props=6, max_games=3, requested_prop=None):
 
 
 def parse_projection_capture(raw, meta, games, max_props=6, max_games=3, observed_at=None,
-                             requested_prop=None):
+                             requested_prop=None, all_requested=False, schedule_tolerance_seconds=60):
     data = json.loads(raw)
     included = {(x['type'], str(x['id'])): x for x in data.get('included', [])}
     candidates, rejected = [], collections.Counter()
@@ -67,7 +67,7 @@ def parse_projection_capture(raw, meta, games, max_props=6, max_games=3, observe
             if not market:
                 continue
             # Over-only demon and under-only promotional offerings are excluded.
-            if a.get('allowed_wager_types') in ('over', 'under'):
+            if a.get('allowed_wager_types') in ('over', 'under') and not all_requested:
                 continue
             player_ref = projection['relationships']['new_player']['data']
             player = included[(player_ref['type'], str(player_ref['id']))]['attributes']
@@ -75,7 +75,7 @@ def parse_projection_capture(raw, meta, games, max_props=6, max_games=3, observe
                 continue
             team, opponent = team_key(player['team']), team_key(a['description'])
             matches = [g for g in games if {g['home'], g['away']} == {team, opponent}
-                       and abs((instant(g['tipoff_utc']) - instant(a['start_time'])).total_seconds()) <= 60
+                       and abs((instant(g['tipoff_utc']) - instant(a['start_time'])).total_seconds()) <= schedule_tolerance_seconds
                        and instant(g['tipoff_utc']) > actual_clock and g['status'].get('state') == 'pre']
             if len(matches) != 1:
                 rejected['NO_UNIQUE_FUTURE_SCHEDULE_MATCH'] += 1
@@ -89,6 +89,11 @@ def parse_projection_capture(raw, meta, games, max_props=6, max_games=3, observe
                         native_projection_id=projection['id'], source_updated_utc=a.get('updated_at'),
                         line_authority='PUBLIC_NATIVE_PRIZEPICKS_RESPONSE', odds_type=a['odds_type'],
                         snapshot_id='auto_' + sha([projection['id'], a['line_score'], meta['id']])[:24])
+            prop['native_start_time']=a['start_time']
+            prop['allowed_wager_types']=a.get('allowed_wager_types')
+            prop['analysis_only_if_side_unavailable']=a.get('allowed_wager_types') in ('over','under')
+            prop['native_vs_schedule_seconds']=(instant(a['start_time'])-instant(game['tipoff_utc'])).total_seconds()
+            prop['pregame_deadline_authority']='EARLIER_VERIFIED_ESPN_SCHEDULE'
             if prop['source_updated_utc'] and instant(prop['source_updated_utc']) > clock:
                 raise ValueError('PROP_SOURCE_CLOCK_AFTER_CAPTURE')
             candidates.append(prop)
@@ -108,6 +113,9 @@ def parse_projection_capture(raw, meta, games, max_props=6, max_games=3, observe
                   'steals', 'blocks', 'turnovers', 'fantasy_score']
     candidates.sort(key=lambda p: (instant(p['tipoff_utc']), preference.index(p['market']),
                                    name_key(p['player']), str(p['native_projection_id'])))
+    if all_requested:
+        return candidates,dict(source=meta,eligible=len(candidates),selected=len(candidates),
+            rejected_counts=dict(rejected),sampling='ALL_REQUESTED_NO_PLAYER_OR_CATEGORY_CAP',games=games)
     selected, by_game, names = [], collections.Counter(), set()
     for p in candidates:
         if p['game_id'] not in by_game and len(by_game) >= max_games:
@@ -167,9 +175,15 @@ def capture_roles(store, teams, day):
                 identities[p['id']] = p['player']
         except Exception as error:
             store.failure(meta['url'], error); failures.append(dict(team=code, reason=str(error)))
-    raw, meta = store.fetch(BASE + 'injuries', 'ESPN')
-    injury = secondary_injury_snapshot(json.loads(raw), json.loads(index_raw), meta['retrieved_utc'], meta['sha256'])
-    injury['source_document'] = meta['id']
+    try:
+        raw, meta = store.fetch(BASE + 'injuries', 'ESPN')
+        injury = secondary_injury_snapshot(json.loads(raw), json.loads(index_raw), meta['retrieved_utc'], meta['sha256'])
+        injury['source_document'] = meta['id']
+    except Exception as error:
+        # Missing optional injury publication is UNKNOWN, never "healthy".
+        injury = dict(teams={}, printed_at=None, retrieved_at=now(), sha256=None,
+                      authority='UNAVAILABLE', unlisted_status='UNKNOWN_NOT_CLEARED',
+                      status='LIMITED', exact_blocker=str(error))
     sources = dict(version='AUTO_V52_DEPTH_CAPTURE_1', game_date=day, captured_at=now(), depths=depths,
                    projected={}, projected_source=None, failures=failures,
                    final_starters_required_for_early_forecast=False)
@@ -219,6 +233,16 @@ def acquire_recent_boxes(store, records, teams, day):
                 pid, values = players[(team_key(r['team']), name_key(r['player']))]
                 r.update(team=team_key(r['team']), opponent=team_key(r['opponent']),
                          source_player_id=str(pid), tipoff_utc=stamp, minutes_precision='rounded_minutes', completed=True)
+                # ESPN can list a zero-minute reserve in an otherwise valid box.
+                # Preserve genuine fractional minutes; do not require a DNP row
+                # to satisfy the played-observation contract or discard team totals.
+                from espn_live_stage import parse_minutes
+                r['minutes']=parse_minutes(values['MIN'])
+                r['minutes_precision']='seconds' if ':' in str(values['MIN']) else 'rounded_minutes'
+                if r['minutes']<=0:
+                    if any(r.get(k,0) for k in ('pts','reb','ast','stl','blk','tov')):
+                        store.failure(meta['url'],ValueError('ZERO_MINUTES_WITH_NONZERO_STATS:'+r['player']))
+                    continue
                 if all(k in values for k in ('OREB', 'DREB')):
                     r.update(oreb=int(values['OREB']), dreb=int(values['DREB']))
                 store.ingest(r, meta)

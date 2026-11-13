@@ -25,7 +25,7 @@ def import_csv(c,path):
  c.commit();return n
 
 def stat(r,market):
- if market=='fantasy_score':return r['pts']+1.2*r['reb']+1.5*r['ast']+3*(r['stl']+r['blk'])-r['tov']
+ if market=='fantasy_score':return round(r['pts']+1.2*r['reb']+1.5*r['ast']+3*(r['stl']+r['blk'])-r['tov'],1)
  if market in ('pra','pr','pa','ra'):
   return sum(r[k] for k in {'pra':['pts','reb','ast'],'pr':['pts','reb'],'pa':['pts','ast'],'ra':['reb','ast']}[market])
  return r[MARKETS[market]]

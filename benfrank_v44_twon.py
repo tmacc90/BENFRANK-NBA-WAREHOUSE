@@ -134,7 +134,7 @@ def market_value(s,market):
     if market=="ra":
         return s["rebounds"]+s["assists"]
     if market=="fantasy_score":
-        return s["points"]+1.2*s["rebounds"]+1.5*s["assists"]+3*(s["steals"]+s["blocks"])-s["turnovers"]
+        return round(s["points"]+1.2*s["rebounds"]+1.5*s["assists"]+3*(s["steals"]+s["blocks"])-s["turnovers"],1)
     raise ValueError("Unsupported market "+str(market))
 
 def prepare_game(context,lineups=None):

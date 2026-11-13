@@ -170,8 +170,9 @@ class AcquisitionTests(unittest.TestCase):
                 self.assertEqual(conn.execute('SELECT pts FROM games').fetchone()[0], 15)
             with self.assertRaises(FileExistsError): write_history(r['records'], dbpath)
             windows = historical_windows(r['records'], 'points', 15, '2026-11-01')
-            self.assertEqual(windows['L52']['push_count'], 1)
-            self.assertEqual(windows['L52']['status'], 'PARTIAL'); s.db.close()
+            self.assertEqual(windows['current_season']['push_count'], 1)
+            self.assertNotIn('L52', windows)
+            self.assertEqual(windows['L15']['availability'], 'UNAVAILABLE'); s.db.close()
 
 
 class PhysicalEvidenceTests(unittest.TestCase):

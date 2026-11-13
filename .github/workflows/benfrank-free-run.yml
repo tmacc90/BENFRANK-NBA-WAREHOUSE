@@ -5,20 +5,24 @@ on:
     inputs:
       game_date:
         default: 'today'
-        description: 'NBA slate date: today (Eastern) or YYYY-MM-DD (pregame only)'
+        description: 'NBA slate date: today (Pacific) or YYYY-MM-DD (pregame only)'
         required: true
         type: string
       player:
-        description: 'Player name (copy from your prop screenshot)'
-        required: true
+        description: 'Player name (single prop; leave empty when using props_json)'
+        required: false
         type: string
       market:
-        description: 'Market: points/rebounds/assists/etc.'
-        required: true
+        description: 'Market (single prop): points/rebounds/assists/pr/pa/ra/pra/fantasy_score'
+        required: false
         type: string
       line:
-        description: 'Exact line copied from screenshot (e.g. 22.5)'
-        required: true
+        description: 'Exact line copied from screenshot (single prop)'
+        required: false
+        type: string
+      props_json:
+        description: 'Batch: JSON array with every player, market and exact line (optional)'
+        required: false
         type: string
       max_props:
         description: 'Maximum native-board props to analyze (1-6)'
@@ -48,6 +52,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Install free OCR and PDF readers
+        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr poppler-utils
       - name: Install existing free-source framework dependencies
         run: python -m pip install -r requirements.txt
       - name: Create source-backed discovery request
@@ -58,24 +64,31 @@ jobs:
           PLAYER: ${{ inputs.player }}
           MARKET: ${{ inputs.market }}
           LINE: ${{ inputs.line }}
+          PROPS_JSON: ${{ inputs.props_json }}
         run: |
           python - <<'PY'
           import datetime as dt,json,math,os,pathlib
           from zoneinfo import ZoneInfo
           raw_day=os.environ['GAME_DATE'].strip().lower()
-          day=(dt.datetime.now(ZoneInfo('America/New_York')).date()
+          day=(dt.datetime.now(ZoneInfo('America/Los_Angeles')).date()
                if raw_day in ('today','') else dt.date.fromisoformat(raw_day))
-          if day < dt.datetime.now(ZoneInfo('America/New_York')).date():
+          if day < dt.datetime.now(ZoneInfo('America/Los_Angeles')).date():
               raise SystemExit('PAST_NBA_SLATE_DATE_NOT_ALLOWED_IN_FORWARD_MODE')
-          config={'mode':'manual_forward_prop','game_date':day.isoformat(),
+          config={'mode':'uploaded_props','game_date':day.isoformat(),
                   'max_props':int(os.environ['MAX_PROPS']),
                   'max_games':int(os.environ['MAX_GAMES'])}
           player=os.environ.get('PLAYER','').strip()
           market=os.environ.get('MARKET','').strip().lower()
           raw_line=os.environ.get('LINE','').strip()
-          if not all((player,market,raw_line)):
-              raise SystemExit('MANUAL_EXACT_PROP_REQUIRED_PRIZEPICKS_PUBLIC_ENDPOINT_RETURNED_403')
-          if all((player,market,raw_line)):
+          batch=os.environ.get('PROPS_JSON','').strip()
+          if batch:
+              props=json.loads(batch)
+              if not isinstance(props,list) or not props or len(props)>100:
+                  raise SystemExit('BATCH_MUST_BE_1_TO_100_PROP_OBJECTS')
+              config['props']=props
+          elif not all((player,market,raw_line)):
+              raise SystemExit('EXACT_SINGLE_PROP_OR_PROPS_JSON_BATCH_REQUIRED')
+          if not batch and all((player,market,raw_line)):
               try:
                   line=float(raw_line)
               except ValueError:
@@ -85,7 +98,7 @@ jobs:
               if market not in ('points','rebounds','assists','threes','pra','pr','pa','ra',
                                 'steals','blocks','turnovers','fantasy_score'):
                   raise SystemExit('UNSUPPORTED_MARKET')
-              config['manual_prop']={'player':player,'market':market,'line':line}
+              config['props']=[{'player':player,'market':market,'line':line}]
           pathlib.Path('free-run-config.json').write_text(json.dumps(config,indent=2))
 
           PY
@@ -94,7 +107,7 @@ jobs:
         continue-on-error: true
         run: |
           python run_framework.py --auto free-run-config.json --output free-run-output --state-dir free-run-state --trials 25000 --stress-trials 2000
-      - name: Verify source hashes, 29K simulation trace chain and pregame ledger
+      - name: Verify source hashes, actual simulation traces and pregame ledger
         id: verify
         if: steps.run.outcome == 'success'
         run: |
@@ -131,21 +144,9 @@ jobs:
           name: benfrank-free-run-${{ github.run_id }}
           path: |
             free-run-config.json
-            free-run-output/readiness_report.md
-            free-run-output/execution_receipt.json
-            free-run-output/board.json
-            free-run-output/discovery.json
-
-            free-run-output/source_manifest.json
-            free-run-output/verification.json
-            free-run-output/props/*/trials/*.jsonl.gz
-            free-run-output/props/*/stage_receipt.json
-            free-run-output/props/*/historical_windows.json
-            free-run-output/props/*/interrogation_60.json
-            free-run-output/props/*/blocked_interrogation_60.json
-            free-run-output/props/*/prediction.json
-            free-run-output/mobile_report.html
-          retention-days: 3
+            free-run-output/
+            free-run-state/
+          retention-days: 30
           if-no-files-found: warn
       - name: Mark incomplete runs as failed
         if: steps.run.outcome != 'success' || steps.verify.outcome != 'success'

@@ -28,7 +28,15 @@ def report(context):
  market=board["market"]; line=board["line"]; cutoff=board["cutoff"]
  if not finite(line): raise ValueError("INVALID_EXACT_LINE")
  if not board.get("player") or not board.get("opponent"): raise ValueError("PLAYER_OPPONENT_REQUIRED")
- cov=coverage(rows,market,line,cutoff)
+ # Active runner uses the same season hierarchy as the numerical engine.
+ # Legacy coverage() remains available for archived report replay.
+ from benfrank_dna_history import historical_windows
+ translated=[dict(r,pts=r.get('points'),reb=r.get('rebounds'),ast=r.get('assists'),
+                   stl=r.get('steals'),blk=r.get('blocks'),tov=r.get('turnovers'),fg3m=r.get('three_pm'))
+             for r in rows if r.get('played') is True]
+ names={'points_rebounds':'pr','points_assists':'pa','rebounds_assists':'ra'}
+ cov=dict(windows=historical_windows(translated,names.get(market,market),line,cutoff,board['opponent']),
+          career_coverage_note='AVAILABLE_ARCHIVE_ONLY')
  dna=conditional_dna(rows,market,line,cutoff,upcoming)
  analogues=matchup_similarity(rows,market,line,cutoff,upcoming)
  drivers={f:{"upcoming":upcoming.get(f),"status":"OBSERVED_INPUT" if finite(upcoming.get(f)) else "UNKNOWN"} for f in MARKET_DRIVERS.get(market,[])}

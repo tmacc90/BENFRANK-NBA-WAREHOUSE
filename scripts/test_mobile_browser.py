@@ -23,6 +23,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', required=True)
     parser.add_argument('--actual-job')
+    parser.add_argument('--browser',choices=('webkit','chromium'),default='webkit')
     args = parser.parse_args()
     output = Path(args.output).resolve(); output.mkdir(parents=True, exist_ok=True)
     from playwright.sync_api import sync_playwright, expect
@@ -57,7 +58,7 @@ def main():
             raise RuntimeError('LOCAL_TEST_SERVER_FAILED_TO_START')
         try:
             with sync_playwright() as p:
-                browser = p.webkit.launch()
+                browser = p.webkit.launch() if args.browser=='webkit' else p.chromium.launch(executable_path='/usr/bin/chromium')
                 for device_name in ('iPhone 13', 'iPad Pro 11'):
                     context = browser.new_context(**p.devices[device_name], timezone_id='America/Los_Angeles', accept_downloads=True)
                     page = context.new_page(); errors = []
@@ -91,24 +92,47 @@ def main():
                     page.locator('#token').fill(token)
                     page.get_by_role('button', name='Check last job').click()
                     expect(page.locator('#status')).to_contain_text('BROWSER_SOFTWARE_TEST_NO_MODEL_RUN')
+                    # The batch form submits all eight categories and both files
+                    # in one job; the fixture deliberately executes no forecasts.
+                    from PIL import Image
+                    images=[]
+                    for index in range(2):
+                        image=Path(tmp)/f'browser_fixture_{index}.png'
+                        Image.new('RGB',(30,30),'white').save(image);images.append(str(image))
+                    batch=[dict(player='Example Player',market=m,line=10.5) for m in
+                           ('points','rebounds','assists','pr','pa','ra','pra','fantasy_score')]
+                    old_job=page.locator('#job-id').inner_text()
+                    page.locator('#batch-props').fill(json.dumps(batch))
+                    page.locator('#batch-date').fill('2031-01-01')
+                    page.locator('#batch-cutoff').fill('2031-01-01T16:00')
+                    page.locator('#batch-images').set_input_files(images)
+                    page.locator('#batch-run').click()
+                    expect(page.locator('#job-id')).not_to_have_text(old_job)
+                    expect(page.locator('#status')).to_contain_text('BROWSER_SOFTWARE_TEST_NO_MODEL_RUN')
+                    batch_id=page.locator('#job-id').inner_text().split(': ',1)[1]
+                    submitted=json.loads((api.ROOT/batch_id/'request.json').read_text())
+                    assert submitted['props']==batch and len(submitted['screenshots'])==2
                     real_displayed = False
                     if args.actual_job:
                         page.evaluate('(id) => sessionStorage.setItem("benfrank-last-job", id)', actual.name)
                         page.get_by_role('button', name='Check last job').click()
                         expect(page.locator('#verified')).to_have_text('Execution verified ✓')
-                        expect(page.locator('#direction')).to_have_text('OVER')
-                        assert page.locator('#windows tr').count() == 10
-                        expect(page.locator('#comparison')).to_contain_text('Model disagreement: YES')
+                        data=json.loads((actual/'job.json').read_text())
+                        prediction=json.loads((actual/'execution'/'props'/data['matched_results'][0]['prop']['snapshot_id']/'prediction.json').read_text())
+                        expect(page.locator('#direction')).to_have_text(prediction['direction'])
+                        assert page.locator('#windows tr').count() == len(prediction['historical_windows'])
+                        expect(page.locator('#comparison')).to_contain_text('Model disagreement: '+('YES' if prediction['model_disagreement'] else 'NO'))
                         expect(page.locator('#risk')).to_contain_text('25,000 main trials')
                         real_displayed = True
                     page.locator('#token').fill('')
                     screenshot = output / ('iphone.png' if 'iPhone' in device_name else 'ipad.png')
                     page.screenshot(path=str(screenshot), full_page=True)
                     assert errors == [], errors
-                    reports.append({'device': device_name, 'browser': 'WebKit', 'mode': 'EMULATION_ONLY',
+                    reports.append({'device': device_name, 'browser': args.browser, 'mode': 'EMULATION_ONLY',
                         'layout_no_horizontal_overflow': True, 'authentication_rejection': True,
                         'job_submission_and_terminal_status': True, 'receipt_and_zip_download': True,
                         'token_not_retained_after_reload': True, 'job_resume': True,
+                        'all_eight_categories_in_one_batch':True,'two_screenshots_in_one_batch':True,
                         'actual_verified_prediction_displayed': real_displayed, 'javascript_errors': errors})
                     context.close()
                 browser.close()

@@ -12,6 +12,9 @@ import json
 import math
 import sqlite3
 import urllib.request
+import urllib.error
+import threading
+import time
 from pathlib import Path
 from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
@@ -25,7 +28,9 @@ BASE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/'
 WEB = 'https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/'
 PP = 'https://api.prizepicks.com/projections?league_id=7&per_page=250&single_stat=true'
 HOSTS = {'site.api.espn.com', 'site.web.api.espn.com', 'cdn.nba.com',
-         'raw.githubusercontent.com', 'api.prizepicks.com'}
+         'raw.githubusercontent.com', 'api.prizepicks.com', 'stats.nba.com',
+         'api.pbpstats.com', 'www.basketball-reference.com', 'www.rotowire.com',
+         'ak-static.cms.nba.com', 'www.nba.com', 'www.prizepicks.com'}
 COUNTS = ('pts', 'reb', 'ast', 'stl', 'blk', 'tov', 'fg3m',
           'fgm', 'fga', 'fg3a', 'ftm', 'fta', 'fg2m', 'fg2a', 'oreb', 'dreb')
 ET = ZoneInfo('America/New_York')
@@ -43,7 +48,11 @@ def sha(obj):
     return hashlib.sha256(encode(obj).encode()).hexdigest()
 
 
-def download(url, timeout=18, limit=25_000_000):
+_RATE_LOCK = threading.Lock()
+_NEXT_REQUEST = {}
+
+
+def download(url, timeout=12, limit=25_000_000, attempts=3):
     parsed = urlparse(url)
     if parsed.scheme != 'https' or parsed.hostname not in HOSTS:
         raise ValueError('UNAPPROVED_SOURCE_URL')
@@ -52,13 +61,32 @@ def download(url, timeout=18, limit=25_000_000):
         raise ValueError('UNAPPROVED_ARCHIVE_PATH')
     request = urllib.request.Request(url, headers={
         'User-Agent': 'BENFRANK-NBA-Research/6.1', 'Accept': 'application/json,*/*'})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        if urlparse(response.geturl()).hostname != parsed.hostname:
-            raise ValueError('SOURCE_REDIRECT_HOST_CONFLICT')
-        raw = response.read(limit + 1)
-        if response.status != 200 or not raw or len(raw) > limit:
-            raise ValueError('SOURCE_HTTP_EMPTY_OR_OVERSIZE')
-    return raw
+    for attempt in range(attempts):
+        with _RATE_LOCK:
+            wait = max(0, _NEXT_REQUEST.get(parsed.hostname, 0) - time.monotonic())
+            _NEXT_REQUEST[parsed.hostname] = time.monotonic() + wait + .15
+        if wait:
+            time.sleep(wait)
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                if urlparse(response.geturl()).hostname != parsed.hostname:
+                    raise ValueError('SOURCE_REDIRECT_HOST_CONFLICT')
+                raw = response.read(limit + 1)
+                if response.status != 200 or not raw or len(raw) > limit:
+                    raise ValueError('SOURCE_HTTP_EMPTY_OR_OVERSIZE')
+            return raw
+        except urllib.error.HTTPError as error:
+            # Denied access is recorded, never bypassed or repeatedly retried.
+            if error.code not in (429, 500, 502, 503, 504) or attempt + 1 == attempts:
+                raise
+            delay = error.headers.get('Retry-After', '')
+            if delay.isdigit() and int(delay) > 30:
+                raise  # Honor long provider backoffs by ending this attempt.
+            time.sleep(float(delay) if delay.isdigit() else .5 * 2**attempt)
+        except (urllib.error.URLError, TimeoutError, OSError):
+            if attempt + 1 == attempts:
+                raise
+            time.sleep(.5 * 2**attempt)
 
 
 class Store:
@@ -111,6 +139,9 @@ class Store:
                             (sha(record), record['url'], record['observed_utc'], record['reason']))
 
     def fetch(self, url, family, fetcher=download):
+        cached = self.cached(url, max_age_hours=1/12 if ('scoreboard' in url or 'injur' in url or 'lineup' in url or 'projections' in url) else 1)
+        if cached is not None:
+            return cached
         try:
             raw = fetcher(url)
         except Exception as error:
@@ -314,7 +345,7 @@ def parse_gamelog(document, player, player_id, end_year):
 
 
 def acquire_logs(store, players, day, seasons=3, fetcher=download):
-    """Acquire at least L52 when records exist, cascading to earlier seasons."""
+    """Acquire the current and previous seasons plus any explicitly requested older archive."""
     end = dt.date.fromisoformat(day).year + (dt.date.fromisoformat(day).month >= 7)
     audit = []
     jobs = {pid + '|' + str(year): (WEB + pid + '/gamelog?season=' + str(year), 'ESPN')
