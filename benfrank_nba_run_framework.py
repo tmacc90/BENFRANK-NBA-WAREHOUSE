@@ -19,9 +19,9 @@ def analyze(board):
         evidence=analyze_exact_line(sport="NBA",player=player,market=market,
             line=line,games=prop["games"],cutoff_utc=cutoff,
             current_season=prop["current_season"],previous_season=prop["previous_season"],
-            current_features=prop.get("current_features"))
+            current_features=prop.get("current_features"), opponent=prop.get('opponent'))
         w=evidence["windows"]
-        recent=w["L10"]
+        recent=w["L10"] if w['L10']['n'] else w['current_season'] if w['current_season']['n'] else w['previous_season']
         over,under=recent["over"],recent["under"]
         side="OVER" if over>=under else "UNDER"
         if over==under:
@@ -64,7 +64,7 @@ def main():
     target.write_text(json.dumps(report,indent=2)+"\n")
     for p in report["results"]:
         print(f"📊 {p['player']} | {p['market']} {p['line']} | {p['side'] or 'INSUFFICIENT DATA'}")
-        for key in ("L5","L10","L15","L20","current_season","previous_season","career"):
+        for key in p['windows']:
             w=p["windows"][key]
             print(f"  {key}: OVER {w['over']} / UNDER {w['under']} / PUSH {w['push']} (n={w['n']})")
         print("  ⚠️",", ".join(p["risks"]) or "No listed context gaps")

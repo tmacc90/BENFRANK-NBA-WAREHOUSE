@@ -3,7 +3,8 @@ Inputs must be verified pre-cutoff game logs. This is descriptive evidence, not 
 """
 from datetime import datetime, timezone
 from math import exp
-from statistics import mean
+from statistics import mean, median, stdev
+from math import isfinite
 
 WINDOWS=(5,10,15,20)
 FEATURES=("workload","opportunities","conversion","defense","matchup","role","pace","foul_risk","double_team","recent_form")
@@ -21,13 +22,15 @@ def _rate(games,line):
     return {"n":len(games),"over":over,"under":under,"push":push,
             "over_rate":over/len(games) if games else None,
             "under_rate":under/len(games) if games else None,
-            "mean":mean(g["stat"] for g in games) if games else None}
+            "mean":mean(g["stat"] for g in games) if games else None,
+            "median":median(g["stat"] for g in games) if games else None,
+            "stdev":stdev(g["stat"] for g in games) if len(games)>1 else None}
 
 def analyze_exact_line(*, sport, player, market, line, games, cutoff_utc,
                        current_season, previous_season, current_features=None,
-                       sport_feature_weights=None, analog_limit=8):
+                       sport_feature_weights=None, analog_limit=8, opponent=None):
     if not sport or not player or not market: raise ValueError("MISSING_PROP_IDENTITY")
-    if not isinstance(line,(int,float)) or isinstance(line,bool): raise ValueError("INVALID_LINE")
+    if not isinstance(line,(int,float)) or isinstance(line,bool) or not isfinite(line): raise ValueError("INVALID_LINE")
     cutoff=_utc(cutoff_utc)
     valid=[]
     for g in games:
@@ -35,15 +38,23 @@ def analyze_exact_line(*, sport, player, market, line, games, cutoff_utc,
             raise ValueError("CROSS_SPORT_OR_PROP_LOG")
         ts=_utc(g["game_utc"])
         if ts>=cutoff: raise ValueError("POST_CUTOFF_GAME_LEAKAGE")
-        if not isinstance(g.get("stat"),(int,float)) or isinstance(g["stat"],bool):
+        if not isinstance(g.get("stat"),(int,float)) or isinstance(g["stat"],bool) or not isfinite(g['stat']):
             raise ValueError("UNVERIFIED_GAME_STAT")
         if not g.get("source") or not g.get("game_id"): raise ValueError("MISSING_SOURCE_RECEIPT")
         valid.append(dict(g))
     valid.sort(key=lambda g:_utc(g["game_utc"]),reverse=True)
-    windows={"L"+str(n):_rate(valid[:n],line) for n in WINDOWS}
+    current=[g for g in valid if g.get('season')==current_season]
+    windows={"L"+str(n):_rate((current if sport=='NBA' else valid)[:n],line) for n in ((5,10,15) if sport=='NBA' else WINDOWS)}
+    if sport=='NBA':
+        for n in (5,10,15):
+            if len(current)<n:
+                windows['L'+str(n)]=dict(_rate([],line),availability='UNAVAILABLE',available_current_season_n=len(current))
     windows["current_season"]=_rate([g for g in valid if g.get("season")==current_season],line)
     windows["previous_season"]=_rate([g for g in valid if g.get("season")==previous_season],line)
     windows["career"]=_rate(valid,line)
+    if sport=='NBA':
+        for key,season in [('current_season_h2h',current_season),('previous_season_h2h',previous_season)]:
+            windows[key]=_rate([g for g in valid if g.get('season')==season and opponent and g.get('opponent')==opponent],line)
     current_features=current_features or {}
     weights=sport_feature_weights or {}
     analogs=[]

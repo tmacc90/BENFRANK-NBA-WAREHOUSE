@@ -78,8 +78,9 @@ def sensitivity(simulation, line):
         p = over / (over + under) if over + under else None
         return dict(line=threshold, over=over, under=under, push=push,
                     void=simulation['void_count'], p_over_raw=p,
+                    p_under_raw=1-p if p is not None else None, theoretical_negative_threshold=threshold<0,
                     side='OVER' if p is not None and p >= .5 else 'UNDER' if p is not None else None)
-    requested = sorted({max(0, line + d) for d in (-2, -1, -.5, 0, .5, 1, 2)})
+    requested = sorted({line + d for d in (-2, -1, -.5, 0, .5, 1, 2)})
     # Search the whole simulated support; the +0.5/+1.0 tests share genuine draws.
     support = sorted({v for v in histogram} | {v + .5 for v in histogram})
     flip = next((x for x in (at(v) for v in support) if x['side'] == 'UNDER'), None)
@@ -107,7 +108,8 @@ def interrogation(result, source_audit, receipt_path):
                                void=main['void_count'], quantiles=main['quantiles']),
                      'existing v5.2 complete-game simulator; raw uncalibrated shares', main['trial_chain_sha256'])
     blind = result['blind_model']
-    verified('predictive_intelligence', blind, 'separate numerical ridge worker', blind['input_sha256'])
+    if blind.get('independence_evidence',{}).get('verified'):
+        verified('predictive_intelligence', blind, 'separate numerical ridge worker', blind['input_sha256'])
     # The governing blind_ai question requires independently validated accuracy.
     answers['blind_ai'] = dict(status='unavailable', answer='Process separation verified; independent accuracy validation absent',
                               source='blind process receipt', measurement=blind['input_sha256'], execution_receipt=str(receipt_path))

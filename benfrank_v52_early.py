@@ -28,7 +28,7 @@ from benfrank_v47_run import save_receipt
 from benfrank_v52_blind import run as run_blind
 
 UTC=dt.timezone.utc
-VERSION='BENFRANK_V52_EARLY_PROJECTED_ROLE_1'
+VERSION='BENFRANK_V52_EARLY_DNA_20261113_1'
 def now():return dt.datetime.now(UTC).isoformat()
 def season_start(day):
     d=dt.date.fromisoformat(day);return d.year if d.month>=7 else d.year-1
@@ -246,7 +246,13 @@ def stress(context,player,side,kind):
         for p in roster:
             if p['player']!=player:continue
             samples=p['historical_minutes'] or p.get('minute_prior_samples',[])
-            if kind=='P25_MINUTES_CONVERSION_PROXY':
+            if kind in ('FOUL_TROUBLE','BLOWOUT_MINUTES','INJURY_LIMITED_OPPORTUNITY'):
+                factor={'FOUL_TROUBLE':.70,'BLOWOUT_MINUTES':.75,'INJURY_LIMITED_OPPORTUNITY':.60}[kind]
+                p['minutes_mean']*=factor
+                p['historical_minutes']=[m*factor for m in samples]
+                multiplier=.85 if kind=='INJURY_LIMITED_OPPORTUNITY' else .95
+                if kind=='BLOWOUT_MINUTES':c['pace_per_team']=max(75,c['pace_per_team']*.95)
+            elif kind=='P25_MINUTES_CONVERSION_PROXY':
                 p['minutes_mean']=quantile(samples,.25) if samples else p['minutes_mean']*.8
                 multiplier=.9;c['pace_per_team']=max(75,c['pace_per_team']-.674*c['pace_sd'])
             else:
@@ -266,15 +272,22 @@ def run_one(prop,base,sources,injury,db,trials=25000,stress_trials=2000,*,trace_
     history=collections.defaultdict(list)
     for r in rows:history[name_key(r['player'])].append(r)
     context=early_context(base,prop,sources,history,injury,cutoff)
-    blind=run_blind(db,prop['player'],prop['market'],prop['game_date'])
+    try:
+        blind=run_blind(db,prop['player'],prop['market'],prop['game_date'])
+    except Exception as error:
+        blind=dict(status='BLOCKED',projection=None,input_sha256=None,
+            exact_blocker=type(error).__name__+': '+str(error),
+            independence_evidence=dict(verified=False,line_excluded=True,accuracy_independently_validated=False))
     seed=int(hashlib.sha256(('V52|'+prop['snapshot_id']).encode()).hexdigest()[:8],16)
     main=simulate(context,prop['player'],prop['market'],prop['line'],trials,seed,
         trace_path=Path(trace_dir)/'main.jsonl.gz' if trace_dir else None)
     if main['p_over_raw'] is None:raise ValueError('NO_CONDITIONAL_PLAYED_DISTRIBUTION')
-    direction='OVER' if main['p_over_raw']>=.5 else 'UNDER'
-    bside='OVER' if blind['projection']>prop['line'] else 'UNDER' if blind['projection']<prop['line'] else 'AT_LINE'
+    # Select between the actual nonpush side counts, including integer-line pushes.
+    direction='OVER' if main['over_count']>=main['under_count'] else 'UNDER'
+    bside=('OVER' if blind['projection']>prop['line'] else 'UNDER' if blind['projection']<prop['line'] else 'AT_LINE') if blind.get('projection') is not None else None
     stresses={}
-    for j,kind in enumerate(('P25_MINUTES_CONVERSION_PROXY','HIGH_MINUTES_HOT_CONVERSION_PROXY')):
+    for j,kind in enumerate(('P25_MINUTES_CONVERSION_PROXY','HIGH_MINUTES_HOT_CONVERSION_PROXY',
+                             'FOUL_TROUBLE','BLOWOUT_MINUTES','INJURY_LIMITED_OPPORTUNITY')):
         modified=stress(context,prop['player'],direction,kind)
         r=simulate(modified,prop['player'],prop['market'],prop['line'],stress_trials,seed^(0x5250+j),minimum=1000,
             trace_path=Path(trace_dir)/(kind+'.jsonl.gz') if trace_dir else None)
@@ -284,20 +297,17 @@ def run_one(prop,base,sources,injury,db,trials=25000,stress_trials=2000,*,trace_
     tested += [r['p_over_raw'] for r in main['conditional_questionable_states'].values() if r['played_nonpush_n']>=100 and r['p_over_raw'] is not None]
     flips=any(('OVER' if p>=.5 else 'UNDER')!=direction for p in tested)
     target=history[name_key(prop['player'])];ordered=list(reversed(target))
-    windows={k:window_summary(ordered[:n],prop['market'],prop['line'],n) for k,n in [('L5',5),('L10',10),('L15',15),('L20',20),('L25',25),('L32',32),('L52',52)]}
-    sy=season_start(prop['game_date'])
-    for key,selected in [('available_archive',ordered),('current_season',[r for r in ordered if r['season'].startswith(str(sy))]),
-                         ('previous_season',[r for r in ordered if r['season'].startswith(str(sy-1))])]:
-        windows[key]=window_summary(selected,prop['market'],prop['line'])
-    for w in windows.values():
-        for old,new in [('more','over_count'),('less','under_count'),('more_rate','over_rate'),('less_rate','under_rate')]:w[new]=w.pop(old)
+    from benfrank_dna_history import historical_windows
+    windows = historical_windows(ordered, prop['market'], prop['line'], prop['game_date'], prop['opponent'])
+    for window in windows.values():
+        window['projection_minus_line'] = main['mean'] - prop['line']
     completed=now()
     result={'version':VERSION,'prop':prop,'analysis_cutoff_utc':cutoff,'forecast_completed_at_utc':completed,
         'status':'FORWARD_TEST_READY' if instant(completed)<instant(prop['tipoff_utc']) else 'LATE_EXECUTION_NOT_FORWARD_ELIGIBLE',
         'direction':direction,'projection':main['mean'],'blind_direction':bside,'blind_model':blind,
         'model_disagreement':direction!=bside,'scenario_side_flip':flips,'scenario_risk':'FRAGILE' if flips else 'STABLE_IN_TESTED_CASES_ONLY',
         'main_simulation':main,'stress_simulations':stresses,'context':context,'historical_windows':windows,
-        'actual_complete_game_count_all_branches':trials+2*stress_trials,
+        'actual_complete_game_count_all_branches':trials+len(stresses)*stress_trials,
         'execution_ready_without_final_starters':True,'final_starters_required':False,
         'missing_evidence':['Independent model accuracy/calibration on a new forward cohort',
             'Native current-line recheck when not provided; uploaded line stays the tested hypothesis',

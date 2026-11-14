@@ -74,9 +74,16 @@ def settle(path,fetch=fetch_json):
                 if len(target)!=1 or target[0]['minutes']<=0:
                     results.append({'id':row['id'],'status':'UNRESOLVED_DNP_OR_PLATFORM_VOID_RULE'});continue
                 actual=stat(target[0],p['market']);label='OVER' if actual>p['line'] else 'UNDER' if actual<p['line'] else 'PUSH'
+                raw_folder=Path(path).resolve().parent/(Path(path).stem+'_settlement_sources')
+                raw_folder.mkdir(exist_ok=True)
+                source_path=raw_folder/(sha+'.json')
+                if source_path.exists():
+                    if source_path.read_bytes()!=raw:raise ValueError('IMMUTABLE_SETTLEMENT_SOURCE_HASH_CONFLICT')
+                else:
+                    with source_path.open('xb') as stream:stream.write(raw)
                 value={'prediction_id':row['id'],'actual':actual,'outcome':label,'direction':r['direction'],
                     'correct':label==r['direction'] if label!='PUSH' else None,'observed_at':now(),
-                    'source_url':BASE+'summary?event='+eid,'source_sha256':sha,'assurance':'ESPN_SECONDARY_FINAL_NOT_NATIVE_PLATFORM_SETTLEMENT',
+                    'source_url':BASE+'summary?event='+eid,'source_sha256':sha,'source_path':str(source_path),'assurance':'ESPN_SECONDARY_FINAL_NOT_NATIVE_PLATFORM_SETTLEMENT',
                     'native_platform_settlement_verified':False,'official_nba_independently_verified':False}
                 sid=hashlib.sha256((row['id']+'|'+sha).encode()).hexdigest()
                 with c:c.execute('INSERT INTO early_settlements VALUES(?,?,?,?,?)',(sid,row['id'],value['observed_at'],sha,json.dumps(value,sort_keys=True)))

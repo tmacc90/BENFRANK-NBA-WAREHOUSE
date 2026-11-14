@@ -6,3 +6,4 @@ pdfplumber==0.11.9
 # The full integration suite includes the mobile API.
 -r mobile/requirements.txt
 httpx>=0.28,<1
+Pillow>=10,<13

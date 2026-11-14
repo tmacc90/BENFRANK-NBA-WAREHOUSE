@@ -113,6 +113,35 @@ class MobileTests(unittest.TestCase):
                              files={'screenshot': ('image.png', b'fixture', 'image/png')})
         self.assertEqual(r.status_code, 422)
 
+    def test_batch_preserves_all_props_without_native_discovery_dependency(self):
+        props=[dict(player='Example Player',market=m,line=10.5) for m in
+               ('points','rebounds','assists','pr','pa','ra','pra','fantasy_score')]
+        with patch('mobile.api.threading.Thread'):
+            response=self.client.post('/api/run-framework-batch',headers=self.headers,
+                data=dict(game_date='2031-01-01',props_json=json.dumps(props),pregame_cutoff=self.form['pregame_cutoff']))
+        self.assertEqual(response.status_code,202,response.text)
+        cfg=json.loads((self.root/response.json()['job_id']/'request.json').read_text())
+        self.assertEqual(cfg['props'],props)
+        self.assertEqual(cfg['mode'],'uploaded_props')
+        self.assertNotIn('max_props',cfg)
+
+    def test_batch_accepts_multiple_valid_screenshots_and_rejects_fake_images(self):
+        from PIL import Image
+        image=io.BytesIO();Image.new('RGB',(20,20),'white').save(image,format='PNG')
+        data=dict(game_date='2031-01-01',pregame_cutoff=self.form['pregame_cutoff'])
+        with patch('mobile.api.threading.Thread'):
+            response=self.client.post('/api/run-framework-batch',headers=self.headers,data=data,
+                files=[('screenshots',('one.png',image.getvalue(),'image/png')),
+                       ('screenshots',('two.png',image.getvalue(),'image/png'))])
+        self.assertEqual(response.status_code,202,response.text)
+        cfg=json.loads((self.root/response.json()['job_id']/'request.json').read_text())
+        self.assertEqual(len(cfg['screenshots']),2)
+        api.RUN_LOCK.release()
+        response=self.client.post('/api/run-framework-batch',headers=self.headers,data=data,
+            files={'screenshots':('invalid.png',b'not an image','image/png')})
+        self.assertEqual(response.status_code,422)
+        self.assertFalse(api.RUN_LOCK.locked())
+
     def test_worker_failure_remains_unverified_and_releases_capacity(self):
         job_id, cfg = self.queue()
         with patch.object(api, 'run', side_effect=RuntimeError('fixture failure')):

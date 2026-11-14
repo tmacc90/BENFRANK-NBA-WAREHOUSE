@@ -27,6 +27,7 @@ LOCK = threading.RLock()
 RUN_LOCK = threading.Lock()
 TERMINAL = {'completed', 'incomplete', 'failed', 'interrupted'}
 MAX_BODY = 16 * 1024
+MAX_SCREENSHOT_BATCH = 24 * 1024 * 1024
 
 
 def clock():
@@ -116,12 +117,13 @@ async def protect_api(request: Request, call_next):
         if request.method == 'POST':
             # Reject oversized multipart data before the form parser allocates it.
             length = request.headers.get('content-length')
-            if length and (not length.isdigit() or int(length) > MAX_BODY):
+            limit = MAX_SCREENSHOT_BATCH if request.url.path == '/api/run-framework-batch' else MAX_BODY
+            if length and (not length.isdigit() or int(length) > limit):
                 raise HTTPException(413, 'REQUEST_BODY_TOO_LARGE')
             body = bytearray()
             async for chunk in request.stream():
                 body.extend(chunk)
-                if len(body) > MAX_BODY:
+                if len(body) > limit:
                     raise HTTPException(413, 'REQUEST_BODY_TOO_LARGE')
             request._body = bytes(body)
         response = await call_next(request)
@@ -217,13 +219,13 @@ def worker(job_id, config):
         set_job(job_id, {'status': 'running', 'started_utc': clock(), 'execution_receipt': {'verified': False}})
         result, code = run(str(folder / 'request.json'), str(folder / 'execution'),
                            str(ROOT / 'state'), 25000, 2000)
-        requested = config['requested_prop']
+        requested = config.get('requested_prop')
         matched = [p for p in result.get('props', [])
                    if name_key(p.get('prop', {}).get('player', '')) == name_key(requested['player'])
                    and p.get('prop', {}).get('market') == requested['market']
-                   and p.get('prop', {}).get('line') == requested['line']]
+                   and p.get('prop', {}).get('line') == requested['line']] if requested else result.get('props',[])
         verified, proof, reason = False, None, None
-        if code == 0 and len(matched) == 1 and result.get('all_requested_props_executed') and result.get('preservation_verified'):
+        if code == 0 and (len(matched) == 1 if requested else bool(matched)) and result.get('all_requested_props_executed') and result.get('preservation_verified'):
             try:
                 proof = verify(folder / 'execution', ROOT / 'state')
                 verified = True
@@ -239,7 +241,7 @@ def worker(job_id, config):
         receipt_path = folder / 'execution' / 'execution_receipt.json'
         digest = hashlib.sha256(receipt_path.read_bytes()).hexdigest() if receipt_path.is_file() else None
         set_job(job_id, {'status': 'completed' if verified else 'incomplete', 'completed_utc': clock(),
-            'exit_code': code, 'matched_exact_prop': len(matched) == 1, 'matched_results': matched,
+            'exit_code': code, 'matched_exact_prop': len(matched) == 1 if requested else None, 'matched_results': matched,
             'reason': reason, 'artifact_verification': proof,
             'execution_receipt': {'verified': verified, 'sha256': digest,
                 'url': '/api/jobs/' + job_id + '/receipt', 'pipeline_status': result.get('status')},
@@ -277,7 +279,8 @@ async def submit(player: str = Form(...), market: str = Form(...), line: float =
         job_id = uuid.uuid4().hex
         folder = ROOT / job_id
         folder.mkdir(mode=0o700)
-        config = {'mode': 'future_discovery', 'game_date': cutoff.astimezone(ET).date().isoformat(),
+        config = {'mode': 'uploaded_props', 'props': [{'player':player,'market':market,'line':line}],
+            'game_date': cutoff.astimezone(ET).date().isoformat(),
             'pregame_cutoff_utc': cutoff.astimezone(dt.timezone.utc).isoformat(),
             'requested_prop': {'player': player, 'market': market, 'line': line},
             'max_props': 1, 'max_games': 1, 'max_seasons': 3}
@@ -291,6 +294,50 @@ async def submit(player: str = Form(...), market: str = Form(...), line: float =
         raise
     return {'job_id': job_id, 'status': 'queued', 'poll': '/api/jobs/' + job_id,
             'execution_receipt': {'verified': False}}
+
+
+@app.post('/api/run-framework-batch', status_code=202)
+async def submit_batch(game_date: str = Form(...), props_json: str = Form('[]'),
+                       pregame_cutoff: str = Form(...), screenshots: list[UploadFile] | None = File(None),
+                       authorization: str | None = Header(None)):
+    """One job accepts all submitted props and images. No silent six-prop cap."""
+    authorize(authorization)
+    try:
+        dt.date.fromisoformat(game_date)
+        cutoff=dt.datetime.fromisoformat(pregame_cutoff.replace('Z','+00:00'))
+        if cutoff.tzinfo is None or cutoff<=dt.datetime.now(dt.timezone.utc):raise ValueError()
+        props=json.loads(props_json)
+        if not isinstance(props,list) or any(not isinstance(p,dict) for p in props):raise ValueError()
+        if len(props)>100 or len(screenshots or [])>20:raise ValueError()
+        if not props and not screenshots:raise ValueError()
+    except (ValueError,TypeError):raise HTTPException(422,'VALID_BATCH_DATE_PROPS_AND_FUTURE_CUTOFF_REQUIRED')
+    if not storage_health()['ready']:raise HTTPException(503,'PERSISTENT_STORAGE_NOT_READY')
+    if not RUN_LOCK.acquire(blocking=False):raise HTTPException(429,'ONE_FRAMEWORK_JOB_ALREADY_RUNNING')
+    try:
+        job_id=uuid.uuid4().hex;folder=ROOT/job_id;folder.mkdir(mode=0o700)
+        paths=[]
+        from PIL import Image
+        for index,upload in enumerate(screenshots or []):
+            raw=await upload.read(8_000_001)
+            if not raw or len(raw)>8_000_000:raise HTTPException(422,'SCREENSHOT_EMPTY_OR_OVERSIZE')
+            import io
+            try:
+                with Image.open(io.BytesIO(raw)) as photo:
+                    if photo.width*photo.height>30_000_000 or photo.format not in ('PNG','JPEG','WEBP'):
+                        raise ValueError()
+                    photo.verify()
+            except Exception:raise HTTPException(422,'VALID_BOUNDED_SCREENSHOT_IMAGE_REQUIRED')
+            path=folder/(f'screenshot_{index}.image')
+            with path.open('xb') as stream:stream.write(raw)
+            paths.append(str(path))
+        config=dict(mode='uploaded_props',game_date=game_date,props=props,screenshots=paths,
+                    pregame_cutoff_utc=cutoff.astimezone(dt.timezone.utc).isoformat(),max_seasons=3)
+        with (folder/'request.json').open('x') as stream:json.dump(config,stream,indent=2,allow_nan=False)
+        set_job(job_id,dict(status='queued',submitted_utc=clock(),request=config,execution_receipt={'verified':False}))
+        threading.Thread(target=worker,args=(job_id,config),daemon=True,name='benfrank-'+job_id).start()
+    except Exception:
+        RUN_LOCK.release();raise
+    return dict(job_id=job_id,status='queued',poll='/api/jobs/'+job_id,execution_receipt={'verified':False})
 
 
 @app.get('/api/jobs/{job_id}')

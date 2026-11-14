@@ -1,0 +1,40 @@
+name: BENFRANK DNA repair validation
+on:
+  push:
+    branches: [benfrank-dna-repair-20261113]
+    paths: ['**.py', 'requirements.txt', 'mobile/**', '.github/workflows/dna-repair-validation.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression-and-mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install free local dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr poppler-utils
+          python -m pip install -r requirements.txt -r mobile/requirements-test.txt
+          python -m playwright install --with-deps webkit
+      - name: Execute all regression tests including real numerical fixture trials
+        run: |
+          set -o pipefail
+          python -m unittest discover -s tests -v 2>&1 | tee dna-software-tests.log
+      - name: Exercise phone and tablet browser flows
+        run: |
+          set -o pipefail
+          python scripts/test_mobile_browser.py --output dna-browser-results 2>&1 | tee dna-browser-tests.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benfrank-dna-validation-${{ github.run_id }}
+          path: |
+            dna-software-tests.log
+            dna-browser-tests.log
+            dna-browser-results/
+          retention-days: 30
