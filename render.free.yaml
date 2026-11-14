@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: benfrank-nba-history-free
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile.free
+    autoDeployTrigger: "off"
+    healthCheckPath: /health
+    envVars:
+      - key: BENFRANK_TOKEN
+        generateValue: true
+      - key: BENFRANK_HOST
+        value: 0.0.0.0
+      - key: BENFRANK_DATA_DIR
+        value: /tmp/benfrank_runs
