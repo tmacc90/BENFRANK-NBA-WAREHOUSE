@@ -1,7 +1,7 @@
 import os,json,uuid,threading,pathlib,datetime as dt
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from urllib.parse import urlparse
-from benfrank_logs import BASE,MARKETS,fetch,parse,analyze
+from benfrank_logs import MARKETS,fetch_with_fallback,analyze
 from screenshot_intake import extract_image,parse_text
 TOKEN=os.environ.get('BENFRANK_TOKEN','')
 ROOT=pathlib.Path(os.environ.get('BENFRANK_DATA_DIR','/tmp/benfrank_runs'));ROOT.mkdir(parents=True,exist_ok=True)
@@ -16,13 +16,13 @@ def run(jid,props):
    year=int(p.get('season',dt.datetime.now().year))
    seasons={}
    for y in (year-1,year):
-    key=(aid,y)
+    key=(aid,str(p.get('nba_id','')),y)
     if key not in cache:
-     url=BASE.format(aid,y);raw=fetch(url);rows=parse(raw,y)
+     rows,url,provider,diagnostics=fetch_with_fallback(aid,y,p.get('nba_id'))
      if not rows:raise ValueError('ESPN schema returned no verified rows for '+str(y))
-     cache[key]=(rows,url)
-    rows,url=cache[key]
-    seasons[str(y)]={'source_url':url,'records':len(rows),'summary':analyze(rows,market,line,p.get('opponent'),p.get('cutoff')),'rows':rows}
+     cache[key]=(rows,url,provider,diagnostics)
+    rows,url,provider,diagnostics=cache[key]
+    seasons[str(y)]={'source_url':url,'source':provider,'fallback_diagnostics':diagnostics,'records':len(rows),'summary':analyze(rows,market,line,p.get('opponent'),p.get('cutoff')),'rows':rows}
    rec={'input':p,'status':'DATA_PARSED_NOT_INDEPENDENTLY_VERIFIED','seasons':seasons}
   except Exception as e:rec['reason']=str(e)
   results.append(rec)
