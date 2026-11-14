@@ -27,7 +27,7 @@ def run(jid,props):
    if market not in MARKETS:raise ValueError('Invalid market')
    if aid and not aid.isdigit():raise ValueError('Invalid ESPN ID')
    year=int(p.get('season',current_nba_season()))
-   if not p.get('nba_id') and p.get('player_name'):
+   if not p.get('verified_rows') and not p.get('nba_id') and p.get('player_name'):
     p=dict(p);p['nba_id']=discover(p['player_name'],year)['nba_id']
    if not aid and not p.get('nba_id') and not p.get('verified_rows'):raise ValueError('Player name or source ID required')
    seasons={}
@@ -40,7 +40,9 @@ def run(jid,props):
     if key not in cache:
      collected=network.collect(y,espn_id=aid or None,nba_id=p.get('nba_id'))
      rows=collected['rows'];url=collected.get('url');provider=collected.get('source');diagnostics=collected['attempts']
-     if not rows:raise ValueError('NO_VERIFIED_PLAYER_GAME_ROWS_'+str(y)+' '+str(diagnostics)[:300])
+     if not rows:
+      seasons[str(y)]={'status':'SOURCE_UNAVAILABLE','fallback_diagnostics':diagnostics,'records':0}
+      continue
      cache[key]=(rows,url,provider,diagnostics)
     rows,url,provider,diagnostics=cache[key]
     verification={'status':'NOT_CHECKED','reason':'NBA_ID_UNAVAILABLE'}
@@ -63,7 +65,7 @@ def run(jid,props):
     else:team_verification={'status':'NOT_COMPARABLE','reason':'ESPN_EVENT_IDS_ARE_NOT_NBA_GAME_IDS'}
     seasons[str(y)]={'team_boxscore_verification':team_verification,'source_url':url,'source':provider,'fallback_diagnostics':diagnostics,'verification':verification,'records':len(rows),'summary':analyze(rows,market,line,p.get('opponent'),p.get('cutoff')),'rows':rows}
    combined=[]
-   for sy in sorted(seasons):combined.extend(seasons[sy]['rows'])
+   for sy in sorted(seasons):combined.extend(seasons[sy].get('rows',[]))
    dedup={ (r.get('date'),r.get('opponent')):r for r in combined }
    engines=evaluate(list(dedup.values()),market,line,p.get('opponent'),p.get('cutoff'))
    rec={'input':p,'status':'NUMERICAL_ENGINES_EXECUTED_CALIBRATION_PENDING','seasons':seasons,'engines':engines}
@@ -102,7 +104,7 @@ class Handler(BaseHTTPRequestHandler):
     images=payload.get('images',[])
     if not isinstance(images,list) or not 1<=len(images)<=20:raise ValueError('1-20 images required')
     props=[];errors=[]
-    try:roster=load_roster(int(payload.get('season',dt.datetime.now().year)))
+    try:roster=load_roster(int(payload.get('season',current_nba_season())))
     except Exception as e:return self.send(503,{'error':'ROSTER_UNAVAILABLE','detail':str(e)[:200]})
     for i,img in enumerate(images):
      try:props.append(parse_text(extract_image(img),roster))
