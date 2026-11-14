@@ -3,6 +3,7 @@ from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from urllib.parse import urlparse
 from benfrank_logs import MARKETS,fetch_with_fallback,analyze
 from screenshot_intake import extract_image,parse_text
+from player_registry import load_roster
 from player_registry import discover
 from source_verification import compare
 from benfrank_logs import fetch_nba
@@ -68,8 +69,10 @@ class Handler(BaseHTTPRequestHandler):
     images=payload.get('images',[])
     if not isinstance(images,list) or not 1<=len(images)<=20:raise ValueError('1-20 images required')
     props=[];errors=[]
+    try:roster=load_roster(int(payload.get('season',dt.datetime.now().year)))
+    except Exception as e:return self.send(503,{'error':'ROSTER_UNAVAILABLE','detail':str(e)[:200]})
     for i,img in enumerate(images):
-     try:props.append(parse_text(extract_image(img)))
+     try:props.append(parse_text(extract_image(img),roster))
      except Exception as e:errors.append({'index':i,'reason':str(e)})
     if errors:return self.send(422,{'status':'REVIEW_REQUIRED','errors':errors,'recognized':props,'message':'No job started; confirm all recognized props'})
    else:props=payload['props']
