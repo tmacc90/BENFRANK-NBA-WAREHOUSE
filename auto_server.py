@@ -9,6 +9,7 @@ from source_verification import compare
 from benfrank_logs import fetch_nba
 from nba_team_boxscores import fetch_team_boxscores,verify_team_games
 from free_source_network import FreeSourceNetwork
+from benfrank_numerical_engines import evaluate
 
 def current_nba_season():
  today=dt.datetime.now(dt.timezone.utc)
@@ -56,7 +57,11 @@ def run(jid,props):
       team_verification['source_url']=team_url
     else:team_verification={'status':'NOT_COMPARABLE','reason':'ESPN_EVENT_IDS_ARE_NOT_NBA_GAME_IDS'}
     seasons[str(y)]={'team_boxscore_verification':team_verification,'source_url':url,'source':provider,'fallback_diagnostics':diagnostics,'verification':verification,'records':len(rows),'summary':analyze(rows,market,line,p.get('opponent'),p.get('cutoff')),'rows':rows}
-   rec={'input':p,'status':'HISTORICAL_DATA_COLLECTED_VERIFICATION_RECORDED','seasons':seasons}
+   combined=[]
+   for sy in sorted(seasons):combined.extend(seasons[sy]['rows'])
+   dedup={ (r.get('date'),r.get('opponent')):r for r in combined }
+   engines=evaluate(list(dedup.values()),market,line,p.get('opponent'),p.get('cutoff'))
+   rec={'input':p,'status':'NUMERICAL_ENGINES_EXECUTED_CALIBRATION_PENDING','seasons':seasons,'engines':engines}
   except Exception as e:rec['reason']=str(e)
   results.append(rec)
  output={'job_id':jid,'results':results,'complete':all(x['status']!='BLOCKED' for x in results),'full_framework_certified':False}
