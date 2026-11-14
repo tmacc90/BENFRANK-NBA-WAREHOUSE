@@ -9,6 +9,10 @@ from source_verification import compare
 from benfrank_logs import fetch_nba
 from nba_team_boxscores import fetch_team_boxscores,verify_team_games
 from free_source_network import FreeSourceNetwork
+
+def current_nba_season():
+ today=dt.datetime.now(dt.timezone.utc)
+ return today.year+1 if today.month>=10 else today.year
 TOKEN=os.environ.get('BENFRANK_TOKEN','')
 ROOT=pathlib.Path(os.environ.get('BENFRANK_DATA_DIR','/tmp/benfrank_runs'));ROOT.mkdir(parents=True,exist_ok=True)
 JOBS={};LOCK=threading.Lock()
@@ -20,7 +24,7 @@ def run(jid,props):
    aid=str(p.get('athlete_id',''));market=p['market'];line=float(p['line'])
    if market not in MARKETS:raise ValueError('Invalid market')
    if aid and not aid.isdigit():raise ValueError('Invalid ESPN ID')
-   year=int(p.get('season',dt.datetime.now().year))
+   year=int(p.get('season',current_nba_season()))
    if not p.get('nba_id') and p.get('player_name'):
     p=dict(p);p['nba_id']=discover(p['player_name'],year)['nba_id']
    if not aid and not p.get('nba_id'):raise ValueError('Player name or source ID required')
@@ -77,7 +81,7 @@ class Handler(BaseHTTPRequestHandler):
   if path not in ('/run-framework','/screenshot-batch'):return self.send(404,{'error':'Not found'})
   try:
    size=int(self.headers.get('Content-Length','0'))
-   if not 0<size<=1000000:raise ValueError('Invalid payload size')
+   if not 0<size<=20000000:raise ValueError('Invalid payload size')
    payload=json.loads(self.rfile.read(size))
    if path=='/screenshot-batch':
     images=payload.get('images',[])
@@ -88,7 +92,8 @@ class Handler(BaseHTTPRequestHandler):
     for i,img in enumerate(images):
      try:props.append(parse_text(extract_image(img),roster))
      except Exception as e:errors.append({'index':i,'reason':str(e)})
-    if errors:return self.send(422,{'status':'REVIEW_REQUIRED','errors':errors,'recognized':props,'message':'No job started; confirm all recognized props'})
+    if errors:return self.send(422,{'status':'REVIEW_REQUIRED','errors':errors,'recognized':props,'message':'No job started; correct failed screenshot recognition'})
+    if not payload.get('confirmed',False):return self.send(422,{'status':'CONFIRM_EXACT_LINES','recognized':props,'message':'Confirm OCR-derived names, markets, and lines; resubmit with confirmed=true'})
    else:props=payload['props']
    if not isinstance(props,list) or not 1<=len(props)<=100:raise ValueError('1-100 props required')
    for p in props:
