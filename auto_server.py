@@ -3,6 +3,9 @@ from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from urllib.parse import urlparse
 from benfrank_logs import MARKETS,fetch_with_fallback,analyze
 from screenshot_intake import extract_image,parse_text
+from player_registry import discover
+from source_verification import compare
+from benfrank_logs import fetch_nba
 TOKEN=os.environ.get('BENFRANK_TOKEN','')
 ROOT=pathlib.Path(os.environ.get('BENFRANK_DATA_DIR','/tmp/benfrank_runs'));ROOT.mkdir(parents=True,exist_ok=True)
 JOBS={};LOCK=threading.Lock()
@@ -11,9 +14,13 @@ def run(jid,props):
  for p in props:
   rec={'input':p,'status':'BLOCKED'}
   try:
-   aid=str(p['athlete_id']);market=p['market'];line=float(p['line'])
-   if not aid.isdigit() or market not in MARKETS:raise ValueError('Invalid player or market')
+   aid=str(p.get('athlete_id',''));market=p['market'];line=float(p['line'])
+   if market not in MARKETS:raise ValueError('Invalid market')
+   if aid and not aid.isdigit():raise ValueError('Invalid ESPN ID')
    year=int(p.get('season',dt.datetime.now().year))
+   if not p.get('nba_id') and p.get('player_name'):
+    p=dict(p);p['nba_id']=discover(p['player_name'],year)['nba_id']
+   if not aid and not p.get('nba_id'):raise ValueError('Player name or source ID required')
    seasons={}
    for y in (year-1,year):
     key=(aid,str(p.get('nba_id','')),y)
@@ -22,7 +29,14 @@ def run(jid,props):
      if not rows:raise ValueError('ESPN schema returned no verified rows for '+str(y))
      cache[key]=(rows,url,provider,diagnostics)
     rows,url,provider,diagnostics=cache[key]
-    seasons[str(y)]={'source_url':url,'source':provider,'fallback_diagnostics':diagnostics,'records':len(rows),'summary':analyze(rows,market,line,p.get('opponent'),p.get('cutoff')),'rows':rows}
+    verification={'status':'NOT_CHECKED','reason':'NBA_ID_UNAVAILABLE'}
+    if p.get('nba_id'):
+     try:
+      nba_rows,nba_url=fetch_nba(p['nba_id'],y)
+      verification=compare(rows,nba_rows) if provider!='NBA_STATS' else {'status':'NOT_INDEPENDENT','reason':'ONLY_NBA_STATS_SOURCE_AVAILABLE'}
+      verification['source_url']=nba_url
+     except Exception as e:verification={'status':'SOURCE_UNAVAILABLE','reason':str(e)[:200]}
+    seasons[str(y)]={'source_url':url,'source':provider,'fallback_diagnostics':diagnostics,'verification':verification,'records':len(rows),'summary':analyze(rows,market,line,p.get('opponent'),p.get('cutoff')),'rows':rows}
    rec={'input':p,'status':'DATA_PARSED_NOT_INDEPENDENTLY_VERIFIED','seasons':seasons}
   except Exception as e:rec['reason']=str(e)
   results.append(rec)
@@ -61,7 +75,7 @@ class Handler(BaseHTTPRequestHandler):
    else:props=payload['props']
    if not isinstance(props,list) or not 1<=len(props)<=100:raise ValueError('1-100 props required')
    for p in props:
-    if not isinstance(p,dict) or not {'athlete_id','market','line'}<=p.keys():raise ValueError('Missing required prop fields')
+    if not isinstance(p,dict) or not {'market','line'}<=p.keys() or not any(p.get(k) for k in ('athlete_id','nba_id','player_name')):raise ValueError('Missing player identity, market or line')
    jid=uuid.uuid4().hex
    with LOCK:JOBS[jid]={'status':'RUNNING'}
    threading.Thread(target=run,args=(jid,props),daemon=True).start()
