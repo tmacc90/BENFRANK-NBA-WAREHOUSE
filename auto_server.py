@@ -8,11 +8,12 @@ from player_registry import discover
 from source_verification import compare
 from benfrank_logs import fetch_nba
 from nba_team_boxscores import fetch_team_boxscores,verify_team_games
+from free_source_network import FreeSourceNetwork
 TOKEN=os.environ.get('BENFRANK_TOKEN','')
 ROOT=pathlib.Path(os.environ.get('BENFRANK_DATA_DIR','/tmp/benfrank_runs'));ROOT.mkdir(parents=True,exist_ok=True)
 JOBS={};LOCK=threading.Lock()
 def run(jid,props):
- results=[];cache={};team_cache={}
+ results=[];cache={};team_cache={};network=FreeSourceNetwork(ROOT/'source_cache')
  for p in props:
   rec={'input':p,'status':'BLOCKED'}
   try:
@@ -27,8 +28,9 @@ def run(jid,props):
    for y in (year-1,year):
     key=(aid,str(p.get('nba_id','')),y)
     if key not in cache:
-     rows,url,provider,diagnostics=fetch_with_fallback(aid,y,p.get('nba_id'))
-     if not rows:raise ValueError('NO_VERIFIED_PLAYER_GAME_ROWS_'+str(y))
+     collected=network.collect(y,espn_id=aid or None,nba_id=p.get('nba_id'))
+     rows=collected['rows'];url=collected.get('url');provider=collected.get('source');diagnostics=collected['attempts']
+     if not rows:raise ValueError('NO_VERIFIED_PLAYER_GAME_ROWS_'+str(y)+' '+str(diagnostics)[:300])
      cache[key]=(rows,url,provider,diagnostics)
     rows,url,provider,diagnostics=cache[key]
     verification={'status':'NOT_CHECKED','reason':'NBA_ID_UNAVAILABLE'}
