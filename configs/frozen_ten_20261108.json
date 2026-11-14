@@ -1,0 +1,99 @@
+{
+  "mode": "manual_forward_board",
+  "game_date": "2026-11-08",
+  "max_seasons": 3,
+  "lineup_history_games": 12,
+  "purpose": "Frozen ten user-supplied pregame screenshot lines; preserve original lines and run lineup/WOWY enhanced 25K model before tipoff.",
+  "props": [
+    {
+      "player": "Luka Dončić",
+      "market": "points",
+      "line": 34.5,
+      "team": "LAL",
+      "opponent": "DET",
+      "line_capture_utc": "2026-11-08T02:59:00Z",
+      "snapshot_id": "frozen10_luka_points_34_5"
+    },
+    {
+      "player": "Jake LaRavia",
+      "market": "points",
+      "line": 6.5,
+      "team": "LAL",
+      "opponent": "DET",
+      "line_capture_utc": "2026-11-08T02:59:00Z",
+      "snapshot_id": "frozen10_laravia_points_6_5"
+    },
+    {
+      "player": "Walker Kessler",
+      "market": "points",
+      "line": 12.5,
+      "team": "LAL",
+      "opponent": "DET",
+      "line_capture_utc": "2026-11-08T02:59:00Z",
+      "snapshot_id": "frozen10_kessler_points_12_5"
+    },
+    {
+      "player": "Tyler Herro",
+      "market": "points",
+      "line": 19.5,
+      "team": "MIL",
+      "opponent": "BOS",
+      "line_capture_utc": "2026-11-08T02:59:00Z",
+      "snapshot_id": "frozen10_herro_points_19_5"
+    },
+    {
+      "player": "Ausar Thompson",
+      "market": "points",
+      "line": 9.5,
+      "team": "DET",
+      "opponent": "LAL",
+      "line_capture_utc": "2026-11-08T02:59:00Z",
+      "snapshot_id": "frozen10_ausar_points_9_5"
+    },
+    {
+      "player": "Duncan Robinson",
+      "market": "points",
+      "line": 15.5,
+      "team": "DET",
+      "opponent": "LAL",
+      "line_capture_utc": "2026-11-08T02:59:00Z",
+      "snapshot_id": "frozen10_robinson_points_15_5"
+    },
+    {
+      "player": "Jaime Jaquez Jr.",
+      "market": "points",
+      "line": 13.5,
+      "team": "MIL",
+      "opponent": "BOS",
+      "line_capture_utc": "2026-11-08T02:59:00Z",
+      "snapshot_id": "frozen10_jaquez_points_13_5"
+    },
+    {
+      "player": "Ryan Rollins",
+      "market": "points",
+      "line": 9.5,
+      "team": "MIL",
+      "opponent": "BOS",
+      "line_capture_utc": "2026-11-08T02:59:00Z",
+      "snapshot_id": "frozen10_rollins_points_9_5"
+    },
+    {
+      "player": "Domantas Sabonis",
+      "market": "points",
+      "line": 14.5,
+      "team": "SAC",
+      "opponent": "MIA",
+      "line_capture_utc": "2026-11-08T02:59:00Z",
+      "snapshot_id": "frozen10_sabonis_points_14_5"
+    },
+    {
+      "player": "Derrick White",
+      "market": "points",
+      "line": 13.5,
+      "team": "BOS",
+      "opponent": "MIL",
+      "line_capture_utc": "2026-11-08T02:59:00Z",
+      "snapshot_id": "frozen10_white_points_13_5"
+    }
+  ]
+}

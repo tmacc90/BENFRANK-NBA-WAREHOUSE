@@ -1,0 +1,99 @@
+{
+  "mode": "manual_forward_board",
+  "game_date": "2026-11-08",
+  "max_seasons": 3,
+  "lineup_history_games": 12,
+  "purpose": "Live forward test from user-supplied PrizePicks screenshot captured Sat Nov 7 2026 7:00 PM PT. Exact Pts+Asts lines frozen before Nov 8 tipoffs.",
+  "props": [
+    {
+      "player": "Luka Dončić",
+      "market": "pa",
+      "line": 41.5,
+      "team": "LAL",
+      "opponent": "DET",
+      "line_capture_utc": "2026-11-08T03:00:00Z",
+      "snapshot_id": "live_20261108_luka_pa_41_5"
+    },
+    {
+      "player": "Davion Mitchell",
+      "market": "pa",
+      "line": 20.5,
+      "team": "MIA",
+      "opponent": "SAC",
+      "line_capture_utc": "2026-11-08T03:00:00Z",
+      "snapshot_id": "live_20261108_davion_mitchell_pa_20_5"
+    },
+    {
+      "player": "Jaylen Brown",
+      "market": "pa",
+      "line": 24.5,
+      "team": "PHI",
+      "opponent": "CHI",
+      "line_capture_utc": "2026-11-08T03:00:00Z",
+      "snapshot_id": "live_20261108_jaylen_brown_pa_24_5"
+    },
+    {
+      "player": "Tyler Herro",
+      "market": "pa",
+      "line": 24.5,
+      "team": "MIL",
+      "opponent": "BOS",
+      "line_capture_utc": "2026-11-08T03:00:00Z",
+      "snapshot_id": "live_20261108_herro_pa_24_5"
+    },
+    {
+      "player": "Derrick White",
+      "market": "pa",
+      "line": 17.5,
+      "team": "BOS",
+      "opponent": "MIL",
+      "line_capture_utc": "2026-11-08T03:00:00Z",
+      "snapshot_id": "live_20261108_white_pa_17_5"
+    },
+    {
+      "player": "Cade Cunningham",
+      "market": "pa",
+      "line": 34.5,
+      "team": "DET",
+      "opponent": "LAL",
+      "line_capture_utc": "2026-11-08T03:00:00Z",
+      "snapshot_id": "live_20261108_cade_pa_34_5"
+    },
+    {
+      "player": "Pelle Larsson",
+      "market": "pa",
+      "line": 15.5,
+      "team": "MIA",
+      "opponent": "SAC",
+      "line_capture_utc": "2026-11-08T03:00:00Z",
+      "snapshot_id": "live_20261108_pelle_larsson_pa_15_5"
+    },
+    {
+      "player": "Domantas Sabonis",
+      "market": "pa",
+      "line": 20.5,
+      "team": "SAC",
+      "opponent": "MIA",
+      "line_capture_utc": "2026-11-08T03:00:00Z",
+      "snapshot_id": "live_20261108_sabonis_pa_20_5"
+    },
+    {
+      "player": "Matas Buzelis",
+      "market": "pa",
+      "line": 14.5,
+      "team": "CHI",
+      "opponent": "PHI",
+      "line_capture_utc": "2026-11-08T03:00:00Z",
+      "snapshot_id": "live_20261108_buzelis_pa_14_5"
+    },
+    {
+      "player": "Jayson Tatum",
+      "market": "pa",
+      "line": 33.5,
+      "team": "BOS",
+      "opponent": "MIL",
+      "line_capture_utc": "2026-11-08T03:00:00Z",
+      "snapshot_id": "live_20261108_tatum_pa_33_5"
+    }
+  ]
+}

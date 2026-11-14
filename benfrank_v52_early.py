@@ -258,6 +258,118 @@ def stress(context,player,side,kind):
             p['shooting_beta']={key:[25*p[key],25*(1-p[key])] for key in PCTS}
     return c
 
+def apply_lineup_evidence(context, prop):
+    """Bounded empirical opportunity adjustment from reconstructed lineup/WOWY evidence.
+
+    This is not an independent confidence vote. It conditionally adjusts the same
+    opportunity/role family already used by the simulator and records the exact
+    transformation for Stage 27 double-count control.
+    """
+    evidence = context.get('lineup_evidence') or {}
+    quality = evidence.get('quality', 'LIMITED')
+    receipt = {
+        'execution': 'EXECUTED',
+        'quality': quality,
+        'independence_family': 'LINEUP_PBP_CORRELATED_WITH_ROLE_OPPORTUNITY',
+        'confidence_vote_allowed': False,
+        'applied': False,
+        'projected_teammates_used': [],
+        'rate_multipliers': {},
+        'minutes_delta': 0.0,
+        'caps': {'rate_multiplier': [0.92, 1.08], 'minutes_delta': [-1.5, 1.5]},
+    }
+    context['lineup_evidence_adjustment'] = receipt
+    if quality not in ('FULL', 'FALLBACK'):
+        receipt['exact_reason'] = 'LINEUP_EVIDENCE_NOT_FULL_OR_FALLBACK'
+        return context
+
+    roster = context['rosters'].get(prop['team'], [])
+    targets = [p for p in roster if name_key(p['player']) == name_key(prop['player'])]
+    if len(targets) != 1:
+        receipt['quality'] = 'LIMITED'
+        receipt['exact_reason'] = 'TARGET_NOT_UNIQUE_IN_SIMULATION_ROSTER'
+        return context
+    target = targets[0]
+
+    role = context.get('early_role_evidence', {}).get(prop['team'], {})
+    projected = role.get('selected_projected_five') or role.get('depth_derived_five') or []
+    projected_keys = {name_key(n) for n in projected if name_key(n) != name_key(prop['player'])}
+
+    candidates = []
+    for item in (evidence.get('teammates') or {}).values():
+        if name_key(item.get('name')) not in projected_keys:
+            continue
+        possessions = int(item.get('possessions_with') or 0)
+        if possessions < 30:
+            continue
+        candidates.append(item)
+    receipt['projected_teammates_used'] = [
+        {'name': x.get('name'), 'possessions_with': x.get('possessions_with')}
+        for x in candidates
+    ]
+
+    quality_shrink = 1.0 if quality == 'FULL' else 0.5
+    def combined_ratio(stat):
+        key = stat + '_ratio_shrunk'
+        values = []
+        for item in candidates:
+            ratio = item.get(key)
+            if not isinstance(ratio, (int, float)) or not math.isfinite(ratio):
+                continue
+            weight = min(200, int(item.get('possessions_with') or 0))
+            if weight > 0:
+                values.append((ratio, weight))
+        if not values:
+            return 1.0
+        raw = sum(v * w for v, w in values) / sum(w for _, w in values)
+        adjusted = 1.0 + (raw - 1.0) * quality_shrink
+        return min(1.08, max(0.92, adjusted))
+
+    fga_mult = combined_ratio('fga')
+    ast_mult = combined_ratio('ast')
+    reb_mult = combined_ratio('reb')
+    receipt['rate_multipliers'] = {
+        'fga_opportunity': round(fga_mult, 6),
+        'assist_opportunity': round(ast_mult, 6),
+        'rebound_opportunity': round(reb_mult, 6),
+    }
+
+    market = prop['market']
+    changed = []
+    if market in ('points', 'threes', 'pr', 'pa', 'pra', 'fantasy_score'):
+        for field in ('fg2a_per36', 'fg3a_per36', 'fta_per36'):
+            target[field] = min(50.0, max(0.0, target[field] * fga_mult))
+            changed.append(field)
+    if market in ('assists', 'pa', 'ra', 'pra', 'fantasy_score'):
+        target['ast_per36'] = min(50.0, max(0.0, target['ast_per36'] * ast_mult))
+        changed.append('ast_per36')
+    if market in ('rebounds', 'pr', 'ra', 'pra', 'fantasy_score'):
+        target['reb_per36'] = min(50.0, max(0.0, target['reb_per36'] * reb_mult))
+        changed.append('reb_per36')
+
+    closing = (evidence.get('target') or {}).get('closing_share')
+    if isinstance(closing, (int, float)) and math.isfinite(closing) and 0 <= closing <= 1:
+        baseline_final_six = 6.0 * target['minutes_mean'] / 48.0
+        empirical_final_six = 6.0 * closing
+        delta = 0.35 * (empirical_final_six - baseline_final_six) * quality_shrink
+        delta = min(1.5, max(-1.5, delta))
+        target['minutes_mean'] = min(44.0, max(0.0, target['minutes_mean'] + delta))
+        receipt['minutes_delta'] = round(delta, 6)
+        receipt['historical_competitive_closing_share'] = closing
+        changed.append('minutes_mean')
+
+    receipt['applied'] = bool(changed)
+    receipt['adjusted_fields'] = sorted(set(changed))
+    receipt['method'] = (
+        'Projected-teammate conditional per-100 rates, sample-shrunk then capped; '
+        'competitive Q4 closing share applies a separately capped minutes adjustment.'
+    )
+    context.setdefault('limitations', []).append(
+        'Lineup/WOWY evidence is correlated with role/opportunity and cannot count as an independent confidence confirmation.'
+    )
+    return context
+
+
 def run_one(prop,base,sources,injury,db,trials=25000,stress_trials=2000,*,trace_dir=None,cutoff_utc=None):
     cutoff=cutoff_utc or now();check_sources(prop,base,sources,cutoff)
     conn=readonly(db)
@@ -266,6 +378,7 @@ def run_one(prop,base,sources,injury,db,trials=25000,stress_trials=2000,*,trace_
     history=collections.defaultdict(list)
     for r in rows:history[name_key(r['player'])].append(r)
     context=early_context(base,prop,sources,history,injury,cutoff)
+    context=apply_lineup_evidence(context,prop)
     blind=run_blind(db,prop['player'],prop['market'],prop['game_date'])
     seed=int(hashlib.sha256(('V52|'+prop['snapshot_id']).encode()).hexdigest()[:8],16)
     main=simulate(context,prop['player'],prop['market'],prop['line'],trials,seed,
@@ -297,6 +410,7 @@ def run_one(prop,base,sources,injury,db,trials=25000,stress_trials=2000,*,trace_
         'direction':direction,'projection':main['mean'],'blind_direction':bside,'blind_model':blind,
         'model_disagreement':direction!=bside,'scenario_side_flip':flips,'scenario_risk':'FRAGILE' if flips else 'STABLE_IN_TESTED_CASES_ONLY',
         'main_simulation':main,'stress_simulations':stresses,'context':context,'historical_windows':windows,
+        'lineup_evidence_adjustment':context.get('lineup_evidence_adjustment'),
         'actual_complete_game_count_all_branches':trials+2*stress_trials,
         'execution_ready_without_final_starters':True,'final_starters_required':False,
         'missing_evidence':['Independent model accuracy/calibration on a new forward cohort',

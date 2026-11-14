@@ -4,6 +4,7 @@ import datetime as dt
 import hashlib
 import json
 import math
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -15,15 +16,20 @@ from benfrank_auto_context import (schedule, discover, capture_roles, acquire_re
                                   ProfileHistory, build_context, captured_board)
 from benfrank_auto_evidence import sensitivity, interrogation
 from benfrank_v52_early import run_one, season_start
-from benfrank_v52_ledger import record_prediction
+from benfrank_v52_ledger import record_prediction, settle as settle_forward_ledger
 from benfrank_v47_run import save_receipt
 from benfrank_v53_core import report as dna_report
 from benfrank_manual_prop import resolve_manual_forward_prop
+from benfrank_lineup_acquisition import acquire_history_context
+from benfrank_lineup_mirror import (history_context as mirror_history_context, season_end_for_date,
+                                     recent_team_boxes)
+from benfrank_stage24_calibration import live_maturity, stage24_receipt
 
-VERSION = 'BENFRANK_AUTO_ACQUIRE_TO_FREEZE_1'
+VERSION = 'BENFRANK_AUTO_ACQUIRE_TO_FREEZE_2_STAGE24'
 STAGES = ('exact_line_schedule', 'player_identity', 'automatic_acquisition', 'source_reconciliation',
           'historical_windows', 'player_profiles_matchup_roles', 'sequential_25000', 'independent_blind_process',
-          'adversarial_stress', 'sensitivity', 'player_dna_100', 'interrogation_60', 'pregame_freeze', 'postgame_grading')
+          'adversarial_stress', 'sensitivity', 'stage_24_calibration', 'player_dna_100', 'interrogation_60',
+          'pregame_freeze', 'postgame_grading')
 
 
 def write(path, value):
@@ -73,6 +79,53 @@ def dna_input(prop, rows, result):
                            blind_projection=result['blind_model']['projection']))
 
 
+def lineup_game_specs(rows):
+    """Exact NBA game IDs from reconciled pre-cutoff observations for mirror fallback."""
+    specs = []
+    seen = set()
+    ordered = sorted(rows, key=lambda r: (r.get('date', ''), r.get('game_id', '')), reverse=True)
+    for row in ordered:
+        candidates = []
+        direct = row.get('source_game_id')
+        if direct:
+            candidates.append(str(direct))
+        for values in (row.get('source_game_ids') or {}).values():
+            candidates.extend(map(str, values or []))
+        for gid in candidates:
+            if not re.fullmatch(r'\d{10}', gid) or gid in seen:
+                continue
+            specs.append({'game_id': gid, 'season': season_end_for_date(row['date'])})
+            seen.add(gid)
+    return specs
+
+
+def box_signature(item):
+    event = item['event']
+    return (event['date'], tuple(sorted((event['home'], event['away']))))
+
+
+def team_box_counts(boxes, teams, day):
+    return {
+        team: sum(1 for item in boxes.values()
+                  if team in item['boxes'] and item['event']['date'] < day)
+        for team in teams
+    }
+
+
+def merge_team_boxes(primary, fallback):
+    merged = dict(primary)
+    signatures = {box_signature(item) for item in primary.values()}
+    added = 0
+    for key, item in fallback.items():
+        signature = box_signature(item)
+        if signature in signatures:
+            continue
+        merged[key] = item
+        signatures.add(signature)
+        added += 1
+    return merged, added
+
+
 def preservation_snapshot():
     root = Path(__file__).parent
     paths = list(root.glob('*.sqlite'))
@@ -95,7 +148,8 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
     protected = preservation_snapshot()
     started = now(); day = config['game_date']; dt.date.fromisoformat(day)
     mode = config.get('mode', 'future_discovery')
-    if mode not in ('future_discovery', 'captured_forward_board', 'historical_research', 'manual_forward_prop'):
+    if mode not in ('future_discovery', 'captured_forward_board', 'historical_research',
+                     'manual_forward_prop', 'manual_forward_board'):
         raise ValueError('UNKNOWN_AUTOMATIC_RUN_MODE')
     receipt = dict(version=VERSION, started_utc=started, mode=mode, game_date=day, stages=[], props=[],
                    config_sha256=hashlib.sha256(raw_config).hexdigest(), certified=False,
@@ -135,6 +189,37 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
                 lambda: resolve_manual_forward_prop(store, config))
             games = discovery['games']
             write(root / 'discovery.json', discovery)
+        elif mode == 'manual_forward_board':
+            board = [dict(p) for p in config.get('props', [])]
+            games = stage('manual_board_verified_future_schedule', lambda: schedule(store, day))
+            if not board:
+                raise ValueError('MANUAL_FORWARD_BOARD_REQUIRES_PROPS')
+            for i, p in enumerate(board):
+                for required in ('player', 'market', 'line', 'team', 'opponent', 'line_capture_utc'):
+                    if required not in p:
+                        raise ValueError('MANUAL_FORWARD_BOARD_MISSING_' + required.upper())
+                matches = [g for g in games
+                           if {g['home'], g['away']} == {p['team'], p['opponent']}
+                           and instant(g['tipoff_utc']) > instant(started)
+                           and g.get('status', {}).get('state') == 'pre']
+                if len(matches) != 1:
+                    raise ValueError('MANUAL_FORWARD_BOARD_SCHEDULE_AMBIGUOUS:' + p['player'])
+                g = matches[0]
+                if instant(p['line_capture_utc']) >= instant(g['tipoff_utc']):
+                    raise ValueError('MANUAL_LINE_CAPTURE_NOT_PREGAME:' + p['player'])
+                p.setdefault('snapshot_id', 'manual_board_' + str(i + 1))
+                p.setdefault('platform', 'PrizePicks')
+                p.setdefault('line_authority', 'USER_SUPPLIED_SCREENSHOT_FROZEN_LINE')
+                p.setdefault('source_url', 'user_supplied_screenshot')
+                p.setdefault('source_document', p['snapshot_id'])
+                p.update(game_id=g['game_id'], espn_event_id=g['espn_event_id'],
+                         tipoff_utc=g['tipoff_utc'], game_date=day)
+            write(root / 'discovery.json', {
+                'mode': 'manual_forward_board',
+                'games': games,
+                'line_authority': 'USER_SUPPLIED_SCREENSHOT_FROZEN_LINE',
+                'native_platform_line_recheck': False,
+            })
         else:
             board = config['props']
             games = stage('historical_schedule_acquisition', lambda: schedule(store, day))
@@ -196,6 +281,28 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
         recon = stage('source_reconciliation', lambda: store.reconcile(cutoff, day,
                       strict_observed=mode != 'historical_research'))
         boxes = stage('complete_prior_team_boxes', lambda: acquire_recent_boxes(store, recon['records'], teams, day))
+        primary_counts = team_box_counts(boxes, teams, day)
+        deficient = sorted(team for team, count in primary_counts.items() if count < 5)
+        mirror_box_audit = {
+            'needed_teams': deficient, 'primary_counts': primary_counts,
+            'status': 'NOT_NEEDED' if not deficient else 'PENDING',
+        }
+        if deficient:
+            try:
+                mirror_boxes = stage('mirror_prior_team_boxes_fallback',
+                    lambda: recent_team_boxes(deficient, day,
+                        Path(state_dir).resolve() / 'lineup_cache', max_games=5))
+                boxes, added = merge_team_boxes(boxes, mirror_boxes['boxes'])
+                mirror_box_audit = dict(mirror_boxes)
+                mirror_box_audit.update(status='EXECUTED', added_games=added,
+                                        final_counts=team_box_counts(boxes, teams, day))
+            except Exception as error:
+                mirror_box_audit = {
+                    'status': 'FAILED', 'needed_teams': deficient,
+                    'primary_counts': primary_counts,
+                    'exact_reason': type(error).__name__ + ': ' + str(error),
+                }
+        write(root / 'team_box_mirror_acquisition.json', mirror_box_audit)
         cutoff = now()
         recon = stage('reconciliation_after_box_crosscheck', lambda: store.reconcile(cutoff, day,
                       strict_observed=mode != 'historical_research'))
@@ -204,6 +311,14 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
         history_db = root / 'derived_history.sqlite'
         stage('v52_history_read_model', lambda: write_history(recon['records'], history_db))
         history = ProfileHistory(recon['records'], boxes)
+        ledger = Path(state_dir).resolve() / 'forward_ledger.sqlite'
+        if ledger.is_file():
+            settlement_update = settle_forward_ledger(ledger)
+        else:
+            settlement_update = []
+        write(root / 'prior_forward_settlement_update.json', settlement_update)
+        live_calibration_snapshot = live_maturity(ledger)
+        write(root / 'stage_24_live_cohort_snapshot.json', live_calibration_snapshot)
         for p in board:
             entry = dict(prop=p, status='BLOCKED', direction=None, certified=False,
                          stage_results={s: dict(status='BLOCKED', exact_reason='UPSTREAM_INPUTS_NOT_READY') for s in STAGES})
@@ -229,6 +344,62 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
                      original_stat_publication_vintage_verified=False)
                 mark('historical_windows', receipt=str(folder / 'historical_windows.json'),
                      l52_available=windows['L52']['n'], l52_complete=windows['L52']['n'] == 52)
+                # Additive Stage 33-35 evidence. The validated public possession
+                # mirror is preferred in cloud runners; direct NBA/CDN remains a fallback.
+                # Neither route may impersonate FULL when its validation/sample gate fails.
+                lineup_root = Path(state_dir).resolve() / 'lineup_cache'
+                lineup_attempts = []
+                lineup_evidence = None
+                try:
+                    specs = lineup_game_specs(target)
+                    mirror = mirror_history_context(
+                        p['player'], specs, lineup_root,
+                        max_games=int(config.get('lineup_history_games', 12)))
+                    lineup_attempts.append({'route': 'SPORTSDATAVERSE_NBA_STATS_MIRROR',
+                                            'quality': mirror.get('quality'),
+                                            'upstream_commit': mirror.get('upstream_commit')})
+                    lineup_evidence = mirror
+                except Exception as error:
+                    lineup_attempts.append({'route': 'SPORTSDATAVERSE_NBA_STATS_MIRROR',
+                                            'error': type(error).__name__ + ': ' + str(error)})
+                if not lineup_evidence or lineup_evidence.get('quality') not in ('FULL', 'FALLBACK'):
+                    try:
+                        direct = acquire_history_context(
+                            p['player'], target, lineup_root,
+                            max_games=int(config.get('lineup_history_games', 12)))
+                        lineup_attempts.append({'route': 'NBA_CDN_OR_STATS_DIRECT',
+                                                'quality': direct.get('quality')})
+                        lineup_evidence = direct
+                    except Exception as error:
+                        lineup_attempts.append({'route': 'NBA_CDN_OR_STATS_DIRECT',
+                                                'error': type(error).__name__ + ': ' + str(error)})
+                if not lineup_evidence:
+                    lineup_evidence = {'player': p['player'], 'quality': 'LIMITED'}
+                lineup_evidence['acquisition_routes_attempted'] = lineup_attempts
+                if lineup_evidence.get('quality') not in ('FULL', 'FALLBACK', 'LIMITED'):
+                    lineup_evidence['quality'] = 'LIMITED'
+                if not lineup_evidence.get('stage_receipts'):
+                    reason = '; '.join(x.get('error', x.get('route', 'UNKNOWN')) for x in lineup_attempts)
+                    lineup_evidence.update(
+                        requested_games=0, usable_games=0, games=[], teammates={}, five_man_units={},
+                        target={'closing_share': None},
+                        stage_receipts={
+                            '33': {'stage': 'Teammate WOWY', 'execution': 'EXECUTED',
+                                   'quality': 'LIMITED', 'exact_reason': reason},
+                            '34': {'stage': 'Five-Man Lineups', 'execution': 'EXECUTED',
+                                   'quality': 'LIMITED', 'exact_reason': reason},
+                            '35': {'stage': 'Closing Lineup', 'execution': 'EXECUTED',
+                                   'quality': 'LIMITED', 'exact_reason': reason},
+                        })
+                write(folder / 'lineup_evidence.json', lineup_evidence)
+                for number, key in (('33', 'stage_33_teammate_wowy'),
+                                    ('34', 'stage_34_five_man_lineups'),
+                                    ('35', 'stage_35_closing_lineup')):
+                    stage_receipt = dict(lineup_evidence['stage_receipts'][number])
+                    stage_receipt.pop('execution', None)
+                    entry['stage_results'][key] = dict(
+                        status='EXECUTED', receipt=str(folder / 'lineup_evidence.json'),
+                        **stage_receipt)
                 blockers = []
                 if windows['L52']['n'] < 52:
                     blockers.append('L52_INCOMPLETE_REAL_APPEARANCES:' + str(windows['L52']['n']))
@@ -246,6 +417,7 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
                     raise ValueError('REQUESTED_PREGAME_CUTOFF_PASSED_DURING_ACQUISITION')
                 game = next(g for g in games if g['game_id'] == p['game_id'])
                 base = build_context(p, game, sources, history, boxes, cutoff, injury)
+                base['lineup_evidence'] = lineup_evidence
                 write(folder / 'base_context.json', base)
                 mark('player_profiles_matchup_roles', receipt=str(folder / 'base_context.json'))
                 print(encode(dict(stage='start_prop', player=p['player'], market=p['market'], line=p['line'])), flush=True)
@@ -266,6 +438,15 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
                     limitation='Assumption stresses, not empirically measured tracking opportunity/conversion')
                 mark('adversarial_stress', receipt=result['adversarial'])
                 mark('sensitivity', receipt=result['sensitivity'])
+                result['stage_24_calibration'] = stage24_receipt(
+                    p, result['main_simulation'].get('p_over_raw'), live_calibration_snapshot)
+                write(folder / 'stage_24_calibration.json', result['stage_24_calibration'])
+                mark('stage_24_calibration',
+                     quality=result['stage_24_calibration']['quality'],
+                     calibration_applied=result['stage_24_calibration']['calibration_applied'],
+                     accuracy_certified=result['stage_24_calibration']['accuracy_certified'],
+                     receipt=str(folder / 'stage_24_calibration.json'),
+                     exact_reason=result['stage_24_calibration']['exact_reason'])
                 dna = dna_report(dna_input(p, target, result)); write(folder / 'dna_100.json', dna)
                 mark('player_dna_100', tested=len(dna['dna_100_test_results']),
                      available=sum(t['status'] != 'UNAVAILABLE' for t in dna['dna_100_test_results']),
@@ -289,10 +470,11 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
                     raise ValueError('SIMULATION_COMPLETED_AFTER_REQUESTED_PREGAME_CUTOFF')
                 if frozen['status'] != 'FORWARD_TEST_READY':
                     raise ValueError('SIMULATION_COMPLETED_AFTER_TIPOFF_CANNOT_FREEZE_FORWARD')
-                ledger = Path(state_dir).resolve() / 'forward_ledger.sqlite'
-                record_prediction(ledger, frozen)
+                freeze_result = record_prediction(ledger, frozen)
                 mark('pregame_freeze', ledger=str(ledger), receipt_sha256=frozen['receipt_sha256'],
-                     issued_before_tipoff=True)
+                     issued_before_tipoff=True, ledger_status=freeze_result['status'],
+                     ledger_id=freeze_result['ledger_id'],
+                     primary_snapshot_id=freeze_result['primary_id'])
                 mark('postgame_grading', 'PREPARED_PENDING_FINAL', ledger=str(ledger),
                      exact_reason='GAME_NOT_FINAL; scheduled grading reads immutable frozen receipt')
                 entry.update(status='FORWARD_TEST_READY_UNCALIBRATED', direction=result['direction'],
@@ -346,7 +528,8 @@ def run(config_path, output, state_dir='auto_state', trials=25000, stress_trials
             report_lines += ['', '**Fatal blocker:** ' + receipt['fatal_blocker']]
         report_lines += ['', 'Original warehouse writes: **0**. Protected governing/data/receipt hash check: **' + str(receipt['preservation_verified']) + '**.',
                          'Every raw capture, provider failure, quarantined disagreement and simulated trial is retained in the run/state artifacts.',
-                         'Unmeasured tracking inputs, independently validated Blind AI accuracy, complete career coverage and new forward calibration remain unverified.']
+                         'Unmeasured tracking inputs, independently validated Blind AI accuracy and complete career coverage remain unverified.',
+                         'Stage 24 now executes as a two-part receipt: historical calibration research is descriptive only; live BENFRANK calibration remains LIMITED until its exact stratum matures and a separately validated current-simulator calibration model exists.']
         (root / 'readiness_report.md').write_text('\n'.join(report_lines) + '\n')
     print(encode(dict(status=receipt['status'], frozen=receipt['predictions_frozen_before_tipoff'],
                       fatal_blocker=receipt.get('fatal_blocker'))), flush=True)

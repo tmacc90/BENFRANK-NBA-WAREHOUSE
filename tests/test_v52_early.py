@@ -137,4 +137,36 @@ class BlindAndLedgerTests(unittest.TestCase):
             r['prop']['tipoff_utc']=(n-dt.timedelta(hours=1)).isoformat()
             with self.assertRaisesRegex(ValueError,'PRECEDE_TIPOFF'):record_prediction(db,r)
 
+    def test_same_snapshot_rerun_appends_revision_and_preserves_primary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db=Path(tmp)/'ledger.sqlite';n=dt.datetime.now(dt.timezone.utc)
+            prop={'snapshot_id':'fixture-revision','tipoff_utc':(n+dt.timedelta(hours=2)).isoformat(),
+                  'game_id':'fixture-game','player':'Fixture Player','market':'points','line':20.5,
+                  'platform':'PrizePicks','espn_event_id':'123','team':'BOS','opponent':'NYK','game_date':'2026-11-08'}
+            base={'status':'FORWARD_TEST_READY','prop':prop,
+                  'analysis_cutoff_utc':(n-dt.timedelta(minutes=3)).isoformat(),
+                  'forecast_completed_at_utc':(n-dt.timedelta(minutes=2)).isoformat(),
+                  'main_simulation':{'trials_executed':25000,'complete_sequential_games':True,
+                                     'over_count':13000,'under_count':11000,'void_count':1000,'push_count':0}}
+            base['receipt_sha256']=hashlib.sha256(json.dumps(base,sort_keys=True,allow_nan=False).encode()).hexdigest()
+            first=record_prediction(db,base)
+            self.assertEqual(first['status'],'PRIMARY_FROZEN')
+            revision=copy.deepcopy(base);revision['revision_note']='new-model-run'
+            revision['forecast_completed_at_utc']=(n-dt.timedelta(minutes=1)).isoformat()
+            revision['receipt_sha256']=hashlib.sha256(json.dumps(
+                {k:v for k,v in revision.items() if k!='receipt_sha256'},
+                sort_keys=True,allow_nan=False).encode()).hexdigest()
+            second=record_prediction(db,revision)
+            self.assertEqual(second['status'],'REVISION_FROZEN_PRIMARY_PRESERVED')
+            self.assertNotEqual(second['ledger_id'],first['ledger_id'])
+            card=scorecard(db)
+            self.assertEqual(card['predictions_frozen_before_tipoff'],2)
+            self.assertEqual(card['unique_prop_first_forecasts'],1)
+            self.assertEqual(card['pre_tipoff_revisions_excluded_from_primary_scorecard'],1)
+            conn=ledger_connect(db)
+            primary=json.loads(conn.execute('SELECT payload_json FROM early_predictions WHERE id=?',
+                                            (prop['snapshot_id'],)).fetchone()[0])
+            conn.close()
+            self.assertNotIn('revision_note',primary)
+
 if __name__=='__main__':unittest.main()

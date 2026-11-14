@@ -238,7 +238,8 @@ def acquire_recent_boxes(store, records, teams, day):
                                    orb=int(values['offensiveRebounds']), drb=int(values['defensiveRebounds']),
                                    tov=int(values['turnovers']), ast=int(values['assists']), blk=int(values['blocks']),
                                    minutes=240 + 25 * max(0, period - 4))
-            outputs[eid] = dict(event=event, boxes=parsed, source_document=meta)
+            outputs[eid] = dict(event=event, boxes=parsed, source_document=meta,
+                                authority='ESPN_COMPLETED_PRIOR_TEAM_BOX_COUNTS')
         except Exception as error:
             store.db.rollback(); store.failure(meta['url'], error)
     return outputs
@@ -278,12 +279,14 @@ class ProfileHistory(History):
             if b <= 0 or not 0 <= a / b <= 1:
                 raise ValueError('INVALID_OBSERVED_TEAM_RATE:' + team)
             return a / b
+        authorities = sorted({x.get('authority', 'UNKNOWN_TEAM_BOX_SOURCE') for x in selected})
         rates = dict(off_reb_probability=ratio(own['orb'], own['orb'] + other['drb']),
                      assist_probability=ratio(own['ast'], own['fgm']),
                      block_on_missed_fg_probability=ratio(own['blk'], other['fga'] - other['fgm']),
                      shooting_foul_probability=ratio(own['fta'], 2 * poss),
-                     source='ESPN_COMPLETED_PRIOR_TEAM_BOX_COUNTS', asof=through + 'T23:59:59+00:00',
-                     source_documents=[x['source_document']['id'] for x in selected])
+                     source='+'.join(authorities), asof=through + 'T23:59:59+00:00',
+                     source_documents=[x['source_document']['id'] for x in selected],
+                     source_authorities=authorities)
         return rates, statistics.mean(paces), max(1, statistics.stdev(paces)), [x['event']['date'] for x in selected]
 
 
