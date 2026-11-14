@@ -7,11 +7,12 @@ from player_registry import load_roster
 from player_registry import discover
 from source_verification import compare
 from benfrank_logs import fetch_nba
+from nba_team_boxscores import fetch_team_boxscores,verify_team_games
 TOKEN=os.environ.get('BENFRANK_TOKEN','')
 ROOT=pathlib.Path(os.environ.get('BENFRANK_DATA_DIR','/tmp/benfrank_runs'));ROOT.mkdir(parents=True,exist_ok=True)
 JOBS={};LOCK=threading.Lock()
 def run(jid,props):
- results=[];cache={}
+ results=[];cache={};team_cache={}
  for p in props:
   rec={'input':p,'status':'BLOCKED'}
   try:
@@ -27,7 +28,7 @@ def run(jid,props):
     key=(aid,str(p.get('nba_id','')),y)
     if key not in cache:
      rows,url,provider,diagnostics=fetch_with_fallback(aid,y,p.get('nba_id'))
-     if not rows:raise ValueError('ESPN schema returned no verified rows for '+str(y))
+     if not rows:raise ValueError('NO_VERIFIED_PLAYER_GAME_ROWS_'+str(y))
      cache[key]=(rows,url,provider,diagnostics)
     rows,url,provider,diagnostics=cache[key]
     verification={'status':'NOT_CHECKED','reason':'NBA_ID_UNAVAILABLE'}
@@ -37,8 +38,19 @@ def run(jid,props):
       verification=compare(rows,nba_rows) if provider!='NBA_STATS' else {'status':'NOT_INDEPENDENT','reason':'ONLY_NBA_STATS_SOURCE_AVAILABLE'}
       verification['source_url']=nba_url
      except Exception as e:verification={'status':'SOURCE_UNAVAILABLE','reason':str(e)[:200]}
-    seasons[str(y)]={'source_url':url,'source':provider,'fallback_diagnostics':diagnostics,'verification':verification,'records':len(rows),'summary':analyze(rows,market,line,p.get('opponent'),p.get('cutoff')),'rows':rows}
-   rec={'input':p,'status':'DATA_PARSED_NOT_INDEPENDENTLY_VERIFIED','seasons':seasons}
+    team_verification={'status':'NOT_CHECKED','reason':'NBA_GAME_ID_REQUIRED'}
+    if provider=='NBA_STATS':
+     if y not in team_cache:
+      try:team_cache[y]=fetch_team_boxscores(y)
+      except Exception as e:team_cache[y]=e
+     if isinstance(team_cache[y],Exception):team_verification={'status':'SOURCE_UNAVAILABLE','reason':str(team_cache[y])[:200]}
+     else:
+      team_rows,team_url=team_cache[y]
+      team_verification=verify_team_games(rows,team_rows)
+      team_verification['source_url']=team_url
+    else:team_verification={'status':'NOT_COMPARABLE','reason':'ESPN_EVENT_IDS_ARE_NOT_NBA_GAME_IDS'}
+    seasons[str(y)]={'team_boxscore_verification':team_verification,'source_url':url,'source':provider,'fallback_diagnostics':diagnostics,'verification':verification,'records':len(rows),'summary':analyze(rows,market,line,p.get('opponent'),p.get('cutoff')),'rows':rows}
+   rec={'input':p,'status':'HISTORICAL_DATA_COLLECTED_VERIFICATION_RECORDED','seasons':seasons}
   except Exception as e:rec['reason']=str(e)
   results.append(rec)
  output={'job_id':jid,'results':results,'complete':all(x['status']!='BLOCKED' for x in results),'full_framework_certified':False}
