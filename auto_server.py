@@ -10,6 +10,7 @@ from benfrank_logs import fetch_nba
 from nba_team_boxscores import fetch_team_boxscores,verify_team_games
 from free_source_network import FreeSourceNetwork
 from benfrank_numerical_engines import evaluate
+from web_paste_intake import parse_pasted_logs
 
 def current_nba_season():
  today=dt.datetime.now(dt.timezone.utc)
@@ -28,8 +29,12 @@ def run(jid,props):
    year=int(p.get('season',current_nba_season()))
    if not p.get('nba_id') and p.get('player_name'):
     p=dict(p);p['nba_id']=discover(p['player_name'],year)['nba_id']
-   if not aid and not p.get('nba_id'):raise ValueError('Player name or source ID required')
+   if not aid and not p.get('nba_id') and not p.get('verified_rows'):raise ValueError('Player name or source ID required')
    seasons={}
+   if p.get('verified_rows'):
+    rows=p['verified_rows'];engines=evaluate(rows,market,line,p.get('opponent'),p.get('cutoff'))
+    rec={'input':{k:v for k,v in p.items() if k!='verified_rows'},'status':'WEB_PASTE_NUMERICAL_EXECUTED_SOURCE_REVIEW_REQUIRED','records':len(rows),'source_url':p.get('source_url'),'engines':engines}
+    results.append(rec);continue
    for y in (year-1,year):
     key=(aid,str(p.get('nba_id','')),y)
     if key not in cache:
@@ -83,12 +88,17 @@ class Handler(BaseHTTPRequestHandler):
  def do_POST(self):
   if not self.auth():return self.send(401,{'error':'Unauthorized'})
   path=urlparse(self.path).path
-  if path not in ('/run-framework','/screenshot-batch'):return self.send(404,{'error':'Not found'})
+  if path not in ('/run-framework','/screenshot-batch','/web-paste-batch'):return self.send(404,{'error':'Not found'})
   try:
    size=int(self.headers.get('Content-Length','0'))
    if not 0<size<=20000000:raise ValueError('Invalid payload size')
    payload=json.loads(self.rfile.read(size))
-   if path=='/screenshot-batch':
+   if path=='/web-paste-batch':
+    props=payload.get('props',[])
+    if not isinstance(props,list) or not 1<=len(props)<=100:raise ValueError('1-100 props required')
+    for p in props:
+     p['verified_rows']=parse_pasted_logs(p.get('game_log_text',''),p.get('source_url',''),p.get('season'))
+   elif path=='/screenshot-batch':
     images=payload.get('images',[])
     if not isinstance(images,list) or not 1<=len(images)<=20:raise ValueError('1-20 images required')
     props=[];errors=[]
